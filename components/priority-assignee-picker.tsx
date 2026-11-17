@@ -18,6 +18,13 @@ interface PriorityAssigneePickerProps {
   onSelect: (priority: number, assignee: User | null) => void
   selectedPriority: number
   selectedAssignee: User | null
+  /**
+   * The task's `assigneeId` — what "is this yours?" is decided by (ADEV-71).
+   * `selectedAssignee` is the loaded user, there to show a face and a name; a
+   * task whose user has not loaded still belongs to whoever this id says. Left
+   * out (quick add, which completes nothing), the sheet falls back to that user.
+   */
+  assigneeId?: string | null
   availableUsers: User[]
   currentUser?: User
   /**
@@ -83,6 +90,7 @@ export function PriorityAssigneePicker({
   onSelect,
   selectedPriority,
   selectedAssignee,
+  assigneeId,
   availableUsers,
   currentUser,
   currentUserId,
@@ -370,7 +378,11 @@ export function PriorityAssigneePicker({
                   data-testid="task-options-complete"
                   onClick={() =>
                     completion.request(
-                      { assigneeId: selectedAssignee?.id, assignee: selectedAssignee, completed },
+                      {
+                        assigneeId: assigneeId !== undefined ? assigneeId : selectedAssignee?.id,
+                        assignee: selectedAssignee,
+                        completed,
+                      },
                       onToggleComplete,
                     )
                   }

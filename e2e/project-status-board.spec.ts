@@ -81,6 +81,19 @@ test.describe('Project status board', () => {
         await page.getByTestId('waiting-prompt-confirm').click()
         await expect(prompt).toBeHidden()
       }
+      if (to === 'done') {
+        // The task is unassigned, so completing it asks first (ADEV-71). Cancel leaves the card…
+        const confirm = page.getByRole('dialog').filter({ hasText: 'Not assigned to anyone' })
+        await expect(confirm).toBeVisible()
+        await confirm.getByRole('button', { name: 'Cancel' }).click()
+        await expect(confirm).toBeHidden()
+        await expect(column(from)).toContainText(task.title)
+        // …and Complete moves it.
+        await card.dragTo(column(to))
+        await expect(confirm).toBeVisible()
+        await confirm.getByRole('button', { name: 'Complete' }).click()
+        await expect(confirm).toBeHidden()
+      }
       await expect(column(to)).toContainText(task.title)
       await expect
         .poll(async () => {

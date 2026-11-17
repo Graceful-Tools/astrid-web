@@ -5,6 +5,7 @@ import { useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { createLogger } from '@/lib/logger'
 import { workerLabels, type WorkerLabels } from '@/lib/i18n/worker-labels'
+import { completionNeedsConfirmation } from '@/lib/task-leading-control'
 
 export interface ClientReminder {
   taskId: string
@@ -15,6 +16,12 @@ export interface ClientReminder {
   status: 'pending' | 'sent' | 'cancelled'
   /** The worker's words in the page's language (AWTD-1592); public/sw.js keeps English without them. */
   labels?: WorkerLabels
+  /**
+   * May the notification's Complete finish the task without asking? Only for
+   * the user's own task (ADEV-71); public/sw.js opens it otherwise, and also
+   * when this is absent, as on reminders fetched without their task.
+   */
+  completesWithoutAsking?: boolean
 }
 
 class ClientReminderSync {
@@ -138,6 +145,8 @@ class ClientReminderSync {
     }
 
     const reminders: ClientReminder[] = []
+    // The one rule every completion surface asks (ADEV-71).
+    const completesWithoutAsking = !completionNeedsConfirmation({ assigneeId: task.assigneeId, currentUserId: userId })
 
     // Schedule reminder 15 minutes before due time
     const reminderTime = new Date(dueDate.getTime() - (15 * 60 * 1000))
@@ -148,7 +157,8 @@ class ClientReminderSync {
         scheduledFor: reminderTime,
         type: 'due_reminder',
         userId,
-        status: 'pending'
+        status: 'pending',
+        completesWithoutAsking,
       })
     } else if (dueDate > now) {
       // If less than 15 minutes until due, schedule for due time
@@ -158,7 +168,8 @@ class ClientReminderSync {
         scheduledFor: dueDate,
         type: 'due_reminder',
         userId,
-        status: 'pending'
+        status: 'pending',
+        completesWithoutAsking,
       })
     }
 
@@ -170,7 +181,8 @@ class ClientReminderSync {
       scheduledFor: overdueTime,
       type: 'overdue_reminder',
       userId,
-      status: 'pending'
+      status: 'pending',
+      completesWithoutAsking,
     })
 
     // Schedule each reminder

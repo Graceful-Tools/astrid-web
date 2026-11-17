@@ -96,6 +96,16 @@ export function isDefaultStatusRole(role: string | null | undefined): boolean {
 
 export type BoardColumnKind = 'inbox' | 'status' | 'done'
 
+/**
+ * Does moving a task INTO this column complete it? Only Done does, and Done is
+ * known by its KIND — `__done__` here, `__virtual_done__` on a project board,
+ * and whatever astrid-core spells it, all carry `kind: 'done'` (AWTD-1585).
+ * Asked before a move that would finish someone else's task (ADEV-71).
+ */
+export function isDoneColumn(column: { kind: string } | null | undefined): boolean {
+  return column?.kind === 'done'
+}
+
 export interface BoardColumn {
   id: string
   name: string

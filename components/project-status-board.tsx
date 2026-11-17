@@ -23,6 +23,7 @@ import {
   resolveProjectColumnMove,
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
@@ -118,6 +119,7 @@ export function ProjectStatusBoard({
 }: ProjectStatusBoardProps) {
   const { t } = useTranslations()
   const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
+  const completion = useCompletionConfirmation(currentUser?.id)
 
   const projectId = getProjectIdForBoard(lists, selectedListId)
   // Custom columns live on the project (task b346e377). Undefined while the
@@ -206,7 +208,13 @@ export function ProjectStatusBoard({
   const moveTaskToColumn = (taskId: string, column: ProjectBoardColumn) => {
     const task = boardTasks.find(candidate => candidate.id === taskId)
     if (!task) return
+    // Every move lands here — a drop, a touch drag, the sheet's state — so Done
+    // asks once for all of them when the task is not yours (ADEV-71). Nothing
+    // moves until the answer: a cancelled drop leaves the card in its column.
+    completion.requestColumnMove(task, column, () => applyMove(task, column))
+  }
 
+  const applyMove = (task: Task, column: ProjectBoardColumn) => {
     const result = resolveProjectColumnMove(task, column, lists)
     const listById = new Map(lists.map(list => [list.id, list]))
     const nextLists = result.listIds
@@ -489,6 +497,7 @@ export function ProjectStatusBoard({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
+            assigneeId={task.assigneeId ?? null}
             unassign={{ task, apply: onUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
@@ -509,6 +518,7 @@ export function ProjectStatusBoard({
           />
         )
       })()}
+      {completion.dialog}
     </div>
   )
 }

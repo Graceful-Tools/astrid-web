@@ -139,6 +139,12 @@ export interface PushNotificationPayload {
     url?: string
     /** The service worker's buttons and toasts in the recipient's language (AWTD-1592). */
     labels?: import('@/lib/i18n/worker-labels').WorkerLabels
+    /**
+     * May the notification's Complete complete the task without asking? True
+     * only for the recipient's own task; public/sw.js opens anything else
+     * (ADEV-71).
+     */
+    completesWithoutAsking?: boolean
   }
   icon?: string
   badge?: string
