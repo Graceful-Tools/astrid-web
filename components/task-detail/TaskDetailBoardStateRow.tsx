@@ -34,8 +34,6 @@ import type { Task, TaskList } from "@/types/task"
 interface TaskDetailBoardStateRowProps {
   task: Task
   availableLists: TaskList[]
-  /** 'list' | 'project'; absent means list. */
-  displayMode?: string | null
   readOnly: boolean
   onUpdate: (task: Task) => void
 }
@@ -43,7 +41,6 @@ interface TaskDetailBoardStateRowProps {
 export function TaskDetailBoardStateRow({
   task,
   availableLists,
-  displayMode,
   readOnly,
   onUpdate,
 }: TaskDetailBoardStateRowProps) {
@@ -58,7 +55,6 @@ export function TaskDetailBoardStateRow({
   const customStates = useProjectCustomStates(projectId)
 
   const visible = showsTaskDetailProjectState({
-    displayMode,
     isInProject: isTaskInProject(task, availableLists),
     isReadOnly: readOnly,
   })

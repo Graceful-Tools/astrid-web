@@ -145,8 +145,6 @@ interface MainContentProps {
   handleAddTaskButtonClick: () => void
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => Promise<void>
   handleUpdateTask: (task: Task) => void
-  /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
-  taskDisplayMode: string
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleQuickCreateTask: (title: string, options?: { priority?: number; assigneeId?: string | null; navigateToDetail?: boolean; listIds?: string[] }) => Promise<string | null>
   handleCreateNewTask: () => void
@@ -237,7 +235,6 @@ export function MainContent({
   handleAddTaskButtonClick,
   handleTaskClick,
   handleUpdateTask,
-  taskDisplayMode,
   handleToggleTaskComplete,
   handleQuickCreateTask,
   handleCreateNewTask,
@@ -433,7 +430,6 @@ export function MainContent({
     handleTaskDragLeaveTask,
     handleTaskDragEnd,
     handleUpdateTask,
-    taskDisplayMode,
   })
 
   const { board: boardRowContext, statusSource: boardStatusSource } = useBoardRowContext(lists, selectedListId)

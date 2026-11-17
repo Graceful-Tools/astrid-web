@@ -160,7 +160,6 @@ describe('Scroll-to-close task detail behavior', () => {
     handleUpdateTask: vi.fn(),
     handleLocalUpdateTask: vi.fn(),
     handleDeleteTask: vi.fn(),
-    taskDisplayMode: 'list',
     promoteTargetVisible: false,
     handleTaskDropOnPromoteTarget: vi.fn(),
   }

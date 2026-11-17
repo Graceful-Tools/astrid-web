@@ -13,7 +13,6 @@ import { CustomRepeatingEditor, isCustomPatternSavable } from "@/components/cust
 import { PriorityPicker } from "@/components/ui/priority-picker"
 import { PRIORITY_ROW_GLYPH } from "@/lib/priority-glyph"
 import { TaskFieldRow } from "./TaskFieldRow"
-import { usesCompactTaskDetail } from "@/lib/task-display-mode"
 import { TaskDetailBoardStateRow } from "./TaskDetailBoardStateRow"
 import { TaskDetailBlockersRow } from "./TaskDetailBlockersRow"
 import { TaskDetailDescriptionRow } from "./TaskDetailDescriptionRow"
@@ -39,8 +38,6 @@ interface TaskFieldEditorsProps {
   onUpdate: (task: Task) => void
   readOnly?: boolean  // If true, disable all editing
   shouldHidePriority?: boolean  // Hide priority field for public lists
-  /** Viewer's task display mode; absent means list (task ffa5bbb5). */
-  displayMode?: string | null
   shouldHideWhen?: boolean  // Hide when/due date field for public lists
 
   // Editing state from useTaskDetailState
@@ -108,7 +105,6 @@ export function TaskFieldEditors({
   onUpdate,
   readOnly = false,
   shouldHidePriority = false,
-  displayMode,
   shouldHideWhen = false,
   editingTitle,
   setEditingTitle,
@@ -156,10 +152,6 @@ export function TaskFieldEditors({
   setTempAssignee,
   onInviteUser
 }: TaskFieldEditorsProps) {
-  // Project mode compacts priority and assignee out of the panel and behind
-  // the leading control's popover (task ffa5bbb5). Normalized rather than
-  // compared, so an unrecognised mode renders the safe layout.
-  const compactTaskDetail = usesCompactTaskDetail(displayMode)
   const { t, locale } = useTranslations()
 
   // Local state for controlling Select dropdown open state
@@ -341,21 +333,19 @@ export function TaskFieldEditors({
        *  sits BETWEEN them. They still share their conditions exactly. */}
       {/* Priority and Assignee.
        *
-       *  LIST MODE gives each its own row (task ffa5bbb5). They shared one row
+       *  Each gets its own row (task ffa5bbb5). They shared one row
        *  — labelled "Priority", assignee beside the picker — since task
        *  dcbbb0fa; Jon asked for "separate rows in task details in all
        *  interfaces on board and list view for Priority and assigned".
        *
-       *  PROJECT MODE drops both entirely: "we compact the task details so
-       *  priority and assignee and complete/mark as incomplete are accessed by
-       *  tapping on the checkbox". The leading control opens the popover that
-       *  carries them, so this is a move rather than a removal.
+       *  The compact "project" layout that dropped both rows was removed from
+       *  web in ADEV-56, so they always render.
        *
        *  A PUBLIC-LIST TASK keeps its single "Created by" row and is not split.
        *  It shows its creator INSTEAD of an assignee and hides the priority
        *  picker, so splitting it would invent an assignee row for a task with
        *  no assignee concept. */}
-      {!shouldHidePriority && !compactTaskDetail && (
+      {!shouldHidePriority && (
         isPublicListTask ? (
           <TaskFieldRow label={t('tasks.createdBy')} icon={<UserIcon className="w-4 h-4" />}>
             <div className="flex flex-wrap items-center gap-3">
@@ -745,7 +735,7 @@ export function TaskFieldEditors({
         value={tempPriority}
         onChange={handleSavePriority}
         readOnly={readOnly}
-        hidden={shouldHidePriority || compactTaskDetail || isPublicListTask}
+        hidden={shouldHidePriority || isPublicListTask}
       />
 
 
@@ -778,7 +768,6 @@ export function TaskFieldEditors({
       <TaskDetailBoardStateRow
         task={task}
         availableLists={availableLists}
-        displayMode={displayMode}
         readOnly={readOnly}
         onUpdate={onUpdate}
       />

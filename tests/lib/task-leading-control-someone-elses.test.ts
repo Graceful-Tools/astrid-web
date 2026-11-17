@@ -59,47 +59,41 @@ describe('isSomeoneElsesTask (AWTD-877)', () => {
 
 describe('leadingControlOpensOptions with someone else\'s task (AWTD-877)', () => {
   it('opens the options popover on a plain list row, where the avatar used to be inert', () => {
-    expect(
-      leadingControlOpensOptions({ displayMode: 'list', onBoard: false, isSomeoneElses: true }),
-    ).toBe(true)
+    expect(leadingControlOpensOptions({ onBoard: false, isSomeoneElses: true })).toBe(true)
   })
 
-  it('wins on every surface, so the three of them cannot disagree', () => {
-    for (const displayMode of ['list', 'project']) {
-      for (const onBoard of [false, true]) {
-        expect(
-          leadingControlOpensOptions({ displayMode, onBoard, isSomeoneElses: true }),
-        ).toBe(true)
-      }
+  it('wins on every surface, so they cannot disagree', () => {
+    for (const onBoard of [false, true]) {
+      expect(leadingControlOpensOptions({ onBoard, isSomeoneElses: true })).toBe(true)
     }
   })
 
   it('changes nothing for your own task or an unassigned one', () => {
-    expect(
-      leadingControlOpensOptions({ displayMode: 'list', onBoard: false, isSomeoneElses: false }),
-    ).toBe(false)
-    expect(leadingControlOpensOptions({ displayMode: 'list', onBoard: false })).toBe(false)
-    expect(leadingControlOpensOptions({ displayMode: 'project', onBoard: false })).toBe(true)
-    expect(leadingControlOpensOptions({ displayMode: 'list', onBoard: true })).toBe(true)
+    expect(leadingControlOpensOptions({ onBoard: false, isSomeoneElses: false })).toBe(false)
+    expect(leadingControlOpensOptions({ onBoard: false })).toBe(false)
+    expect(leadingControlOpensOptions({ onBoard: true })).toBe(true)
   })
 })
 
-describe('completionNeedsConfirmation (AWTD-877)', () => {
+describe('completionNeedsConfirmation (AWTD-877, widened by ADEV-56)', () => {
   it('confirms before finishing work assigned to somebody else', () => {
     expect(completionNeedsConfirmation({ assigneeId: THEM, currentUserId: ME })).toBe(true)
   })
 
-  it('never confirms your own completion, in any display mode', () => {
-    // Trap 1: in project mode your OWN task wears your photo, so keying the
-    // confirmation off the avatar MARK would make people confirm their own
-    // completions. This compares ids, not marks — there is no display mode to
-    // pass, which is the point.
+  it('never confirms your own completion', () => {
+    // Trap 1: iOS's project layout puts your own photo on your own task, so
+    // keying the confirmation off the avatar MARK would make people confirm
+    // their own completions. This compares ids, not marks.
     expect(completionNeedsConfirmation({ assigneeId: ME, currentUserId: ME })).toBe(false)
   })
 
-  it('does not confirm an unassigned task', () => {
-    expect(completionNeedsConfirmation({ assigneeId: null, currentUserId: ME })).toBe(false)
-    expect(completionNeedsConfirmation({ assigneeId: '', currentUserId: ME })).toBe(false)
+  it('SUPERSEDED BY ADEV-56: now confirms an unassigned task too', () => {
+    // AWTD-877 let an unassigned task through ("nobody's work is being
+    // finished"). Jon, ADEV-56: "show confirmation before completing a task
+    // that isn't [assigned to me] (including unassigned)." Kept here, inverted,
+    // so a reader grepping for the old expectation finds what replaced it.
+    expect(completionNeedsConfirmation({ assigneeId: null, currentUserId: ME })).toBe(true)
+    expect(completionNeedsConfirmation({ assigneeId: '', currentUserId: ME })).toBe(true)
   })
 
   it('asks when it cannot tell who is looking', () => {

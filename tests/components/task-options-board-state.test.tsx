@@ -133,18 +133,28 @@ describe('board state selector (task ffa5bbb5)', () => {
 })
 
 describe('complete / mark incomplete (task ffa5bbb5)', () => {
-  it('offers completion for an open task', () => {
+  it('offers completion for an open task of your own', () => {
+    // Your own: a task that is not yours asks first (ADEV-56), which
+    // priority-assignee-picker-confirm.test.tsx covers.
+    const me = { id: 'user-me', name: 'Me', email: 'me@example.com', createdAt: new Date() }
     const onToggleComplete = vi.fn()
     render(
-      <PriorityAssigneePicker {...BASE} completed={false} onToggleComplete={onToggleComplete} />,
+      <PriorityAssigneePicker
+        {...BASE}
+        selectedAssignee={me}
+        currentUserId={me.id}
+        completed={false}
+        onToggleComplete={onToggleComplete}
+      />,
     )
     fireEvent.click(screen.getByTestId('task-options-complete'))
     expect(onToggleComplete).toHaveBeenCalledTimes(1)
   })
 
   it('offers reopening for a completed task', () => {
-    // The same control, relabelled — this is the only route to completion in
-    // project mode, so it has to work in both directions.
+    // The same control, relabelled — for a board's, someone else's or an
+    // unassigned task this is the route to completion, so it has to work in
+    // both directions.
     render(<PriorityAssigneePicker {...BASE} completed onToggleComplete={vi.fn()} />)
     expect(screen.getByTestId('task-options-complete')).toHaveTextContent(/incomplete|reopen/i)
   })

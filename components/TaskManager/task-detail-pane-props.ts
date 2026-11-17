@@ -29,7 +29,6 @@ export interface TaskDetailPaneDeps {
   /** The filtered, top-level rows: what the pickers inside the pane offer. */
   finalFilteredTasks: Task[]
   user: User
-  displayMode: string | null
   handleUpdateTask: (task: Task) => void | Promise<void>
   handleLocalUpdateTask: unknown
   handleDeleteTask: (taskId: string) => void | Promise<void>
@@ -47,7 +46,6 @@ export function taskDetailPaneProps(deps: TaskDetailPaneDeps) {
   const canEdit = taskList ? canUserEditTask(user, task, taskList) : true
 
   return {
-    displayMode: deps.displayMode,
     task,
     currentUser: user,
     availableLists: lists,

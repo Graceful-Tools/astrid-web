@@ -29,52 +29,18 @@ const BOARD_LIST = list('board-list', 'project-1')
 const PLAIN_LIST = list('plain-list')
 
 describe('showsTaskDetailProjectState (task 5221e43f)', () => {
-  it('shows the row for a board task in list mode', () => {
-    expect(
-      showsTaskDetailProjectState({ displayMode: 'list', isInProject: true, isReadOnly: false }),
-    ).toBe(true)
-  })
-
-  it('treats an absent display mode as list mode', () => {
-    // 'list' is the default everywhere else in the detail pane; a viewer who
-    // has never touched the setting must still get the row.
-    for (const displayMode of [null, undefined, '']) {
-      expect(
-        showsTaskDetailProjectState({ displayMode, isInProject: true, isReadOnly: false }),
-        String(displayMode),
-      ).toBe(true)
-    }
-  })
-
-  // AWTD-1665 / AITD-555 / astrid-core CONTRACTS D63: the leading control depicts WHO and
-  // PRIORITY, never the column, so project mode had no way to say where a board task was.
-  it('AITD-555: shows the row in project mode too (core D63), since the leading control never shows the column', () => {
-    expect(
-      showsTaskDetailProjectState({ displayMode: 'project', isInProject: true, isReadOnly: false }),
-    ).toBe(true)
-  })
-
-  it('AITD-555: project mode still hides it off a board and for a read-only viewer', () => {
-    expect(
-      showsTaskDetailProjectState({ displayMode: 'project', isInProject: false, isReadOnly: false }),
-    ).toBe(false)
-    expect(
-      showsTaskDetailProjectState({ displayMode: 'project', isInProject: true, isReadOnly: true }),
-    ).toBe(false)
+  it('shows the row for a board task', () => {
+    expect(showsTaskDetailProjectState({ isInProject: true, isReadOnly: false })).toBe(true)
   })
 
   it('hides the row for a task with no board column', () => {
-    // A row for a state the task cannot have IS the list/project hybrid the
-    // display-mode setting exists to end.
-    expect(
-      showsTaskDetailProjectState({ displayMode: 'list', isInProject: false, isReadOnly: false }),
-    ).toBe(false)
+    // A row for a state the task cannot have would be a board idea on a task
+    // that is not on a board.
+    expect(showsTaskDetailProjectState({ isInProject: false, isReadOnly: false })).toBe(false)
   })
 
   it('hides the row from a read-only viewer, because its chips WRITE', () => {
-    expect(
-      showsTaskDetailProjectState({ displayMode: 'list', isInProject: true, isReadOnly: true }),
-    ).toBe(false)
+    expect(showsTaskDetailProjectState({ isInProject: true, isReadOnly: true })).toBe(false)
   })
 })
 

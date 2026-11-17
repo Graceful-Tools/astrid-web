@@ -43,6 +43,7 @@ import { scopeTasksToList, withoutList, listPath, taskDetailPath } from "@/lib/t
 import { v1TaskUpdateBody } from "@/lib/tasks/v1-task-update-body"
 import type { UseTaskManagerControllerProps } from "@/hooks/task-manager/controller-contract"
 import { WAITING_PROMPT_OFFLINE } from "@/lib/waiting-prompt-offline"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 // On demand, not in the first load (AWTD-1593); offline the chunk cannot load, and the edit goes as asked.
 const waitingPrompt = () => import("@/lib/waiting-prompt").catch(() => WAITING_PROMPT_OFFLINE)
 import { postponeTaskDueDate, shiftTaskDueDate } from "@/lib/date-comparison"
@@ -92,7 +93,7 @@ export function useTaskManagerController({
   const myTasksPreferences = useMyTasksPreferences()
 
   // User settings (synced across devices via SSE)
-  const { smartTaskCreationEnabled, subtaskDisplay, taskDisplayMode } = useUserSettings()
+  const { smartTaskCreationEnabled, subtaskDisplay } = useUserSettings()
 
   // Layout state (managed externally by useTaskManagerLayout)
   const isMobile = externalIsMobile || false
@@ -1264,11 +1265,11 @@ export function useTaskManagerController({
     handleCreateNewTask()
   }, [handleCreateNewTask])
 
+  // Asks first when the task is not yours (ADEV-56); TaskManager renders the dialog.
+  const { request: requestCompletion, dialog: completionConfirmationDialog } = useCompletionConfirmation(effectiveSession?.user?.id)
   const handleCompleteTask = useCallback(() => {
-    if (selectedTask) {
-      handleToggleTaskComplete(selectedTask.id)
-    }
-  }, [selectedTask, handleToggleTaskComplete])
+    if (selectedTask) requestCompletion(selectedTask, () => { void handleToggleTaskComplete(selectedTask.id) })
+  }, [selectedTask, handleToggleTaskComplete, requestCompletion])
 
   const handlePostponeTask = useCallback(async () => {
     if (!selectedTask) return
@@ -1486,9 +1487,6 @@ export function useTaskManagerController({
     handleManualRefresh: listState.handleManualRefresh,
     handleTaskClick,
     handleUpdateTask,
-    // Which task-detail design this user sees (task ffa5bbb5). Already
-    // normalized by useUserSettings, so consumers never see a raw string.
-    taskDisplayMode,
     handleLocalUpdateTask,
     handleToggleTaskComplete,
     handleDeleteTask,
@@ -1518,6 +1516,7 @@ export function useTaskManagerController({
     handleJumpToDate,
     handleNewTask,
     handleCompleteTask,
+    completionConfirmationDialog,
     handlePostponeTask,
     handleRemoveDueDate,
     handleSetPriority,

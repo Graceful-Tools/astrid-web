@@ -40,7 +40,6 @@ import { isCollaborativePublicTask } from "@/lib/public-list-utils"
 import { useSlideCloseAnimation } from "@/hooks/task-manager/useSlideCloseAnimation"
 import { useTaskManagerLayoutRouter } from "@/hooks/task-manager/useTaskManagerLayoutRouter"
 import type { useFilterState } from "@/hooks/useFilterState"
-import type { TaskDisplayMode } from "@/lib/task-display-mode"
 import type { TaskManagerControllerReturn } from "@/hooks/task-manager/controller-contract"
 
 export interface TaskManagerViewModel {
@@ -181,8 +180,6 @@ export interface TaskManagerViewModel {
   loadData: () => Promise<void>
   handleTaskClick: (taskId: string, taskElement?: HTMLElement) => void
   handleUpdateTask: (task: Task) => void
-  /** Viewer's task display mode: 'list' | 'project' (task ffa5bbb5). */
-  taskDisplayMode: TaskDisplayMode
   handleLocalUpdateTask: (task: Task) => void
   handleToggleTaskComplete: (taskId: string) => Promise<void>
   handleDeleteTask: (taskId: string) => void
@@ -368,7 +365,6 @@ const TaskManagerView = memo(function TaskManagerView({
   loadData,
   handleTaskClick,
   handleUpdateTask,
-  taskDisplayMode,
   handleLocalUpdateTask,
   handleToggleTaskComplete,
   handleDeleteTask,
@@ -884,7 +880,6 @@ const TaskManagerView = memo(function TaskManagerView({
             handleAddTaskButtonClick={handleAddTaskButtonClick}
             handleTaskClick={async (taskId: string, taskElement?: HTMLElement) => handleTaskClick(taskId, taskElement)}
             handleUpdateTask={handleUpdateTask}
-            taskDisplayMode={taskDisplayMode}
             handleToggleTaskComplete={handleToggleTaskComplete}
             handleQuickCreateTask={handleQuickCreateTask}
             handleCreateNewTask={handleCreateNewTask}
@@ -970,7 +965,7 @@ const TaskManagerView = memo(function TaskManagerView({
             <LazyTaskDetail
               {...taskDetailPaneProps({
                 task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
-                user: effectiveSession.user, displayMode: taskDisplayMode,
+                user: effectiveSession.user,
                 handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
                 handleToggleTaskComplete, handleCreateTask,
               })}
@@ -985,7 +980,7 @@ const TaskManagerView = memo(function TaskManagerView({
       {/* A board card's details: the same pane, as a callout beside the card (AITD-679). */}
       {layout.showBoardTaskCallout && selectedTask && effectiveSession?.user && (
         <BoardTaskCallout taskId={selectedTask.id} anchor={selectedTaskElement} onClose={closeTaskDetail} closing={isTaskPaneClosing} paneProps={taskDetailPaneProps({
-          task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks, user: effectiveSession.user, displayMode: taskDisplayMode,
+          task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks, user: effectiveSession.user,
           handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask, handleToggleTaskComplete, handleCreateTask,
         })} />
       )}
@@ -1022,7 +1017,7 @@ const TaskManagerView = memo(function TaskManagerView({
             <LazyTaskDetail
               {...taskDetailPaneProps({
                 task: selectedTask, lists, selectedListId, tasks, finalFilteredTasks,
-                user: effectiveSession.user, displayMode: taskDisplayMode,
+                user: effectiveSession.user,
                 handleUpdateTask, handleLocalUpdateTask, handleDeleteTask, handleCopyTask,
                 handleToggleTaskComplete, handleCreateTask,
               })}

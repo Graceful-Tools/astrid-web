@@ -20,12 +20,11 @@ export interface TaskRowContentProps {
   isMobile?: boolean
   onToggleComplete: () => void
   onCopyPublic: () => void
-  /** The viewer's task display mode; absent means list (task ffa5bbb5). */
-  displayMode?: string | null
-  /** Project mode: open the options popover instead of completing. */
+  /** Open the options popover; the leading control decides when a tap does
+   *  (lib/task-leading-control.ts `leadingControlOpensOptions`). */
   onOpenOptions?: () => void
   /** The task's list is on a project board: tap opens the options popover
-   *  whatever the display mode (task 036ef139). */
+   *  (task 036ef139). */
   onBoard?: boolean
   /** Task id to show, muted, in the metadata row with the due time and the list
    *  pills (AWTD-1017, moved off the title line by AWTD-1170). The caller decides
@@ -46,7 +45,6 @@ export function TaskRowContent({
   isMobile,
   onToggleComplete,
   onCopyPublic,
-  displayMode,
   onOpenOptions,
   onBoard,
   identifier,
@@ -75,7 +73,6 @@ export function TaskRowContent({
           priority={task.priority}
           repeating={task.repeating !== 'never'}
           onToggleComplete={onToggleComplete}
-          displayMode={displayMode}
           onOpenOptions={onOpenOptions}
           onBoard={onBoard}
         />
