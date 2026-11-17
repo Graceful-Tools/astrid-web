@@ -297,7 +297,12 @@ export function LeftSidebar({
               </div>
             </Button>
 
-            {/* Saved Filters */}
+            {/* Favorites */}
+            {lists.some(list => list.isFavorite) && (
+              <div className="text-caption2 font-medium opacity-50 tracking-wide pt-3 pb-1 px-2">
+                {t("navigation.favorites")}
+              </div>
+            )}
             {lists
               .filter(list => list.isFavorite)
               .filter((list, index, self) => {
