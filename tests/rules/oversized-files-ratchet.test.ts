@@ -62,7 +62,9 @@ const BUDGETS: Record<string, number> = {
   // 1477 → 1473: AITD-679 took the board card's in-place `inline` mode out
   // (cards open a callout now) and an unused English `priorityLabels` with it,
   // which more than paid for the callout's arrow.
-  'components/task-detail.tsx': 1463,
+  // 1463 → 1456: ADEV-71 gave the status picker's Done and the subtasks their
+  // confirmation (six lines), paid for by thirteen imports nothing here used.
+  'components/task-detail.tsx': 1456,
   'lib/ai-orchestrator.ts': 1547,
   // 1205 → 1199: AWTD-1227 needed four more props on the task-detail pane, and
   // this file renders that pane TWICE — desktop and mobile — with a dozen

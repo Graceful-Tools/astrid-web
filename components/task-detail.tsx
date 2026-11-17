@@ -11,20 +11,10 @@ import { useTaskShareLink } from "@/hooks/task-detail/useTaskShareLink"
 import { usePullToRefresh } from "@/hooks/use-pull-to-refresh"
 import { useAgentTyping } from "@/hooks/use-agent-typing"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { MarkdownEditor } from "./markdown-editor"
-import { UserPicker } from "./user-picker"
-import { CustomRepeatingEditor } from "./custom-repeating-editor"
-import { PriorityPicker } from "./ui/priority-picker"
-import { TimePicker, formatConciseTime } from "./ui/time-picker"
 import { CommentSection, CommentInputBar } from "./task-detail/CommentSection"
 import { TaskFieldEditors } from "./task-detail/TaskFieldEditors"
 import { PriorityAssigneePicker } from "./priority-assignee-picker"
+import { useCompletionConfirmation } from "./completion-confirmation"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { boardColumnsFor, taskColumnId } from "@/lib/task-status"
 import { taskMenuDuplicatesPaneControls } from "@/lib/task-detail-project-state"
@@ -36,10 +26,8 @@ import { TaskActivitySection } from "./task-detail/TaskActivitySection"
 import { TaskDetailSubtasksSection } from "./task-detail/TaskDetailSubtasksSection"
 import type { Task, Comment, User, TaskList } from "../types/task"
 import { Calendar as CalendarIcon, Paperclip, MessageSquare, Lock, Unlock, Check, X, Upload, Image as ImageIcon, FileText, Reply, Send, Copy, Link as LinkIcon } from "lucide-react"
-import { apiPost } from "@/lib/api"
 import { shouldHideTaskPriority, shouldHideTaskWhen, shouldHideTaskComments } from "@/lib/public-list-utils"
 import { upsertComment, updateComment, removeComment, nestComments } from "@/lib/comment-stream"
-import { format } from "date-fns"
 import { useTheme } from "@/contexts/theme-context"
 import { useSSESubscription } from "@/hooks/use-sse-subscription"
 import { useSettings } from "@/contexts/settings-context"
@@ -714,8 +702,10 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
 
   // AWTD-1252 and AWTD-1253; both rules are stated at their source.
   const menuDuplicates = taskMenuDuplicatesPaneControls({ task, availableLists, readOnly })
-  const applyStatusColumn = (columnId: string) =>
-    applyProjectColumnTo(task, columnId, statusColumns, availableLists, onUpdate)
+  // Done from the header menu or the sheet completes: not yours, it asks (ADEV-71).
+  const completion = useCompletionConfirmation(currentUser.id)
+  const applyStatusColumn = (columnId: string) => completion.requestColumnMove(task, statusColumns.find(column => column.id === columnId),
+    () => applyProjectColumnTo(task, columnId, statusColumns, availableLists, onUpdate))
 
   const handleToggleComplete = async () => {
     const newCompleted = !tempCompleted
@@ -1261,6 +1251,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           }}
           selectedPriority={task.priority}
           selectedAssignee={task.assignee ?? null}
+          assigneeId={task.assigneeId ?? null}
           unassign={{ task, apply: onUpdate }}
           availableUsers={[]}
           taskId={task.id}
@@ -1371,7 +1362,9 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           onToggleComplete={onToggleSubtaskComplete}
           onAdd={onAddSubtask ? (title: string) => onAddSubtask(task.id, title) : undefined}
           readOnly={readOnly}
+          currentUserId={currentUser.id}
         />
+        {completion.dialog}
 
         {/* Activity: attachments + timer (Stage 22 sub-view) */}
         <TaskActivitySection

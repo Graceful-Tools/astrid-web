@@ -6,6 +6,7 @@ import { createPortal } from "react-dom"
 import { Button } from "@/components/ui/button"
 import { useTranslations } from "@/lib/i18n/client"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
+import { isDoneColumn } from "@/lib/task-status"
 
 /**
  * "Complete this task?" — asked before finishing a task that is not yours
@@ -110,6 +111,14 @@ export function completionAssigneeLabel(assigneeId: string | null | undefined, a
  * sheet's Complete button, and the board cards all route here. A surface that
  * grew its own copy is how a confirmation existed in task details and nowhere
  * else (task 43bcc76c).
+ *
+ * `requestColumnMove(task, column, move)` is the same question for a board
+ * move (ADEV-71): a status picker's Done, a card dragged onto Done. Only a move
+ * INTO Done asks; every other column runs at once. The move is held, not
+ * applied and undone, so a cancelled drag leaves the card where it was.
+ *
+ * Decide by `assigneeId`. `assignee` is only the name the dialog shows: a task
+ * whose `assignee` has not loaded is still the task of whoever `assigneeId` says.
  */
 export function useCompletionConfirmation(currentUserId: string | null | undefined) {
   const [pending, setPending] = React.useState<{ label: string | null; run: () => void } | null>(null)
@@ -134,6 +143,14 @@ export function useCompletionConfirmation(currentUserId: string | null | undefin
     [currentUserId],
   )
 
+  const requestColumnMove = React.useCallback(
+    (task: Parameters<typeof request>[0], column: { kind: string } | null | undefined, move: () => void) => {
+      if (isDoneColumn(column)) request(task, move)
+      else move()
+    },
+    [request],
+  )
+
   const cancel = React.useCallback(() => setPending(null), [])
 
   const dialog = pending ? (
@@ -147,5 +164,5 @@ export function useCompletionConfirmation(currentUserId: string | null | undefin
     />
   ) : null
 
-  return { request, dialog }
+  return { request, requestColumnMove, dialog }
 }

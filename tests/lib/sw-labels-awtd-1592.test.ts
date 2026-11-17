@@ -108,14 +108,16 @@ describe('service worker labels (AWTD-1592)', () => {
 
   it('a failed complete on a German push is reported in German', async () => {
     const sw = runServiceWorker(false)
-    await sw.click('complete', { taskId: 't1', labels: GERMAN })
+    // completesWithoutAsking: superseded by ADEV-71 — only the recipient's own
+    // task completes from a notification; anything else opens.
+    await sw.click('complete', { taskId: 't1', labels: GERMAN, completesWithoutAsking: true })
     expect(sw.shown[0].title).toBe(w.completeFailedTitle)
     expect(sw.shown[0].options.body).toBe(w.completeFailedBody)
   })
 
   it('a payload without labels keeps the English it always had', async () => {
     const sw = runServiceWorker()
-    await sw.click('complete', { taskId: 't1' })
+    await sw.click('complete', { taskId: 't1', completesWithoutAsking: true }) // ADEV-71
     expect(sw.shown[0].title).toBe('Task Completed')
     expect(sw.shown[0].options.body).toBe('Task marked as complete!')
   })

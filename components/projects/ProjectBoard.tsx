@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,9 +122,12 @@ export function ProjectBoard({
   }
   const removeRow = (listId: string) => void save(removeBoardRow(rowIds, listId))
 
+  // A drop or the sheet's state: Done asks first when the task is not yours,
+  // and nothing moves until the answer (ADEV-71).
+  const completion = useCompletionConfirmation(currentUser?.id)
   const moveTask = (taskId: string, column: ProjectBoardColumn) => {
     const task = allTasks.find(candidate => candidate.id === taskId)
-    if (task) applyProjectColumnTo(task, column.id, columns, lists, onUpdateTask)
+    if (task) completion.requestColumnMove(task, column, () => applyProjectColumnTo(task, column.id, columns, lists, onUpdateTask))
   }
 
   const optionsTask = optionsTaskId ? allTasks.find(candidate => candidate.id === optionsTaskId) : undefined
@@ -407,6 +411,7 @@ export function ProjectBoard({
           }}
           selectedPriority={optionsTask.priority}
           selectedAssignee={optionsTask.assignee ?? null}
+          assigneeId={optionsTask.assigneeId ?? null}
           unassign={{ task: optionsTask, apply: onUpdateTask }}
           availableUsers={[]}
           taskId={optionsTask.id}
@@ -426,6 +431,7 @@ export function ProjectBoard({
           }}
         />
       )}
+      {completion.dialog}
     </div>
   )
 }

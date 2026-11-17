@@ -651,9 +651,22 @@ async function handleSnoozeAction(notificationData, minutes) {
 }
 
 // Handle complete action
+//
+// Completing a task that is not yours asks first (ADEV-56, ADEV-71), and a
+// service worker has no page to ask on. So Complete completes from here only
+// when the sender marked the task as the recipient's own — the cron's push and
+// the page's client-side reminders both answer `completesWithoutAsking` with the
+// app's one rule (lib/task-leading-control.ts) — and OPENS anything else, where
+// completing it asks like everywhere else. A payload that does not say (an
+// older notification, a reminder whose assignee was unknown) opens too: a
+// silent completion of someone else's task is the outcome that cannot be undone.
 async function handleCompleteAction(notificationData) {
   try {
     if (!notificationData.taskId) {
+      return;
+    }
+    if (notificationData.completesWithoutAsking !== true) {
+      await openAppWindow(notificationData.url || `/tasks/${notificationData.taskId}`);
       return;
     }
     
@@ -719,7 +732,7 @@ self.addEventListener('message', (event) => {
 // Schedule a client-side reminder
 function scheduleClientReminder(reminderData) {
   try {
-    const { taskId, title, scheduledFor, type, userId, labels } = reminderData;
+    const { taskId, title, scheduledFor, type, userId, labels, completesWithoutAsking } = reminderData;
     const scheduledTime = new Date(scheduledFor);
     const now = new Date();
     
@@ -741,6 +754,7 @@ function scheduleClientReminder(reminderData) {
         type,
         userId,
         labels,
+        completesWithoutAsking,
         scheduledFor: scheduledTime
       });
       
@@ -784,7 +798,7 @@ async function showClientReminder(reminderData) {
       return;
     }
 
-    const { taskId, title, type, labels } = reminderData;
+    const { taskId, title, type, labels, completesWithoutAsking } = reminderData;
 
     let notificationTitle = label(labels, 'reminderTitle');
     let notificationBody = title;
@@ -806,7 +820,8 @@ async function showClientReminder(reminderData) {
         taskId,
         action: 'task_reminder',
         url: `/tasks/${taskId}`,
-        source: 'client-side'
+        source: 'client-side',
+        completesWithoutAsking: completesWithoutAsking === true
       },
       actions: [
         { action: 'open', title: label(labels, 'viewTask') },

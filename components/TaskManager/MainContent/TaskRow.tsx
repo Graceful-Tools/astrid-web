@@ -3,6 +3,7 @@
 import React from "react"
 import { TaskRowContent } from "../../task-row-content"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import type { TaskDragCapability } from "@/lib/touch-drag-sort"
 import { boardColumnsFor, resolveColumnMove, taskColumnId } from "@/lib/task-status"
 import {
@@ -183,6 +184,10 @@ function TaskRowImpl({
     ? getTaskProjectColumnId(task, board.columns)
     : taskColumnId(task)
 
+  // Choosing Done completes the task, so a task that is not yours asks first
+  // (ADEV-71) — held until the answer, never moved and moved back.
+  const completion = useCompletionConfirmation(currentUserId)
+  const { requestColumnMove } = completion
   const applyColumn = React.useCallback(
     (columnId: string) => {
       setOptionsOpen(false)
@@ -193,24 +198,28 @@ function TaskRowImpl({
         // The board's own move function, so a state set from the row and a
         // card dragged into a column cannot mean different things — including
         // the stale status membership it strips.
-        const move = resolveProjectColumnMove(task, column, board.lists)
-        const listById = new Map(board.lists.map(entry => [entry.id, entry]))
-        const nextLists = move.listIds
-          .map(listId => listById.get(listId))
-          .filter((entry): entry is TaskList => Boolean(entry))
-        handleUpdateTask({
-          ...task,
-          completed: move.completed,
-          lists: nextLists,
-          statusRole: move.statusRole,
-        } as Task)
+        requestColumnMove(task, column, () => {
+          const move = resolveProjectColumnMove(task, column, board.lists)
+          const listById = new Map(board.lists.map(entry => [entry.id, entry]))
+          const nextLists = move.listIds
+            .map(listId => listById.get(listId))
+            .filter((entry): entry is TaskList => Boolean(entry))
+          handleUpdateTask({
+            ...task,
+            completed: move.completed,
+            lists: nextLists,
+            statusRole: move.statusRole,
+          } as Task)
+        })
         return
       }
 
-      const move = resolveColumnMove(task, columnId)
-      handleUpdateTask({ ...task, statusRole: move.statusRole, completed: move.completed })
+      requestColumnMove(task, genericColumns.find(candidate => candidate.id === columnId), () => {
+        const move = resolveColumnMove(task, columnId)
+        handleUpdateTask({ ...task, statusRole: move.statusRole, completed: move.completed })
+      })
     },
-    [task, handleUpdateTask, board],
+    [task, handleUpdateTask, board, genericColumns, requestColumnMove],
   )
   // The board column as a coloured pill — this is a LIST row (AWTD-1582).
   const boardStatus = React.useMemo(
@@ -442,6 +451,7 @@ function TaskRowImpl({
             }}
             selectedPriority={task.priority}
             selectedAssignee={task.assignee ?? null}
+            assigneeId={task.assigneeId ?? null}
             unassign={{ task, apply: handleUpdateTask }}
             availableUsers={[]}
             taskId={task.id}
@@ -457,6 +467,7 @@ function TaskRowImpl({
             }}
           />
         )}
+        {completion.dialog}
         {dragCapability.touchDrag && manualSortActive && (
           <div
             className="absolute bottom-0.5 left-1/2 z-30 flex -translate-x-1/2 items-end justify-center"

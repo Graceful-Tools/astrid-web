@@ -198,7 +198,15 @@ identically to a task you own. That is the bug this rule exists to prevent.
   task?" naming the assignee, or saying nobody holds it, before completing.
   Your own task never asks, and reopening never asks. Web:
   `completionNeedsConfirmation` in `lib/task-leading-control.ts`, asked by the
-  options sheet, the leading control and the complete-task shortcut.
+  options sheet, the leading control and the complete-task shortcut — and, since
+  ADEV-71, by a subtask's checkbox (by the *subtask's* assignee), a reminder's
+  Complete, choosing Done in a status picker, and dragging a card onto Done
+  (nothing moves until the answer, so a cancelled drag leaves the card where it
+  was). Moving into any other column never asks. The decision reads
+  `assigneeId`, never the loaded `assignee`. A push notification's Complete
+  cannot show a dialog, so it completes only when the sender marked the task
+  as the recipient's own (`completesWithoutAsking`) and otherwise opens the
+  task.
 - **Web has no "Project" task layout** (ADEV-56). The `taskDisplayMode`
   setting is still stored and served for iOS/Mac, where `project` remains a
   valid value; web always renders the list layout and no longer offers the
