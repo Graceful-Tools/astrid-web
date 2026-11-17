@@ -2715,6 +2715,14 @@
       "done": "Terminé",
       "testing": "Test"
     },
+    "empty": {
+      "inbox": "Rien de nouveau à trier ! Les tâches sans statut arrivent ici.",
+      "ready": "Rien en attente ! Déplacez une tâche ici quand elle est prête à démarrer.",
+      "doing": "Rien en cours. Choisissez quelque chose dans Prêt et lancez-vous !",
+      "waiting": "Rien en pause ! Les tâches qui attendent une date ou une autre tâche apparaissent ici.",
+      "done": "Aucune tâche terminée pour l'instant. Terminez-en une et fêtez ça ici !",
+      "custom": "Rien ici pour l'instant ! Faites glisser une tâche pour la faire avancer."
+    },
     "blurb": {
       "inbox": "Déplacez-les vers « Prêt » quand elles sont… prêtes !",
       "ready": "Au travail !",
