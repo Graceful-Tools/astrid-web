@@ -15,6 +15,7 @@ import { ProjectBoard, type ProjectBoardProps } from "@/components/projects/Proj
 import { setSelectedProjectId, useSelectedProjectId } from "@/hooks/use-selected-project"
 import { useProjectMode } from "@/hooks/use-project-mode"
 import { useLoadedProjects } from "@/hooks/use-loaded-projects"
+import { mayAdministerProject } from "@/lib/list-project-moves"
 import { peekLoadedProjects } from "@/lib/client-projects"
 import type { Task, TaskList, User } from "@/types/task"
 
@@ -45,6 +46,7 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCr
       key={project.id}
       projectId={project.id}
       projectName={project.name || project.key || ""}
+      canEditSettings={mayAdministerProject(currentUser?.id ?? "", project)}
       lists={lists}
       allTasks={tasks}
       currentUser={currentUser}

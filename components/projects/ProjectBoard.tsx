@@ -28,9 +28,10 @@
  * components/TaskManager/lazy-panels.tsx, so none of this is first-load JS.
  */
 import React from "react"
-import { CheckCircle2, Inbox, Plus, X } from "lucide-react"
+import { CheckCircle2, Inbox, Plus, Settings, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import {
   DropdownMenu,
@@ -68,6 +69,8 @@ import type { Task, TaskList, User } from "@/types/task"
 export interface ProjectBoardProps {
   projectId: string
   projectName: string
+  /** Owner or project admin: the board offers Project settings (ADEV-54). */
+  canEditSettings?: boolean
   lists: TaskList[]
   allTasks: Task[]
   currentUser?: User | null
@@ -86,6 +89,7 @@ const cellKey = (listId: string, columnId: string) => `${listId}:${columnId}`
 export function ProjectBoard({
   projectId,
   projectName,
+  canEditSettings = false,
   lists,
   allTasks,
   currentUser,
@@ -100,6 +104,7 @@ export function ProjectBoard({
   const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
+  const [settingsOpen, setSettingsOpen] = React.useState(false)
   const [isListDragOver, setIsListDragOver] = React.useState(false)
   const [drafts, setDrafts] = React.useState<Record<string, string>>({})
   const [creatingCell, setCreatingCell] = React.useState<string | null>(null)
@@ -221,6 +226,27 @@ export function ProjectBoard({
     >
       <div className="flex items-center justify-between gap-3 border-b theme-border px-4 py-4">
         <h1 className="truncate text-2xl font-semibold tracking-tight theme-text-primary">{projectName}</h1>
+        <div className="flex shrink-0 items-center gap-2">
+        {canEditSettings && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              aria-label={t("projectMode.boardSettings")}
+              title={t("projectMode.boardSettings")}
+              data-testid="project-board-settings"
+              onClick={() => setSettingsOpen(true)}
+            >
+              <Settings className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <ProjectSettingsDialog
+              projectId={projectId}
+              projectName={projectName}
+              open={settingsOpen}
+              onOpenChange={setSettingsOpen}
+            />
+          </>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" data-testid="project-board-add-list">
@@ -238,6 +264,7 @@ export function ProjectBoard({
             ))}
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
 
       {saveFailed && (
