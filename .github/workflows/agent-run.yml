@@ -62,6 +62,11 @@ on:
         required: false
         default: false
         type: boolean
+      task_id:
+        description: 'With use_runner: slot 2 runs astrid-agent run --task <id> (any status, e.g. Inbox); other slots stand down (ADEV-88)'
+        required: false
+        default: ''
+        type: string
 
 # No workflow-level concurrency group (ADEV-26). There used to be one,
 # agent-run-<harness>, which made the whole loop ONE worker: a run held the
@@ -228,7 +233,12 @@ jobs:
         id: preflight
         env:
           DRY_RUN: ${{ inputs.dry_run }}
+          PINNED_TASK: ${{ inputs.use_runner && inputs.task_id || '' }}
         run: |
+          if [ -n "${PINNED_TASK}" ] && ! [[ "${PINNED_TASK}" =~ ^[A-Za-z0-9-]+$ ]]; then
+            echo "::error::task_id must be a task id or identifier"
+            exit 1
+          fi
           AGENT=$(node -e 'const m={"claude-code":"claude","codex":"codex"}; const a=m[process.env.ASTRID_FIXALL_HARNESS]; if(!a) process.exit(1); process.stdout.write(a)')
           echo "agent=${AGENT}" >> "${GITHUB_OUTPUT}"
           if [ "${DRY_RUN}" != "true" ]; then
@@ -263,7 +273,9 @@ jobs:
             if(p.version!==1 || typeof p.work!=="boolean" || !Array.isArray(p.wakeKeys)) process.exit(1);
             const slot=Number(process.env.ASTRID_AGENT_SLOT||"1");
             const queued=Array.isArray(p.snapshot&&p.snapshot.queue)?p.snapshot.queue.length:0;
-            const work=slot===1 ? p.work : queued>0;
+            // ADEV-88: a pinned task_id belongs to slot 2 alone; the other slots stand down.
+            const pinned=process.env.PINNED_TASK||"";
+            const work=pinned ? slot===2 : slot===1 ? p.work : queued>0;
             fs.writeFileSync(".agent-output/wake-keys.json",JSON.stringify(slot===1 ? p.wakeKeys : []));
             fs.appendFileSync(process.env.GITHUB_OUTPUT,`work=${work}\n`);
             console.log(`Slot ${slot}: ${queued} Ready task(s) queued, work=${work}`);
@@ -448,6 +460,7 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           HEARTBEAT_AGENT: ${{ steps.preflight.outputs.agent }}
           USE_RUNNER: ${{ inputs.use_runner }}
+          PINNED_TASK: ${{ inputs.use_runner && inputs.task_id || '' }}
         run: |
           set -o pipefail
           npm install --global @anthropic-ai/claude-code@2.1.306
@@ -484,9 +497,11 @@ jobs:
             declare -f run_claude > "${RUNNER_TEMP}/run-claude.sh"
             echo run_claude >> "${RUNNER_TEMP}/run-claude.sh"
             export ASTRID_CORE_PUSH
+            TASK_FLAGS=()
+            if [ -n "${PINNED_TASK}" ]; then TASK_FLAGS=(--task "${PINNED_TASK}"); fi
             npx --yes -p @gracefultools/astrid-sdk@1.0.3 astrid-agent run --agent "${HEARTBEAT_AGENT}" \
               --list "${ASTRID_OAUTH_LIST_ID}" --include-unassigned --fixall --harness custom \
-              --command "bash \"${RUNNER_TEMP}/run-claude.sh\"" && STATUS=0 || STATUS=$?
+              "${TASK_FLAGS[@]}" --command "bash \"${RUNNER_TEMP}/run-claude.sh\"" && STATUS=0 || STATUS=$?
             if [ "${STATUS}" = 3 ]; then
               echo "RESULT: SKIPPED — every Ready task is taken by another worker or session" | tee .agent-output/agent-transcript.txt
               exit 0
