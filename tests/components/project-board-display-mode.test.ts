@@ -1,5 +1,6 @@
 /**
- * The project board wires project mode with ITS OWN columns (task ffa5bbb5).
+ * The project board feeds its options sheet ITS OWN columns (task ffa5bbb5).
+ * The project LAYOUT this file once also covered is gone from web (ADEV-56).
  *
  * Jon asked for "board state (ready, waiting, doing, inbox, custom states if
  * relevant)". The custom states only exist on a project, and the project board
@@ -29,32 +30,26 @@ const src = readFileSync(
   'utf8',
 )
 
-describe('the project board opts into project mode (task ffa5bbb5)', () => {
-  it('reads the display mode once for the whole board', () => {
-    // Per-row would mean one settings fetch per card.
-    expect(src).toMatch(/useUserSettings\(\)/)
-    expect((src.match(/useUserSettings\(\)/g) || []).length).toBe(1)
+describe('the project board has no project layout any more (ADEV-56)', () => {
+  it('does not read or pass a display mode', () => {
+    // Web removed the "project" task layout; the stored value is for native
+    // clients only, so the board has nothing to read it for.
+    expect(src).not.toMatch(/useUserSettings\(\)/)
+    expect(src).not.toMatch(/displayMode=/)
+    expect(src).not.toMatch(/usesCompactTaskDetail/)
   })
 
-  it('passes the mode to its rows', () => {
-    expect(src).toMatch(/displayMode=\{taskDisplayMode\}/)
-  })
-
-  it("its task detail is the row pane's, which carries the same mode (AITD-679)", () => {
-    // A card no longer renders TaskDetail itself: it opens the callout, whose
-    // props come from taskDetailPaneProps with the viewer's display mode.
+  it("its task detail is the row pane's, with no display mode either (AITD-679)", () => {
     const view = readFileSync(join(process.cwd(), 'components/TaskManagerView.tsx'), 'utf8')
     const callout = view.slice(view.indexOf('<BoardTaskCallout'))
-    expect(callout).toMatch(/taskDetailPaneProps\(\{[\s\S]*?displayMode: taskDisplayMode/)
+    expect(callout).toMatch(/taskDetailPaneProps\(\{/)
+    expect(callout.slice(0, callout.indexOf('})} />'))).not.toMatch(/displayMode/)
   })
 
-  it('opens the options sheet from the leading control', () => {
-    // AWTD-877 widened the condition: compact mode OR the task being someone
-    // else's, since their card is the only route to reassign, reprioritise or
-    // complete-with-confirmation. Asserting the whole ternary would pin the
-    // formatting, so this pins the two conditions that decide it.
-    expect(src).toMatch(/onOpenOptions=\{\s*compact \|\|/)
-    expect(src).toMatch(/isSomeoneElsesTask\(\{/)
+  it("opens the options sheet from someone else's card (AWTD-877)", () => {
+    // The only route to reassign, reprioritise or complete-with-confirmation.
+    // The compact-mode half of this condition went with the layout.
+    expect(src).toMatch(/onOpenOptions=\{\s*isSomeoneElsesTask\(\{/)
   })
 })
 

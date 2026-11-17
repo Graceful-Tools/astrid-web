@@ -1,5 +1,4 @@
 import { useMemo } from "react"
-import { normalizeTaskDisplayMode } from "@/lib/task-display-mode"
 import type { Task } from "@/types/task"
 import type { TaskRowControllerSlice } from "@/components/TaskManager/MainContent/TaskRow"
 
@@ -15,9 +14,7 @@ import type { TaskRowControllerSlice } from "@/components/TaskManager/MainConten
  * virtualization is off entirely in manual-sort mode.
  *
  * Inputs are taken loosely because that is how they arrive at MainContent —
- * declared with a void return and a bare string several props up the chain.
- * Normalising here means a display mode that travelled down that chain still
- * cannot reach a row as an unrecognised value (task ffa5bbb5).
+ * declared with a void return several props up the chain.
  */
 export interface TaskRowControllerInput {
   selectedTaskId: string
@@ -35,7 +32,6 @@ export interface TaskRowControllerInput {
   handleTaskDragLeaveTask: (taskId: string) => void
   handleTaskDragEnd: () => void
   handleUpdateTask: (task: Task) => Promise<void> | void
-  taskDisplayMode: unknown
 }
 
 export function useTaskRowController({
@@ -54,7 +50,6 @@ export function useTaskRowController({
   handleTaskDragLeaveTask,
   handleTaskDragEnd,
   handleUpdateTask,
-  taskDisplayMode,
 }: TaskRowControllerInput): TaskRowControllerSlice {
   // Annotated, not asserted. `as TaskRowControllerSlice` succeeds whenever the
   // target is merely assignable to the source, so a field added to the slice
@@ -80,7 +75,6 @@ export function useTaskRowController({
     handleUpdateTask: async (updated: Task) => {
       await handleUpdateTask(updated)
     },
-    taskDisplayMode: normalizeTaskDisplayMode(taskDisplayMode),
   }), [
     selectedTaskId,
     activeDragTaskId,
@@ -97,6 +91,5 @@ export function useTaskRowController({
     handleTaskDragLeaveTask,
     handleTaskDragEnd,
     handleUpdateTask,
-    taskDisplayMode,
   ])
 }

@@ -39,7 +39,6 @@ search.placeholder,differ,Search for tasks and users,Cerca attività e utenti,Ce
 settingsPages.aiAgents.hub.customAgentsDescription,conflict,Agents you operate over OAuth + REST + SSE,Agenti gestiti da te tramite OAuth + REST + SSE,Agenti gestiti da te tramite OAuth + REST + SSE ‖ Connetti i tuoi agenti IA,settings.agents.custom.subtitle settings.openclaw.subtitle,
 settingsPages.aiAgents.webhook.enabledLabel,conflict,Enabled,Attivato,Attivo ‖ Attivato,mac.enabled settings.agents.webhook.enabled,
 settingsPages.appearancePage.subtasks.underParent,differ,Inside parent task only,Solo nell'attività principale,Solo nell’attività principale,settings.subtasks.under_parent,
-settingsPages.appearancePage.taskDisplayMode.list,conflict,List,Elenco,Lista ‖ Elenco,lists.list settings.task_display.list sync.list,
 settingsPages.contacts.dangerZone,conflict,Danger Zone,Zona Pericolosa,Zona pericolosa ‖ Zona di pericolo,list.danger_zone messages.danger_zone settings.account.danger_zone,
 settingsPages.customAgents.credentials.description,differ,Save these credentials now. The client secret will not be shown again.,Salva subito queste credenziali. Il client secret non verrà mostrato di nuovo.,Salva queste credenziali ora. Il client secret non verrà mostrato di nuovo.,settings.openclaw.credentials_warning,
 settingsPages.customAgents.credentials.done,conflict,Done,Fatto,Fatto ‖ Fine,actions.done board.status.done done reminders.triage.done,

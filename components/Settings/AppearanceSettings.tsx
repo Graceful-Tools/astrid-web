@@ -21,7 +21,6 @@ import {
   Mail,
   Sparkles,
   ListTree,
-  LayoutList,
   WrapText,
   Bell
 } from "lucide-react"
@@ -58,7 +57,6 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
     updateSettings,
     smartTaskCreationEnabled,
     subtaskDisplay,
-    taskDisplayMode,
   } = useUserSettings()
   const { t } = useTranslations()
 
@@ -74,7 +72,6 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
   )
 
   const handleSubtaskDisplayChange = (value: string) => updateSettings({ subtaskDisplay: value })
-  const handleTaskDisplayModeChange = (value: string) => updateSettings({ taskDisplayMode: value })
   const handleSmartTaskCreationChange = (enabled: boolean) =>
     updateSettings({ smartTaskCreationEnabled: enabled })
 
@@ -283,44 +280,6 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
                     <span><strong>{t("settingsPages.appearancePage.smartTasks.listsLabel")}</strong> &quot;#shopping Buy groceries&quot;, &quot;#work Finish report&quot;</span>
                   </li>
                 </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Task detail layout */}
-          <Card className="theme-bg-secondary theme-border">
-            <CardHeader>
-              <CardTitle className="theme-text-primary flex items-center space-x-2">
-                <LayoutList className="w-5 h-5 text-category-green" />
-                <span>{t("settingsPages.appearancePage.taskDisplayMode.title")}</span>
-              </CardTitle>
-              <CardDescription className="theme-text-muted">
-                {t("settingsPages.appearancePage.taskDisplayMode.description")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 bg-theme-secondary rounded-lg">
-                <div className="flex-1">
-                  <Label className="font-medium theme-text-primary">
-                    {t("settingsPages.appearancePage.taskDisplayMode.label")}
-                  </Label>
-                  <p className="text-sm theme-text-muted">
-                    {t(`settingsPages.appearancePage.taskDisplayMode.${taskDisplayMode}Desc`)}
-                  </p>
-                </div>
-                <Select value={taskDisplayMode} onValueChange={handleTaskDisplayModeChange}>
-                  <SelectTrigger className="w-56">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="list">
-                      {t("settingsPages.appearancePage.taskDisplayMode.list")}
-                    </SelectItem>
-                    <SelectItem value="project">
-                      {t("settingsPages.appearancePage.taskDisplayMode.project")}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </CardContent>
           </Card>

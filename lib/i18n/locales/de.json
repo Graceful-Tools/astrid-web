@@ -109,6 +109,7 @@
     "createdBy": "Erstellt von",
     "confirmCompleteTitle": "Diese Aufgabe abschließen?",
     "confirmCompleteAssigned": "Zugewiesen an {name}",
+    "confirmCompleteUnassigned": "Niemandem zugewiesen",
     "waitingOn": {
       "label": "Wartet auf",
       "add": "Auf Aufgabe warten…",
@@ -1377,15 +1378,6 @@
         "viewDesc": "Alle verfügbaren Tastaturkürzel für effiziente Aufgabenverwaltung anzeigen",
         "quickAccess": "Drücke ? irgendwo im Aufgabenmanager, um die Tastaturkürzel zu öffnen.",
         "quickAccessLabel": "Schnellzugriff"
-      },
-      "taskDisplayMode": {
-        "title": "Layout der Aufgabendetails",
-        "description": "Wie Priorität, zugewiesene Person und Status in einer Aufgabe erscheinen (geräteübergreifend synchronisiert)",
-        "label": "Layout",
-        "list": "Liste",
-        "project": "Projekt",
-        "listDesc": "Das Kontrollkästchen schließt die Aufgabe ab; Priorität und zugewiesene Person haben je eine eigene Zeile.",
-        "projectDesc": "Kompakt. Ein Tippen auf das Kontrollkästchen öffnet Priorität, zugewiesene Person, Status und Abschließen."
       },
       "taskTitles": {
         "title": "Aufgabentitel",

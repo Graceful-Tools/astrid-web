@@ -109,6 +109,7 @@
     "createdBy": "作成者",
     "confirmCompleteTitle": "このタスクを完了しますか？",
     "confirmCompleteAssigned": "担当: {name}",
+    "confirmCompleteUnassigned": "担当: なし",
     "waitingOn": {
       "label": "待機中のタスク",
       "add": "待機するタスクを追加",
@@ -1377,15 +1378,6 @@
         "viewDesc": "効率的なタスク管理のために利用可能なすべてのキーボードショートカットを見る",
         "quickAccess": "タスクマネージャーのどこでも?を押してキーボードショートカットを開きます。",
         "quickAccessLabel": "クイックアクセス"
-      },
-      "taskDisplayMode": {
-        "title": "タスク詳細のレイアウト",
-        "description": "タスクで優先度・担当者・状態をどう表示するか（デバイス間で同期）",
-        "label": "レイアウト",
-        "list": "リスト",
-        "project": "プロジェクト",
-        "listDesc": "チェックボックスでタスクを完了し、優先度と担当者はそれぞれ独立した行になります。",
-        "projectDesc": "コンパクト表示。チェックボックスをタップすると優先度・担当者・状態・完了が開きます。"
       },
       "taskTitles": {
         "title": "タスクのタイトル",

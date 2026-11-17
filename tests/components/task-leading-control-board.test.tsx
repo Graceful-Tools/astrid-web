@@ -14,12 +14,12 @@
  *
  *   the ACTION changes — tapping opens the sheet instead of completing;
  *   the MARK does not — "the checkbox when tapped" says the checkbox is still
- *   there, so a board must not silently swap in the project-mode avatar for a
- *   user who never chose project display mode.
+ *   there, so a board must not swap in an avatar for your own task.
  *
  * The dead-control rule from task ffa5bbb5 still applies: with no
  * `onOpenOptions` handler, a board task completes rather than becoming a
- * control that does nothing.
+ * control that does nothing. (Web has had no project display mode since
+ * ADEV-56; "list display mode" below is simply the only one.)
  */
 
 import { describe, it, expect, vi } from 'vitest'
@@ -47,7 +47,6 @@ describe('a board task in list display mode (task 036ef139)', () => {
         currentUserId={ME}
         completed={false}
         priority={0}
-        displayMode="list"
         onBoard
         onToggleComplete={onToggleComplete}
         onOpenOptions={onOpenOptions}
@@ -70,7 +69,6 @@ describe('a board task in list display mode (task 036ef139)', () => {
         currentUserId={ME}
         completed={false}
         priority={0}
-        displayMode="list"
         onBoard
         onToggleComplete={vi.fn()}
         onOpenOptions={vi.fn()}
@@ -87,7 +85,6 @@ describe('a board task in list display mode (task 036ef139)', () => {
         currentUserId={ME}
         completed={false}
         priority={0}
-        displayMode="list"
         onToggleComplete={vi.fn()}
       />,
     )
@@ -96,7 +93,7 @@ describe('a board task in list display mode (task 036ef139)', () => {
   })
 
   it('keeps the checkbox as the mark — no avatar swap', () => {
-    // The checkbox renders its drawn art; the project-mode avatar does not.
+    // The checkbox renders its drawn art; an avatar does not.
     const { container } = render(
       <TaskLeadingControl
         assigneeId={ME}
@@ -104,7 +101,6 @@ describe('a board task in list display mode (task 036ef139)', () => {
         completed={false}
         priority={0}
         assignee={{ name: 'Jon', email: 'jon@example.com', image: null }}
-        displayMode="list"
         onBoard
         onToggleComplete={vi.fn()}
         onOpenOptions={vi.fn()}
@@ -122,7 +118,6 @@ describe('a board task in list display mode (task 036ef139)', () => {
         completed={false}
         priority={1}
         assignee={{ name: 'Sam Smith', email: 'sam@example.com', image: null }}
-        displayMode="list"
         onBoard
         onToggleComplete={vi.fn()}
         onOpenOptions={onOpenOptions}
@@ -140,7 +135,6 @@ describe('a board task in list display mode (task 036ef139)', () => {
         currentUserId={ME}
         completed={false}
         priority={0}
-        displayMode="list"
         onBoard
         onToggleComplete={onToggleComplete}
       />,
@@ -160,7 +154,6 @@ describe('a task that is not on a board is untouched (task 036ef139)', () => {
         currentUserId={ME}
         completed={false}
         priority={0}
-        displayMode="list"
         onToggleComplete={onToggleComplete}
         onOpenOptions={onOpenOptions}
       />,

@@ -109,6 +109,7 @@
     "createdBy": "建立者",
     "confirmCompleteTitle": "完成此任務？",
     "confirmCompleteAssigned": "指派給 {name}",
+    "confirmCompleteUnassigned": "未指派給任何人",
     "waitingOn": {
       "label": "等待中",
       "add": "新增等待的任務",
@@ -1377,15 +1378,6 @@
         "viewDesc": "檢視所有可用的鍵盤快速鍵以高效管理任務",
         "quickAccess": "在任務管理器中隨時按?開啟鍵盤快速鍵。",
         "quickAccessLabel": "快速存取"
-      },
-      "taskDisplayMode": {
-        "title": "任務詳情版面",
-        "description": "任務中優先順序、負責人與狀態的顯示方式（跨裝置同步）",
-        "label": "版面",
-        "list": "清單",
-        "project": "專案",
-        "listDesc": "核取方塊用於完成任務，優先順序與負責人各佔一列。",
-        "projectDesc": "精簡模式。點按核取方塊會開啟優先順序、負責人、狀態與完成。"
       },
       "taskTitles": {
         "title": "任務標題",

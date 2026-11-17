@@ -48,7 +48,6 @@ vi.mock('@/components/task-detail', () => ({
     <div data-testid="inline-task-detail">{task.title}<button onClick={onClose}>close</button></div>
   ),
 }))
-vi.mock('@/hooks/useUserSettings', () => ({ useUserSettings: () => ({ taskDisplayMode: 'list' }) }))
 
 vi.mock('@/components/task-row-content', () => ({
   TaskRowContent: ({ task }: { task: Task }) => <span>{task.title}</span>,
