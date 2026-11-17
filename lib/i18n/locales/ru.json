@@ -242,7 +242,8 @@
     "userAvatarAlt": "Пользователь",
     "assigneeYou": "Вы",
     "board": {
-      "addTaskTo": "Добавить задачу в «{name}»"
+      "addTaskTo": "Добавить задачу в «{name}»",
+      "addTaskPlaceholder": "Добавить задачу"
     },
     "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу"
   },
@@ -1830,7 +1831,8 @@
     "projectLockedIn": "В {name}. Только владелец или администратор проекта может его перенести.",
     "newListInProject": "Новый список в проекте…",
     "newListName": "Название списка",
-    "newListFailed": "Не удалось создать список"
+    "newListFailed": "Не удалось создать список",
+    "boardNewList": "Новый список…"
   },
   "viewRotator": {
     "showList": "Показать список",

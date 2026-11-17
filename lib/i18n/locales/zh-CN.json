@@ -242,7 +242,8 @@
     "userAvatarAlt": "用户",
     "assigneeYou": "你",
     "board": {
-      "addTaskTo": "向 {name} 添加任务"
+      "addTaskTo": "向 {name} 添加任务",
+      "addTaskPlaceholder": "添加任务"
     },
     "dropToPlaceFirst": "拖放到此处以放置第一个任务"
   },
@@ -1830,7 +1831,8 @@
     "projectLockedIn": "在 {name} 中。只有项目所有者或管理员可以将其移出。",
     "newListInProject": "在项目中新建列表…",
     "newListName": "列表名称",
-    "newListFailed": "无法创建列表"
+    "newListFailed": "无法创建列表",
+    "boardNewList": "新建列表…"
   },
   "viewRotator": {
     "showList": "显示列表",
