@@ -197,6 +197,16 @@ describe('the prompt states core push access (ADEV-33)', () => {
   })
 })
 
+describe('the prompt states the runner-claimed task (ADEV-75)', () => {
+  it('both harnesses get ASTRID_CLAIMED_TASK appended to the prompt, so a worker never re-claims its own task', () => {
+    // Run 44102618950 slot 3 (2026-11-17): the runner claimed ADEV-61, the session ran
+    // claim-next anyway, got NO_READY_TASK, said SKIPPED, and the release handed it back.
+    const src = read(AGENT_RUN)
+    const prompts = src.match(/"\$\(cat \.github\/agent-run-prompt\.md;[^\n]*ASTRID_CLAIMED_TASK:-[^\n]*\)"/g) ?? []
+    expect(prompts).toHaveLength(2)
+  })
+})
+
 describe('agent-run preserve-work step, executed', () => {
   let root: string
   let work: string
