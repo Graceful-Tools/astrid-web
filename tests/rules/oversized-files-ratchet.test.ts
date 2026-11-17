@@ -89,7 +89,7 @@ const BUDGETS: Record<string, number> = {
   // 1129 → 1128: AITD-679 renders a board card's details as a callout. The
   // render site is five lines; the two pane sites' unused canEdit lookups and
   // MainContent's board-only delete/local-update props paid for it.
-  'components/TaskManagerView.tsx': 1123,
+  'components/TaskManagerView.tsx': 1117,
   // 1125 → 1115: the list header's two buttons moved to ListHeaderActions
   // when Sort & Filters gained its own control (task aa4e7eb0).
   // 1115 → 1100: the board-row context memos moved to useBoardRowContext (AWTD-1025).

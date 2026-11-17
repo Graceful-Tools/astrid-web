@@ -458,21 +458,11 @@ const TaskManagerView = memo(function TaskManagerView({
     })
   }, [setLists])
 
-  const { moveListToProject } = useSidebarProjectActions(setLists)
-
+  const { moveListToProject, detachProjectLists } = useSidebarProjectActions(setLists)
   const handleProjectBoardRemoved = React.useCallback((projectId: string, detachedListIds: string[]) => {
-    const detachedSet = new Set(detachedListIds)
-    setLists(prevLists =>
-      prevLists
-        .filter(list => !(list.projectId === projectId && list.listType === 'status'))
-        .map(list =>
-          list.projectId === projectId || detachedSet.has(list.id)
-            ? { ...list, projectId: null }
-            : list
-        )
-    )
+    detachProjectLists(projectId, detachedListIds)
     setTaskViewMode('list')
-  }, [setLists])
+  }, [detachProjectLists])
 
   React.useEffect(() => {
     if (!hasProjectBoard && taskViewMode === 'board') {

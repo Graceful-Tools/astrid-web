@@ -18,6 +18,7 @@ import { useProjectMode } from "@/hooks/use-project-mode"
 import { useLoadedProjects } from "@/hooks/use-loaded-projects"
 import { listProjectMoves } from "@/lib/list-project-moves"
 import { sidebarProjectName } from "@/lib/sidebar-projects"
+import { PROJECT_BOARD_LIST_DRAG_TYPE } from "@/lib/project-board-list-drag"
 import type { TaskList } from "@/types/task"
 import { SidebarConfirmDialog } from "./SidebarConfirmDialog"
 import { SidebarContextMenu } from "./SidebarContextMenu"
@@ -68,7 +69,17 @@ export function ListProjectMenu({ list, currentUserId, onMoveListToProject, chil
 
   return (
     <>
-      <SidebarContextMenu items={items}>{children}</SidebarContextMenu>
+      {/* A list that may move drags onto a project's sidebar header (ADEV-61). */}
+      <SidebarContextMenu
+        items={items}
+        draggable={moves.destinations.length > 0 || undefined}
+        onDragStart={moves.destinations.length > 0 ? event => {
+          event.dataTransfer.effectAllowed = "copy"
+          event.dataTransfer.setData(PROJECT_BOARD_LIST_DRAG_TYPE, list.id)
+        } : undefined}
+      >
+        {children}
+      </SidebarContextMenu>
       {moves.canLeave && (
         <SidebarConfirmDialog
           open={leaving}

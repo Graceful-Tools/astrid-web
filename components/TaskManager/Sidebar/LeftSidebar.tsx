@@ -13,8 +13,6 @@ import { NotificationBell } from "@/components/notification-bell"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "@/lib/i18n/client"
 import { ListItem } from "./ListItem"
-import { ListProjectMenu } from "./ListProjectMenu"
-import { useProjectMode } from "@/hooks/use-project-mode"
 import dynamic from "next/dynamic"
 import { setSelectedProjectId, useSelectedProjectId } from "@/hooks/use-selected-project"
 import { isListAdminOrOwner } from "@/lib/list-member-utils"
@@ -24,6 +22,19 @@ import type { TaskList } from "@/types/task"
 
 // Only people with Project Mode see it (AWTD-1660), so it is not first-load JS.
 const ProjectsSection = dynamic(() => import("./ProjectsSection").then(m => m.ProjectsSection), { ssr: false })
+
+// A list row's Move to Project menu (ADEV-61). Lazy, like ProjectsSection: it decides Project
+// Mode itself, so neither it nor the brand capabilities it reads are first-load JS. The plain row
+// is its own fallback, so rows never blink while the menu's code arrives.
+const LazyListProjectMenu = React.lazy(() => import("./ListProjectMenu").then(m => ({ default: m.ListProjectMenu })))
+
+function ListProjectMenu({ children, ...props }: React.ComponentProps<typeof LazyListProjectMenu>) {
+  return (
+    <React.Suspense fallback={children}>
+      <LazyListProjectMenu {...props}>{children}</LazyListProjectMenu>
+    </React.Suspense>
+  )
+}
 
 interface LeftSidebarProps {
   // Layout and responsive
@@ -121,9 +132,6 @@ export function LeftSidebar({
   // Project board open (AWTD-1660): no list is highlighted, and lists can be
   // dragged onto the board as rows.
   const selectedProjectId = useSelectedProjectId()
-  // With Project Mode a list drags onto an open board as a row (AWTD-1660) or onto a
-  // project's sidebar header to move there (ADEV-61), so it is draggable whenever it is on.
-  const projectMode = useProjectMode()
   // When not in list view, don't highlight any list
   const effectiveSelectedListId = activeView === 'list' && !selectedProjectId ? selectedListId : ''
 
@@ -343,7 +351,7 @@ export function LeftSidebar({
                     onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
                     onTaskDragLeave={() => onTaskDragLeave(list.id)}
                     onTaskDragOver={onTaskDragOver}
-                    listDraggable={projectMode && !list.isVirtual}
+                    listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
                   />
                 </ListProjectMenu>
               ))}
@@ -420,7 +428,7 @@ export function LeftSidebar({
                     onTaskDragEnter={(shiftKey) => onTaskDragEnter(list.id, shiftKey)}
                     onTaskDragLeave={() => onTaskDragLeave(list.id)}
                     onTaskDragOver={onTaskDragOver}
-                    listDraggable={projectMode && !list.isVirtual}
+                    listDraggable={Boolean(selectedProjectId) && !list.isVirtual}
                   />
                 </ListProjectMenu>
               ))}
