@@ -47,6 +47,8 @@ export interface AddTaskInputProps {
 
   /** inline only — picks the contextual placeholder. */
   layoutType?: LayoutType
+  /** Overrides the contextual placeholder (a board column's "Add a task", ADEV-63). */
+  placeholderKey?: string
   /** Powers the assignee picker. */
   availableUsers?: User[]
   currentUser?: User

@@ -15,7 +15,7 @@ import { ProjectBoard, type ProjectBoardProps } from "@/components/projects/Proj
 import { setSelectedProjectId, useSelectedProjectId } from "@/hooks/use-selected-project"
 import { useProjectMode } from "@/hooks/use-project-mode"
 import { useLoadedProjects } from "@/hooks/use-loaded-projects"
-import { mayAdministerProject } from "@/lib/list-project-moves"
+import { listProjectMoves, mayAdministerProject } from "@/lib/list-project-moves"
 import { peekLoadedProjects } from "@/lib/client-projects"
 import type { Task, TaskList, User } from "@/types/task"
 
@@ -26,11 +26,12 @@ interface ProjectBoardHostProps {
   onUpdateTask: (task: Task) => void
   onCreateTask: ProjectBoardProps["onCreateTask"]
   onOpenTask?: ProjectBoardProps["onOpenTask"]
+  onCreateListInProject?: ProjectBoardProps["onCreateListInProject"]
   selectedTaskId?: string | null
   isOneColumn?: boolean
 }
 
-export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, selectedTaskId, isOneColumn }: ProjectBoardHostProps) {
+export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, onCreateListInProject, selectedTaskId, isOneColumn }: ProjectBoardHostProps) {
   const projectId = useSelectedProjectId()
   const enabled = useProjectMode()
   const projects = useLoadedProjects()
@@ -41,6 +42,8 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCr
   }, [projectId, project, projects])
 
   if (!project) return null
+  // The core's rule for where this person may create a list, as the sidebar uses.
+  const mayCreateList = listProjectMoves(currentUser?.id ?? "", null, projects).creatableIn.includes(project.id)
   return (
     <ProjectBoard
       key={project.id}
@@ -53,6 +56,7 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCr
       onUpdateTask={onUpdateTask}
       onCreateTask={onCreateTask}
       onOpenTask={onOpenTask}
+      onCreateListInProject={mayCreateList ? onCreateListInProject : undefined}
       selectedTaskId={selectedTaskId}
       isOneColumn={isOneColumn}
     />

@@ -242,7 +242,8 @@
     "userAvatarAlt": "Gebruiker",
     "assigneeYou": "Jij",
     "board": {
-      "addTaskTo": "Taak toevoegen aan {name}"
+      "addTaskTo": "Taak toevoegen aan {name}",
+      "addTaskPlaceholder": "Taak toevoegen"
     },
     "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
   },
@@ -1830,7 +1831,8 @@
     "projectLockedIn": "In {name}. Alleen een projecteigenaar of beheerder kan hem verplaatsen.",
     "newListInProject": "Nieuwe lijst in project…",
     "newListName": "Lijstnaam",
-    "newListFailed": "Kon de lijst niet maken"
+    "newListFailed": "Kon de lijst niet maken",
+    "boardNewList": "Nieuwe lijst…"
   },
   "viewRotator": {
     "showList": "Lijst tonen",

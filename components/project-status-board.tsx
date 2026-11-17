@@ -2,9 +2,9 @@
 
 import { scrollBehavior } from "@/lib/design/reduced-motion"
 import React from "react"
-import { CheckCircle2, Inbox, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
+import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
+import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
 import {
@@ -21,7 +21,6 @@ import {
   getProjectIdForBoard,
   getTaskProjectColumnId,
   resolveProjectColumnMove,
-  resolveProjectColumnCreate,
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
@@ -47,7 +46,7 @@ interface ProjectStatusBoardProps {
   currentUser?: User | null
   onUpdateTask: (task: Task) => void
   onCopyTask?: (taskId: string, targetListId?: string, includeComments?: boolean) => Promise<void>
-  onCreateTask: (title: string, options?: { listIds?: string[]; statusRole?: string }) => Promise<string | null>
+  onCreateTask: (title: string, options?: CreateTaskOptions) => Promise<string | null>
   isOneColumn?: boolean
   /**
    * Opens task details the way a list row does, at every width (AWTD-1653,
@@ -145,8 +144,6 @@ export function ProjectStatusBoard({
   const longPressTimerRef = React.useRef<number | null>(null)
   const touchDragRef = React.useRef<{ taskId: string; columnIndex: number; active: boolean } | null>(null)
   const suppressClickTaskIdRef = React.useRef<string | null>(null)
-  const [drafts, setDrafts] = React.useState<Record<string, string>>({})
-  const [creatingColumnId, setCreatingColumnId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     return () => {
@@ -293,23 +290,6 @@ export function ProjectStatusBoard({
     }, 0)
   }
 
-  const handleCreateTask = async (event: React.FormEvent<HTMLFormElement>, column: ProjectBoardColumn) => {
-    event.preventDefault()
-    const title = drafts[column.id]?.trim()
-    if (!title) return
-
-    setCreatingColumnId(column.id)
-    try {
-      // The column travels as a ROLE, never inside listIds — the same rule the
-      // move path already states. A role in listIds reads as a nonexistent
-      // list and 400s the whole create (task eb7fce2f).
-      await onCreateTask(title, resolveProjectColumnCreate(column, defaultDomainList?.id))
-      setDrafts(prev => ({ ...prev, [column.id]: "" }))
-    } finally {
-      setCreatingColumnId(null)
-    }
-  }
-
   // A card opens task details exactly as a list row does — the same handler,
   // the same detail view — and never expands in place (core DS30, AWTD-1653,
   // AITD-679). Where the details appear is the layout's call, not the board's.
@@ -353,7 +333,6 @@ export function ProjectStatusBoard({
             getTaskProjectColumnId(task, columns) === column.id
           )
           const isDoneColumn = column.kind === 'done'
-          const isInboxColumn = column.kind === 'inbox'
 
           return (
             <div
@@ -372,12 +351,6 @@ export function ProjectStatusBoard({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
-                    {isDoneColumn ? (
-                      <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />
-                    ) : null}
-                    {isInboxColumn ? (
-                      <Inbox className="h-4 w-4 theme-text-muted" aria-hidden="true" />
-                    ) : null}
                   </div>
                   {boardColumnBlurb(column, t) ? (
                     <p className="mt-1 line-clamp-2 text-xs theme-text-secondary">{boardColumnBlurb(column, t)}</p>
@@ -391,9 +364,7 @@ export function ProjectStatusBoard({
               <BoardColumnBody
                 tasks={tasksForColumn}
                 emptyState={(
-                  <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed theme-border px-3 text-center text-xs theme-text-muted">
-                    {t('tasks.dropTasksHere')}
-                  </div>
+                  <AstridEmptyState listType="default" listName={selectedList?.name} className="py-4" />
                 )}
                 renderCard={(task) => {
                   const handleToggleComplete = () => {
@@ -472,27 +443,14 @@ export function ProjectStatusBoard({
               />
 
               {isDoneColumn ? null : (
-                <form
-                  className="flex shrink-0 items-center gap-2 border-t theme-border p-2"
-                  onSubmit={(event) => handleCreateTask(event, column)}
-                >
-                  <Input
-                    value={drafts[column.id] || ""}
-                    onChange={(event) => setDrafts(prev => ({ ...prev, [column.id]: event.target.value }))}
-                    placeholder={t("tasks.addTaskPlaceholder")}
-                    className="h-9 min-w-0 theme-input theme-text-primary"
-                    disabled={creatingColumnId === column.id}
-                  />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="h-9 w-9 shrink-0 p-0"
-                    disabled={creatingColumnId === column.id || !(drafts[column.id] || "").trim()}
-                    aria-label={t('tasks.board.addTaskTo', { name: boardColumnLabel(column, t) })}
-                  >
-                    <Plus className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </form>
+                <BoardColumnQuickAdd
+                  listId={defaultDomainList?.id}
+                  lists={lists}
+                  column={column}
+                  currentUser={currentUser}
+                  onCreateTask={onCreateTask}
+                  testId={`status-add-${column.id}`}
+                />
               )}
             </div>
           )

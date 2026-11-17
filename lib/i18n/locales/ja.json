@@ -242,7 +242,8 @@
     "userAvatarAlt": "ユーザー",
     "assigneeYou": "あなた",
     "board": {
-      "addTaskTo": "{name}にタスクを追加"
+      "addTaskTo": "{name}にタスクを追加",
+      "addTaskPlaceholder": "タスクを追加"
     },
     "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
   },
@@ -1830,7 +1831,8 @@
     "projectLockedIn": "{name} にあります。プロジェクトのオーナーまたは管理者のみ移動できます。",
     "newListInProject": "プロジェクトに新しいリスト…",
     "newListName": "リスト名",
-    "newListFailed": "リストを作成できませんでした"
+    "newListFailed": "リストを作成できませんでした",
+    "boardNewList": "新しいリスト…"
   },
   "viewRotator": {
     "showList": "リストを表示",
