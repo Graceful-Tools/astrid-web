@@ -107,7 +107,8 @@ Doing claim, 1 error.
 
 ```bash
 astrid-agent run --agent <mailbox> [--list <listId>] [--task <taskId>] [--include-unassigned] \
-                 [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>]
+                 [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>] \
+                 [--fixall]
 ```
 
 One call for a whole run: reads the queue, claims the first task a peer has not
@@ -119,6 +120,13 @@ reason and releases the claim so the next run can take the task.
 `copilot -p`, or `custom` with `--command`, which runs through a shell and reads
 `ASTRID_TASK_ID`, `ASTRID_TASK_IDENTIFIER`, `ASTRID_TASK_TITLE`,
 `ASTRID_TASK_PROMPT` and `ASTRID_AGENT` from its environment.
+
+`--fixall` claims through `claim-fixall`, the route that client credentials can
+use (the generic claim route answers them `forbidden`; an agent-bound
+`ASTRID_TOKEN` does not need it). A fixall claim carries no lease, so no
+heartbeat is sent. Each claim is appended to `ASTRID_FIXALL_CLAIMS_FILE` when
+that is set, and a failed task is commented on but left for the caller's own
+release step, as Astrid's cloud worker does.
 
 | Exit | Meaning |
 |---|---|
