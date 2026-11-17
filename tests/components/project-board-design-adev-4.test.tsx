@@ -33,7 +33,6 @@ vi.mock('@/lib/client-projects', () => ({
 
 const api = vi.hoisted(() => ({ apiGet: vi.fn(), apiPut: vi.fn() }))
 vi.mock('@/lib/api', () => api)
-vi.mock('@/hooks/useUserSettings', () => ({ useUserSettings: () => ({ taskDisplayMode: 'list' }) }))
 vi.mock('@/components/task-row-content', () => ({
   TaskRowContent: ({ task }: { task: Task }) => <span>{task.title}</span>,
 }))
@@ -89,14 +88,16 @@ describe('ADEV-4 project board design', () => {
     const web = await screen.findByTestId('project-board-row-web')
     const ios = screen.getByTestId('project-board-row-ios')
 
-    expect(classesOf(web)).toContain('h-80')
-    expect(classesOf(ios)).toContain('h-80')
+    // ADEV-63: the row is a header strip plus the list's own board, and the
+    // fixed height is on each column's card area, not on the row.
+    expect(classesOf(web)).not.toContain('h-80')
+    expect(classesOf(ios)).not.toContain('h-80')
 
     for (const cell of [screen.getByTestId('project-board-cell-web-doing'), screen.getByTestId('project-board-cell-ios-doing')]) {
       expect(classesOf(cell)).toEqual(expect.arrayContaining(['flex', 'flex-col', 'min-h-0']))
       const body = cell.querySelector('[data-testid^="project-board-cell-body-"]') as HTMLElement
       expect(body).not.toBeNull()
-      expect(classesOf(body)).toEqual(expect.arrayContaining(['flex-1', 'min-h-0', 'overflow-y-auto']))
+      expect(classesOf(body)).toEqual(expect.arrayContaining(['h-64', 'overflow-y-auto']))
     }
   })
 
@@ -108,7 +109,6 @@ describe('ADEV-4 project board design', () => {
     expect(classesOf(scroller)).toEqual(expect.arrayContaining(['snap-x', 'snap-mandatory', 'scroll-px-4', 'overscroll-x-contain']))
 
     const snappers = [
-      ...screen.getAllByRole('columnheader'),
       screen.getByTestId('project-board-cell-web-doing'),
       screen.getByTestId('project-board-cell-ios-__virtual_inbox__'),
     ]

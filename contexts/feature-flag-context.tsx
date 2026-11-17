@@ -70,7 +70,7 @@ export function FeatureFlagProvider({ children }: { children: React.ReactNode })
     setFeatures(cached?.features ?? DEFAULTS)
     const launchCount = Number(localStorage.getItem(launchKey) ?? '0')
     const policy = featureRefreshPolicy({ launchCount, cacheUpdatedAt: cached?.updatedAt ?? null, now: Date.now() })
-    refreshEligible.current = launchCount > 0
+    refreshEligible.current = launchCount > 0 || cached === null
     localStorage.setItem(launchKey, String(policy.nextLaunchCount))
     if (policy.shouldFetch) return idle(() => { void refresh() })
   }, [userId, refresh])

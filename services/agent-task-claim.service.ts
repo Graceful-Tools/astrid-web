@@ -12,7 +12,8 @@ import {
   type AgentTaskClaimTask,
 } from '@/lib/agent-task-claim'
 import { prisma } from '@/lib/prisma'
-import { agentEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import { agentEmail, agentMailboxFromEmail, isBrandAgentEmail } from '@/lib/brand/agent-emails'
+import { routingRefusal } from '@/services/orchestration-policy.service'
 import { authorizeAssigneeChange } from '@/services/assignee-authorization'
 import type { Prisma } from '@prisma/client'
 import type { RuntimeBindingDenial } from '@/lib/ai/runtime-binding-resolver'
@@ -80,6 +81,8 @@ export async function claimAgentTask(input: {
   taskId: string
   userId: string
   agentId: string
+  /** The agent's mailbox, for the orchestration policy (ADEV-36). Read from `agentEmail` when absent. */
+  agentMailbox?: string | null
   action: AgentTaskClaimAction
   /** The agent's address, for the runtime-binding gate (AWTD-1669). */
   agentEmail?: string | null
@@ -190,6 +193,14 @@ export async function claimAgentTask(input: {
     }
     if (task.assigneeId && task.assigneeId !== agentId) {
       return { outcome: 'conflict', task: snapshot(task) }
+    }
+
+    // Taking a task nobody assigned is the routing question (ADEV-36). A task already
+    // assigned to this agent was routed by whoever assigned it.
+    if (!task.assigneeId) {
+      const mailbox = input.agentMailbox ?? agentMailboxFromEmail(input.agentEmail)
+      const refusal = mailbox ? await routingRefusal(taskId, mailbox) : null
+      if (refusal) return { outcome: 'forbidden', task: null, policy: refusal }
     }
 
     const assigneeIds = [agentId, ...assigneeIdsOf(task).filter(id => id !== agentId)]

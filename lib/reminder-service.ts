@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import type { ReminderSettings, TaskReminderData, DailyDigestData } from '@/types/reminder'
 import { createLogger } from '@/lib/logger'
+import { completionNeedsConfirmation } from '@/lib/task-leading-control'
 import { clockOptions, getNotificationTranslator, intlTag, renderLocale, type NotificationTranslator } from '@/lib/i18n/user-locale'
 import type { Locale } from '@/lib/i18n/config'
 import { digestDay, dueBefore, dueBetween, dueOn, nextDigestAt, WEEKLY_DIGEST_WEEKDAY } from '@/lib/digest-schedule'
@@ -256,6 +257,9 @@ export class ReminderService {
         taskId: task.id,
         action: 'task_reminder',
         url: `/tasks/${task.id}`,
+        // The service worker cannot ask "Complete this task?", so it completes
+        // only what this says is the recipient's own and opens the rest (ADEV-71).
+        completesWithoutAsking: !completionNeedsConfirmation({ assigneeId: task.assigneeId, currentUserId: reminder.userId }),
       },
       actions: [
         {

@@ -3,6 +3,7 @@
     "myTasks": "My Tasks",
     "today": "Today",
     "lists": "Lists",
+    "favorites": "Favorites",
     "addList": "Add List",
     "publicSharedLists": "Public Shared Lists",
     "publicLists": "Public Lists",
@@ -109,6 +110,7 @@
     "createdBy": "Created by",
     "confirmCompleteTitle": "Complete this task?",
     "confirmCompleteAssigned": "Assigned to {name}",
+    "confirmCompleteUnassigned": "Not assigned to anyone",
     "waitingOn": {
       "label": "Waiting on",
       "add": "Wait on a task…",
@@ -198,6 +200,14 @@
       "count": "Comments ({count})",
       "hideSystemTitle": "Hide system comments",
       "showSystemTitle": "Show system comments",
+      "approval": {
+        "approve": "Approve",
+        "decline": "Decline",
+        "declineReasonPlaceholder": "Why are you declining?",
+        "approvedBy": "Approved by {name}",
+        "declinedBy": "Declined by {name}: {reason}",
+        "decisionError": "Could not record your decision. Try again."
+      },
       "hideSystem": "Hide system",
       "showSystem": "Show system",
       "refreshShort": "Refresh",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "User",
     "assigneeYou": "You",
     "board": {
-      "addTaskTo": "Add task to {name}"
+      "addTaskTo": "Add task to {name}",
+      "addTaskPlaceholder": "Add a task"
     },
     "dropToPlaceFirst": "Drop here to place the first task"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Press ? anywhere in the task manager to open keyboard shortcuts.",
         "quickAccessLabel": "Quick Access"
       },
-      "taskDisplayMode": {
-        "title": "Task detail layout",
-        "description": "How priority, assignee and state appear on a task (synced across devices)",
-        "label": "Layout",
-        "list": "List",
-        "project": "Project",
-        "listDesc": "The checkbox completes the task, and priority and assignee each get their own row.",
-        "projectDesc": "Compact. Tapping the checkbox opens priority, assignee, state and complete."
-      },
       "taskTitles": {
         "title": "Task titles",
         "description": "How much of a long title a task row shows (saved on this device)",
@@ -1812,6 +1814,12 @@
     "showLists": "Show lists in {name}",
     "hideLists": "Hide lists in {name}",
     "boardAddList": "Add list",
+    "boardSettings": "Project settings",
+    "settingsTitle": "Project settings",
+    "settingsNameLabel": "Project name",
+    "settingsSave": "Save",
+    "settingsCancel": "Cancel",
+    "settingsSaveFailed": "Could not save the project name. Try again.",
     "boardRemoveRow": "Remove {name} from this board",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count} (last {hours}h)",
@@ -1822,9 +1830,20 @@
     "projectNone": "None",
     "projectMoveFailed": "Couldn't move this list",
     "projectLockedIn": "In {name}. Only a project owner or admin can move it out.",
+    "projectNew": "New Project…",
+    "projectLeaveConfirm": "Remove {list} from {project}?",
     "newListInProject": "New list in project…",
     "newListName": "List name",
-    "newListFailed": "Couldn't create the list"
+    "newListFailed": "Couldn't create the list",
+    "boardNewList": "New List…",
+    "moveToProject": "Move to Project",
+    "removeFromProject": "Remove from Project",
+    "projectLeaveDetail": "Its tasks go with it. A task in one of this project's own columns shows in Inbox until the list joins a project with that column again.",
+    "deleteProject": "Delete Project…",
+    "deleteProjectConfirm": "Delete {name}?",
+    "deleteProjectDetail": "Its lists stay, outside any project. The board's own columns go with it.",
+    "deleteProjectAction": "Delete",
+    "deleteProjectFailed": "Couldn't delete the project"
   },
   "viewRotator": {
     "showList": "Show list",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Agents claim tasks before working them",
       "help": "Agents working this list pick up unassigned Ready tasks, claim each one first so two agents never take the same task, and keep the claim alive while they work. A claim that stops being renewed returns the task to Ready."
+    },
+    "agentRoster": {
+      "title": "Agents on this board",
+      "empty": "No agent has checked this board yet.",
+      "lastSeen": "Last seen {when}",
+      "notSeen": "Not seen since {when}",
+      "neverSeen": "Not seen yet",
+      "holds": "Working on {task}",
+      "idle": "Not holding a task",
+      "readyWait": "{count} Ready task(s) waiting since {when}.",
+      "reasonNoAgent": "No agent is enrolled on this board.",
+      "reasonNotSeen": "No agent has been seen on this board recently."
     },
     "admin": {
       "descriptionLabel": "List Description",
@@ -2597,7 +2628,8 @@
       "mentioned": "Mentioned",
       "replied": "Replied",
       "commented": "Commented",
-      "statusChanged": "Status changed"
+      "statusChanged": "Status changed",
+      "agentQuiet": "Agent went quiet"
     }
   },
   "admin": {

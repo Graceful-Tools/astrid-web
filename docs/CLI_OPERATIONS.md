@@ -191,6 +191,19 @@ is the one that caused the outage. Additive migrations are unaffected — the ga
 `ALTER INDEX`/`ALTER SEQUENCE` renames, `DROP INDEX` and `DROP CONSTRAINT` are
 deliberately **not** flagged: none can make the old code's queries fail.
 
+**Step 3 is a card, not a terminal (AWTD-1694).** When `land-and-deploy.ts` stops on a pending
+migration (exit 3) it posts an **approval card** on each awaiting-deploy task, stating the held
+migrations, the exact commit and what approving asserts. A person the board's orchestration
+policy names as an escalation target taps **Approve**; the server records who, then dispatches
+`production-deployment.yml` through the GitHub App with `expected_sha` set to the card's commit
+(`allow_destructive_migrations=true` for a `migrate` card). **Decline** needs a reason and leaves
+the task open. The card is bound to one action and one commit, so a newer `main` needs a new card.
+An ordinary reply is never an approval: cards are server-made
+(`POST /api/v1/tasks/:id/approvals`) and decided only through
+`POST /api/v1/tasks/:id/approvals/:commentId` (`services/approval.service.ts`). The App needs
+`actions: write` on the repository; without it the card says the deploy did not start, and the
+manual dispatch above still works.
+
 ### Production database secrets live in the `production` environment (2026-10-24)
 
 `DATABASE_URL` and `DATABASE_URL_DIRECT` for production are **environment secrets** on

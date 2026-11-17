@@ -1,5 +1,12 @@
 import { agentBranchTaskId } from './cloud-handoff'
 import { findDestructiveStatements } from './destructive-migrations'
+import {
+  mayAgent,
+  type MigrationKind,
+  type OrchestrationAction,
+  type OrchestrationPolicy,
+} from '@/lib/orchestration-policy'
+import orchestrationFixture from '@/packages/astrid-rules/fixtures/orchestration.json'
 /**
  * The decisions behind `scripts/land-and-deploy.ts` (AWTD-1250).
  *
@@ -28,6 +35,26 @@ export interface PullRequestSummary {
   mergeStateStatus?: string
   /** `gh pr checks --json name,bucket`: pass | fail | pending | skipping | cancel. */
   checks?: Array<{ name: string; bucket: string }>
+  /** `gh pr list --json files`: the paths the PR changes (gh reports at most 100). */
+  files?: Array<{ path: string }>
+}
+
+/**
+ * Paths an agent PR may not land by itself (ADEV-42). `.github/` holds the
+ * workflows (CI, the production deploy, this ship bot) and the composite
+ * actions they run. Once the cloud token has the Workflows permission an agent
+ * can edit them, so those PRs wait for a human merge.
+ */
+const HUMAN_REVIEW_PREFIXES = ['.github/']
+/** `gh pr list --json files` stops at 100 paths; at the cap the rest are unseen. */
+const GH_FILES_CAP = 100
+
+/** Why this PR's changed files keep it from landing without a human, or null. */
+export function protectedPathHold(files: Array<{ path: string }> | undefined): string | null {
+  if (!files) return 'changed files were not read — a human merges this one'
+  if (files.length >= GH_FILES_CAP) return `${files.length}+ changed files; gh lists only ${GH_FILES_CAP}, so a human merges this one`
+  const hit = files.map(file => file.path).filter(path => HUMAN_REVIEW_PREFIXES.some(prefix => path.startsWith(prefix)))
+  return hit.length ? `changes ${hit.join(', ')} — a human reviews workflow changes` : null
 }
 
 /**
@@ -115,6 +142,8 @@ export function landablePullRequests(
       skipped.push({ number: pr.number, why: 'not opened by the runner — a human merges this one' })
     } else if (pr.headRefName.startsWith('agent/') && pr.cloudHandoffValid !== true) {
       skipped.push({ number: pr.number, why: 'cloud handoff is absent, stale, or no longer eligible on the Astrid board' })
+    } else if (protectedPathHold(pr.files)) {
+      skipped.push({ number: pr.number, why: protectedPathHold(pr.files)! })
     } else if (pr.isDraft) {
       skipped.push({ number: pr.number, why: 'draft' })
     } else if (pr.mergeable === 'UNKNOWN') {
@@ -206,7 +235,45 @@ export function landedDespiteError(stateAfterAttempt: string | undefined): boole
 
 export type DeployVerdict =
   | { deploy: true }
-  | { deploy: false; code: number; reason: string }
+  | { deploy: false; code: number; reason: string; approval?: 'deploy' | 'migrate' }
+
+/**
+ * ADEV-20: the policy the runner falls back to when none is stored on Astrid's project or board, or
+ * the policy endpoint cannot be read: the core fixture's `astridPolicy`, which is what
+ * docs/FIXALL_WORKFLOW.md → Autonomy describes. A stored policy always wins over it.
+ */
+export function astridFallbackPolicy(): OrchestrationPolicy {
+  const { autonomy, escalation } = orchestrationFixture.astridPolicy
+  return {
+    routing: { assignTo: null, agents: null },
+    autonomy: autonomy as OrchestrationPolicy['autonomy'],
+    escalation: escalation as OrchestrationPolicy['escalation'],
+  }
+}
+
+/** The kind of the pending migrations: destructive if any is, or cannot be read; null when none. */
+export function migrationKind(pending: PendingMigration[]): MigrationKind | null {
+  if (!pending.length) return null
+  return migrationHold(pending) ? 'destructive' : 'additive'
+}
+
+/**
+ * Why the stored policy keeps this agent from doing `action` alone, or null when it may. Only the
+ * answers `ask` and `never` hold; the question itself is the core's (`orchestrationMay`).
+ */
+export function policyHold(
+  policy: OrchestrationPolicy,
+  agent: string,
+  action: OrchestrationAction,
+  migration?: MigrationKind | null,
+): string | null {
+  const answer = mayAgent(policy, agent, action, migration)
+  if (answer.decision === 'allowed') return null
+  const what = action === 'migrate' ? `${migration ?? 'unclassified'} migration` : action
+  return `the orchestration policy says ${answer.decision} for ${what} (${answer.reason}) — ${
+    answer.decision === 'ask' ? 'a person approves it' : 'it is not for an agent'
+  }`
+}
 
 export function automaticDeployHold(runs: Array<{ status: string; conclusion: string | null }>): string | null {
   if (runs.some(run => run.status !== 'completed')) return 'a deploy of this commit is already in progress'
@@ -255,6 +322,27 @@ export function migrationHold(pending: PendingMigration[]): string | null {
 }
 
 /**
+ * What an approval card for a held deploy says (AWTD-1694): exactly what will run, so the person
+ * who taps Approve is approving this and nothing else. A migration is the only hold today, and
+ * `migrate` dispatches with `allow_destructive_migrations=true`, so the card says what that asserts.
+ */
+export function migrationApprovalSummary(input: { sha: string; hold: string; pending: PendingMigration[] }): string {
+  const lines = [
+    `**Approval needed to deploy \`${input.sha.slice(0, 8)}\` with its pending migration(s).**`,
+    '',
+    `Held because: ${input.hold}`,
+    '',
+    `Pending: ${input.pending.map(migration => `\`${migrationSqlPath(migration.name)}\``).join(', ') || '(none listed)'}`,
+    '',
+    `Approve runs \`production-deployment.yml\` on \`main\` at exactly \`${input.sha}\` with \`allow_destructive_migrations=true\`. ` +
+      'That states, on the record, that the code which stopped using whatever the migration drops or rewrites is already live ' +
+      '(docs/CLI_OPERATIONS.md, a destructive migration takes two deploys). If it is not, decline. ' +
+      'A newer commit on `main` makes the deploy refuse, and needs a new card.',
+  ]
+  return lines.join('\n')
+}
+
+/**
  * The last gate before production changes.
  *
  * Ordered by how expensive the mistake is, not by how likely: a destructive
@@ -266,6 +354,9 @@ export function deployVerdict(input: {
   pending: PendingMigration[]
   predeployGreen: boolean
   allowDestructive?: boolean
+  /** ADEV-20: the stored policy and the agent asking. Absent, only the destructive-migration rule applies. */
+  policy?: OrchestrationPolicy
+  agent?: string
 }): DeployVerdict {
   if (input.allowDestructive) {
     // There is no code path that should set this. It exists so that if one is
@@ -279,6 +370,15 @@ export function deployVerdict(input: {
   }
   const hold = migrationHold(input.pending)
   if (hold) return { deploy: false, code: 3, reason: hold }
+  const { policy, agent = 'claude' } = input
+  if (policy && input.pending.length) {
+    const kind = migrationKind(input.pending)
+    const migrate = policyHold(policy, agent, 'migrate', kind)
+    if (migrate) {
+      const ask = mayAgent(policy, agent, 'migrate', kind).mustAsk
+      return { deploy: false, code: 3, reason: migrate, ...(ask ? { approval: 'migrate' as const } : {}) }
+    }
+  }
   // Before the gate, deliberately. A tick with nothing to ship does not run
   // predeploy at all, so `predeployGreen` is false for want of asking — and
   // reporting that as "the gate is red" would be a false alarm on every quiet
@@ -288,6 +388,13 @@ export function deployVerdict(input: {
   }
   if (!input.predeployGreen) {
     return { deploy: false, code: 4, reason: 'predeploy is red on the merged main' }
+  }
+  if (policy) {
+    const deploy = policyHold(policy, agent, 'deploy')
+    if (deploy) {
+      const ask = mayAgent(policy, agent, 'deploy').mustAsk
+      return { deploy: false, code: 3, reason: deploy, ...(ask ? { approval: 'deploy' as const } : {}) }
+    }
   }
   return { deploy: true }
 }

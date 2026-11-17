@@ -313,7 +313,6 @@ describe('TaskManagerView - Settings Button Behavior', () => {
     onCloseSettingsSubPage: vi.fn(),
     onSelectSearch: vi.fn(),
     onExitSearch: vi.fn(),
-    taskDisplayMode: 'list' as const,
     handleToggleListFavorite: vi.fn(),
     handleTaskDragHover: vi.fn(),
     handleTaskDragLeaveTask: vi.fn(),

@@ -13,6 +13,7 @@
 
 import { prisma } from '../prisma'
 import { getAgentIdentity } from './agent-config'
+import { agentMailboxFromEmail } from '../brand/agent-emails'
 import { createLogger } from '../logger'
 
 const log = createLogger('ai/ensure-agent-user')
@@ -37,18 +38,29 @@ export async function ensureAgentUser(email: string, image?: string | null): Pro
   const identity = getAgentIdentity(email)
   if (!identity) return null
 
+  // Rows made without an image (copilot@, muse@) showed no avatar (ADEV-55), so
+  // every agent falls back to its brand icon, served by /api/v1/agent-icon.
+  const mailbox = agentMailboxFromEmail(email)
+  const iconUrl = image ?? (mailbox ? `/api/v1/agent-icon/${mailbox}` : null)
+
   const existing = await prisma.user.findFirst({
     where: { email, isAIAgent: true },
     select: AGENT_SELECT,
   })
-  if (existing) return existing
+  if (existing) {
+    if (existing.image === null && iconUrl) {
+      await prisma.user.update({ where: { id: existing.id }, data: { image: iconUrl } })
+      return { ...existing, image: iconUrl }
+    }
+    return existing
+  }
 
   try {
     const created = await prisma.user.create({
       data: {
         email,
         name: identity.displayName,
-        image: image ?? null,
+        image: iconUrl,
         isAIAgent: true,
         isActive: true,
         aiAgentType: identity.agentType,

@@ -6,8 +6,7 @@ import { Check } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import type { Task, User } from '@/types/task'
 import { isCodingAgent } from "@/lib/ai-agent-utils"
-import { CompletionConfirmation } from "@/components/completion-confirmation"
-import { completionNeedsConfirmation } from "@/lib/task-leading-control"
+import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
@@ -19,6 +18,13 @@ interface PriorityAssigneePickerProps {
   onSelect: (priority: number, assignee: User | null) => void
   selectedPriority: number
   selectedAssignee: User | null
+  /**
+   * The task's `assigneeId` — what "is this yours?" is decided by (ADEV-71).
+   * `selectedAssignee` is the loaded user, there to show a face and a name; a
+   * task whose user has not loaded still belongs to whoever this id says. Left
+   * out (quick add, which completes nothing), the sheet falls back to that user.
+   */
+  assigneeId?: string | null
   availableUsers: User[]
   currentUser?: User
   /**
@@ -56,9 +62,9 @@ interface PriorityAssigneePickerProps {
   /** Present with onToggleComplete to offer completion. */
   completed?: boolean
   /**
-   * Complete or reopen. In project mode this is the ONLY route to completion —
-   * the leading control opens this sheet instead of completing — so it has to
-   * work in both directions.
+   * Complete or reopen. For a task on a board, someone else's or an unassigned
+   * one this is the route to completion — the leading control opens this sheet
+   * instead of completing — so it has to work in both directions.
    */
   onToggleComplete?: () => void
   /**
@@ -84,6 +90,7 @@ export function PriorityAssigneePicker({
   onSelect,
   selectedPriority,
   selectedAssignee,
+  assigneeId,
   availableUsers,
   currentUser,
   currentUserId,
@@ -103,16 +110,14 @@ export function PriorityAssigneePicker({
   const [fetchedUsers, setFetchedUsers] = useState<(User & { isAIAgent?: boolean })[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [hasFetched, setHasFetched] = useState(false)
-  const [confirmingComplete, setConfirmingComplete] = useState(false)
-
   /**
-   * Completing somebody else's task asks first (AWTD-877). Jon, for both
-   * platforms: "When not yours, always confirm before completing."
+   * Completing a task that is not yours asks first (AWTD-877, widened to
+   * unassigned tasks by ADEV-56). Jon: "show confirmation before completing a
+   * task that isn't [assigned to me] (including unassigned)."
    *
-   * Decided HERE rather than by each caller, because this sheet is now the only
-   * route to completion for someone else's task on every surface — a row, task
-   * details and a board card all open it. Three call sites deciding separately
-   * is how the row came to be inert while details grew a confirm of its own.
+   * Decided HERE rather than by each caller, because this sheet is the route to
+   * completion for someone else's task, an unassigned one and a board's on
+   * every surface — a row, task details and a board card all open it.
    *
    * The task's OWN assignee, not the sheet's unsaved `tempAssignee`: reassigning
    * and completing in one visit still finishes the work of whoever holds it now.
@@ -120,12 +125,7 @@ export function PriorityAssigneePicker({
    * Reopening never asks. The rule is about finishing work, and undoing a
    * completion takes nothing away from the person it belongs to.
    */
-  const needsConfirmation =
-    !completed &&
-    completionNeedsConfirmation({
-      assigneeId: selectedAssignee?.id,
-      currentUserId: currentUser?.id ?? currentUserId,
-    })
+  const completion = useCompletionConfirmation(currentUser?.id ?? currentUserId)
 
   // Fetch list members and AI agents when picker opens
   useEffect(() => {
@@ -241,8 +241,8 @@ export function PriorityAssigneePicker({
    * subtree. Same pattern as attachment-viewer and list-settings-popover.
    */
   /*
-   * The sheet is a React child of the row that opened it, and in project mode
-   * that row's onClick opens task details — so every tap inside the sheet did
+   * The sheet is a React child of the row that opened it, and that row's
+   * onClick opens task details — so every tap inside the sheet did
    * two things (task 465e71e6).
    *
    * PORTALLING DID NOT FIX IT. React propagates events through the REACT tree,
@@ -368,18 +368,24 @@ export function PriorityAssigneePicker({
             </>
           )}
 
-          {/* Complete / reopen — the only route to completion for a task in
-              project mode, on a board, or assigned to somebody else. */}
+          {/* Complete / reopen — the route to completion for a task on a
+              board, unassigned, or assigned to somebody else. */}
           {onToggleComplete && (
             <>
               <div className="px-4 py-4">
                 <button
                   type="button"
                   data-testid="task-options-complete"
-                  onClick={() => {
-                    if (needsConfirmation) setConfirmingComplete(true)
-                    else onToggleComplete()
-                  }}
+                  onClick={() =>
+                    completion.request(
+                      {
+                        assigneeId: assigneeId !== undefined ? assigneeId : selectedAssignee?.id,
+                        assignee: selectedAssignee,
+                        completed,
+                      },
+                      onToggleComplete,
+                    )
+                  }
                   className="w-full h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
                 >
                   {completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
@@ -388,16 +394,7 @@ export function PriorityAssigneePicker({
               <div className="h-px bg-theme-active" />
             </>
           )}
-          {confirmingComplete && onToggleComplete && (
-            <CompletionConfirmation
-              assigneeLabel={selectedAssignee?.name || selectedAssignee?.email || ''}
-              onCancel={() => setConfirmingComplete(false)}
-              onConfirm={() => {
-                setConfirmingComplete(false)
-                onToggleComplete()
-              }}
-            />
-          )}
+          {completion.dialog}
 
           {/* Assignee Section */}
           <div className="px-4 py-4">

@@ -4,7 +4,7 @@ import type {
   OpenClawConfig,
   ReplyPayload,
 } from "openclaw/plugin-sdk";
-import { createReplyPrefixOptions } from "openclaw/plugin-sdk";
+import { loadCreateReplyPrefixOptions } from "./openclaw-sdk-compat.js";
 import { AstridChannel as SDKChannel, ChannelRestClient, ChannelOAuthClient } from "./astrid/index.js";
 import type { InboundMessage } from "./astrid/index.js";
 import { listAstridAccountIds, resolveAstridAccount } from "./accounts.js";
@@ -246,7 +246,7 @@ export const astridPlugin: ChannelPlugin<ResolvedAstridAccount> = {
           OriginatingTo: `astrid:${config.agentEmail ?? "agent"}`,
         });
 
-        const { onModelSelected, ...prefixOptions } = createReplyPrefixOptions({
+        const { onModelSelected, ...prefixOptions } = loadCreateReplyPrefixOptions()({
           cfg,
           agentId: route.agentId,
           channel: "astrid",

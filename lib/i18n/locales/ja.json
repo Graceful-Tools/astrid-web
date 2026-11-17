@@ -3,6 +3,7 @@
     "myTasks": "マイタスク",
     "today": "今日",
     "lists": "リスト",
+    "favorites": "お気に入り",
     "addList": "リストを追加",
     "publicSharedLists": "公開共有リスト",
     "publicLists": "公開リスト",
@@ -109,6 +110,7 @@
     "createdBy": "作成者",
     "confirmCompleteTitle": "このタスクを完了しますか？",
     "confirmCompleteAssigned": "担当: {name}",
+    "confirmCompleteUnassigned": "担当: なし",
     "waitingOn": {
       "label": "待機中のタスク",
       "add": "待機するタスクを追加",
@@ -198,6 +200,14 @@
       "count": "コメント ({count})",
       "hideSystemTitle": "システムコメントを非表示",
       "showSystemTitle": "システムコメントを表示",
+      "approval": {
+        "approve": "承認",
+        "decline": "却下",
+        "declineReasonPlaceholder": "却下する理由は？",
+        "approvedBy": "{name} が承認しました",
+        "declinedBy": "{name} が却下しました: {reason}",
+        "decisionError": "決定を記録できませんでした。もう一度お試しください。"
+      },
       "hideSystem": "システムを非表示",
       "showSystem": "システムを表示",
       "refreshShort": "更新",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "ユーザー",
     "assigneeYou": "あなた",
     "board": {
-      "addTaskTo": "{name}にタスクを追加"
+      "addTaskTo": "{name}にタスクを追加",
+      "addTaskPlaceholder": "タスクを追加"
     },
     "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "タスクマネージャーのどこでも?を押してキーボードショートカットを開きます。",
         "quickAccessLabel": "クイックアクセス"
       },
-      "taskDisplayMode": {
-        "title": "タスク詳細のレイアウト",
-        "description": "タスクで優先度・担当者・状態をどう表示するか（デバイス間で同期）",
-        "label": "レイアウト",
-        "list": "リスト",
-        "project": "プロジェクト",
-        "listDesc": "チェックボックスでタスクを完了し、優先度と担当者はそれぞれ独立した行になります。",
-        "projectDesc": "コンパクト表示。チェックボックスをタップすると優先度・担当者・状態・完了が開きます。"
-      },
       "taskTitles": {
         "title": "タスクのタイトル",
         "description": "長いタイトルをタスクの行にどこまで表示するか（このデバイスに保存されます）",
@@ -1812,6 +1814,12 @@
     "showLists": "{name} のリストを表示",
     "hideLists": "{name} のリストを隠す",
     "boardAddList": "リストを追加",
+    "boardSettings": "プロジェクト設定",
+    "settingsTitle": "プロジェクト設定",
+    "settingsNameLabel": "プロジェクト名",
+    "settingsSave": "保存",
+    "settingsCancel": "キャンセル",
+    "settingsSaveFailed": "プロジェクト名を保存できませんでした。もう一度お試しください。",
     "boardRemoveRow": "{name} をこのボードから外す",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count}（直近{hours}時間）",
@@ -1822,9 +1830,20 @@
     "projectNone": "なし",
     "projectMoveFailed": "このリストを移動できませんでした",
     "projectLockedIn": "{name} にあります。プロジェクトのオーナーまたは管理者のみ移動できます。",
+    "projectNew": "新規プロジェクト…",
+    "projectLeaveConfirm": "{project} から {list} を削除しますか？",
     "newListInProject": "プロジェクトに新しいリスト…",
     "newListName": "リスト名",
-    "newListFailed": "リストを作成できませんでした"
+    "newListFailed": "リストを作成できませんでした",
+    "boardNewList": "新しいリスト…",
+    "moveToProject": "プロジェクトへ移動",
+    "removeFromProject": "プロジェクトから削除",
+    "projectLeaveDetail": "タスクもリストと一緒に移動します。このプロジェクト独自の列にあるタスクは、その列を持つプロジェクトにリストが再び加わるまで受信箱に表示されます。",
+    "deleteProject": "プロジェクトを削除…",
+    "deleteProjectConfirm": "{name}を削除しますか？",
+    "deleteProjectDetail": "リストはどのプロジェクトにも属さない状態で残ります。ボード独自の列は一緒に削除されます。",
+    "deleteProjectAction": "削除",
+    "deleteProjectFailed": "プロジェクトを削除できませんでした"
   },
   "viewRotator": {
     "showList": "リストを表示",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "エージェントは作業前にタスクを確保する",
       "help": "このリストのエージェントは未割り当ての「準備完了」タスクを取り、2つのエージェントが同じタスクを取らないよう最初に確保し、作業中は確保を維持します。更新されなくなった確保はタスクを「準備完了」に戻します。"
+    },
+    "agentRoster": {
+      "title": "このボードのエージェント",
+      "empty": "このボードを確認したエージェントはまだいません。",
+      "lastSeen": "最終確認 {when}",
+      "notSeen": "{when}から確認できていません",
+      "neverSeen": "まだ確認されていません",
+      "holds": "{task} を作業中",
+      "idle": "担当タスクなし",
+      "readyWait": "準備完了のタスク {count} 件が {when}から待機中です。",
+      "reasonNoAgent": "このボードに登録されたエージェントがいません。",
+      "reasonNotSeen": "このボードで最近エージェントが確認されていません。"
     },
     "admin": {
       "descriptionLabel": "リストの説明",
@@ -2597,7 +2628,8 @@
       "mentioned": "メンション",
       "replied": "返信",
       "commented": "コメント",
-      "statusChanged": "ステータス変更"
+      "statusChanged": "ステータス変更",
+      "agentQuiet": "エージェントが応答しなくなりました"
     }
   },
   "admin": {

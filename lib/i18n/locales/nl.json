@@ -3,6 +3,7 @@
     "myTasks": "Mijn taken",
     "today": "Vandaag",
     "lists": "Lijsten",
+    "favorites": "Favorieten",
     "addList": "Lijst toevoegen",
     "publicSharedLists": "Openbare gedeelde lijsten",
     "publicLists": "Openbare lijsten",
@@ -109,6 +110,7 @@
     "createdBy": "Gemaakt door",
     "confirmCompleteTitle": "Deze taak voltooien?",
     "confirmCompleteAssigned": "Toegewezen aan {name}",
+    "confirmCompleteUnassigned": "Aan niemand toegewezen",
     "waitingOn": {
       "label": "Wacht op",
       "add": "Op een taak wachten…",
@@ -198,6 +200,14 @@
       "count": "Opmerkingen ({count})",
       "hideSystemTitle": "Systeemopmerkingen verbergen",
       "showSystemTitle": "Systeemopmerkingen tonen",
+      "approval": {
+        "approve": "Goedkeuren",
+        "decline": "Afwijzen",
+        "declineReasonPlaceholder": "Waarom wijs je af?",
+        "approvedBy": "Goedgekeurd door {name}",
+        "declinedBy": "Afgewezen door {name}: {reason}",
+        "decisionError": "Je beslissing kon niet worden vastgelegd. Probeer het opnieuw."
+      },
       "hideSystem": "Systeem verbergen",
       "showSystem": "Systeem tonen",
       "refreshShort": "Vernieuwen",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "Gebruiker",
     "assigneeYou": "Jij",
     "board": {
-      "addTaskTo": "Taak toevoegen aan {name}"
+      "addTaskTo": "Taak toevoegen aan {name}",
+      "addTaskPlaceholder": "Taak toevoegen"
     },
     "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Druk overal in de taakmanager op ? om sneltoetsen te openen.",
         "quickAccessLabel": "Snelle toegang"
       },
-      "taskDisplayMode": {
-        "title": "Indeling van taakdetails",
-        "description": "Hoe prioriteit, toegewezen persoon en status op een taak verschijnen (gesynchroniseerd tussen apparaten)",
-        "label": "Indeling",
-        "list": "Lijst",
-        "project": "Project",
-        "listDesc": "Het selectievakje voltooit de taak, en prioriteit en toegewezen persoon krijgen elk een eigen rij.",
-        "projectDesc": "Compact. Tikken op het selectievakje opent prioriteit, toegewezen persoon, status en voltooien."
-      },
       "taskTitles": {
         "title": "Taaktitels",
         "description": "Hoeveel van een lange titel een taakrij laat zien (op dit apparaat bewaard)",
@@ -1812,6 +1814,12 @@
     "showLists": "Lijsten in {name} tonen",
     "hideLists": "Lijsten in {name} verbergen",
     "boardAddList": "Lijst toevoegen",
+    "boardSettings": "Projectinstellingen",
+    "settingsTitle": "Projectinstellingen",
+    "settingsNameLabel": "Projectnaam",
+    "settingsSave": "Opslaan",
+    "settingsCancel": "Annuleren",
+    "settingsSaveFailed": "De projectnaam kon niet worden opgeslagen. Probeer het opnieuw.",
     "boardRemoveRow": "{name} van dit bord verwijderen",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count} (laatste {hours} u)",
@@ -1822,9 +1830,20 @@
     "projectNone": "Geen",
     "projectMoveFailed": "Kon deze lijst niet verplaatsen",
     "projectLockedIn": "In {name}. Alleen een projecteigenaar of beheerder kan hem verplaatsen.",
+    "projectNew": "Nieuw project…",
+    "projectLeaveConfirm": "{list} uit {project} verwijderen?",
     "newListInProject": "Nieuwe lijst in project…",
     "newListName": "Lijstnaam",
-    "newListFailed": "Kon de lijst niet maken"
+    "newListFailed": "Kon de lijst niet maken",
+    "boardNewList": "Nieuwe lijst…",
+    "moveToProject": "Naar project verplaatsen",
+    "removeFromProject": "Uit project verwijderen",
+    "projectLeaveDetail": "De taken gaan mee. Een taak in een eigen kolom van dit project staat in Inbox tot de lijst weer bij een project met die kolom hoort.",
+    "deleteProject": "Project verwijderen…",
+    "deleteProjectConfirm": "{name} verwijderen?",
+    "deleteProjectDetail": "De lijsten blijven, buiten elk project. De eigen kolommen van het bord gaan mee.",
+    "deleteProjectAction": "Verwijderen",
+    "deleteProjectFailed": "Het project kon niet worden verwijderd"
   },
   "viewRotator": {
     "showList": "Lijst tonen",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Agents claimen taken voordat ze eraan werken",
       "help": "Agents op deze lijst pakken niet-toegewezen Klaar-taken op, claimen elke taak eerst zodat nooit twee agents dezelfde taak nemen, en houden de claim actief terwijl ze werken. Een claim die niet meer wordt vernieuwd, zet de taak terug naar Klaar."
+    },
+    "agentRoster": {
+      "title": "Agents op dit bord",
+      "empty": "Nog geen agent heeft dit bord bekeken.",
+      "lastSeen": "Laatst gezien {when}",
+      "notSeen": "Niet gezien sinds {when}",
+      "neverSeen": "Nog niet gezien",
+      "holds": "Werkt aan {task}",
+      "idle": "Heeft geen taak",
+      "readyWait": "{count} taak/taken in Klaar wachten sinds {when}.",
+      "reasonNoAgent": "Er is geen agent ingeschreven op dit bord.",
+      "reasonNotSeen": "Er is onlangs geen agent gezien op dit bord."
     },
     "admin": {
       "descriptionLabel": "Lijstbeschrijving",
@@ -2597,7 +2628,8 @@
       "mentioned": "Vermeld",
       "replied": "Gereageerd",
       "commented": "Opmerking",
-      "statusChanged": "Status gewijzigd"
+      "statusChanged": "Status gewijzigd",
+      "agentQuiet": "Agent reageert niet meer"
     }
   },
   "admin": {

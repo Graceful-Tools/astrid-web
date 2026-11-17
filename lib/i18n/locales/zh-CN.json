@@ -3,6 +3,7 @@
     "myTasks": "我的任务",
     "today": "今天",
     "lists": "列表",
+    "favorites": "收藏",
     "addList": "添加清单",
     "publicSharedLists": "公开共享清单",
     "publicLists": "公开清单",
@@ -109,6 +110,7 @@
     "createdBy": "创建者",
     "confirmCompleteTitle": "完成此任务？",
     "confirmCompleteAssigned": "指派给 {name}",
+    "confirmCompleteUnassigned": "未指派给任何人",
     "waitingOn": {
       "label": "等待中",
       "add": "添加等待的任务",
@@ -198,6 +200,14 @@
       "count": "评论（{count}）",
       "hideSystemTitle": "隐藏系统评论",
       "showSystemTitle": "显示系统评论",
+      "approval": {
+        "approve": "批准",
+        "decline": "拒绝",
+        "declineReasonPlaceholder": "为什么拒绝？",
+        "approvedBy": "{name} 已批准",
+        "declinedBy": "{name} 已拒绝：{reason}",
+        "decisionError": "无法记录你的决定，请重试。"
+      },
       "hideSystem": "隐藏系统",
       "showSystem": "显示系统",
       "refreshShort": "刷新",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "用户",
     "assigneeYou": "你",
     "board": {
-      "addTaskTo": "向 {name} 添加任务"
+      "addTaskTo": "向 {name} 添加任务",
+      "addTaskPlaceholder": "添加任务"
     },
     "dropToPlaceFirst": "拖放到此处以放置第一个任务"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "在任务管理器中随时按?打开键盘快捷键。",
         "quickAccessLabel": "快速访问"
       },
-      "taskDisplayMode": {
-        "title": "任务详情布局",
-        "description": "任务中优先级、负责人和状态的显示方式（跨设备同步）",
-        "label": "布局",
-        "list": "列表",
-        "project": "项目",
-        "listDesc": "复选框用于完成任务，优先级和负责人各占一行。",
-        "projectDesc": "紧凑模式。点按复选框会打开优先级、负责人、状态和完成。"
-      },
       "taskTitles": {
         "title": "任务标题",
         "description": "任务行显示多长的标题（保存在此设备上）",
@@ -1812,6 +1814,12 @@
     "showLists": "显示 {name} 中的列表",
     "hideLists": "隐藏 {name} 中的列表",
     "boardAddList": "添加列表",
+    "boardSettings": "项目设置",
+    "settingsTitle": "项目设置",
+    "settingsNameLabel": "项目名称",
+    "settingsSave": "保存",
+    "settingsCancel": "取消",
+    "settingsSaveFailed": "无法保存项目名称。请重试。",
     "boardRemoveRow": "从此看板移除 {name}",
     "boardColumnCount": "{column}：{count}",
     "boardDoneCount": "{column}：{count}（最近 {hours} 小时）",
@@ -1822,9 +1830,20 @@
     "projectNone": "无",
     "projectMoveFailed": "无法移动此列表",
     "projectLockedIn": "在 {name} 中。只有项目所有者或管理员可以将其移出。",
+    "projectNew": "新建项目…",
+    "projectLeaveConfirm": "从 {project} 中移除 {list}？",
     "newListInProject": "在项目中新建列表…",
     "newListName": "列表名称",
-    "newListFailed": "无法创建列表"
+    "newListFailed": "无法创建列表",
+    "boardNewList": "新建列表…",
+    "moveToProject": "移至项目",
+    "removeFromProject": "从项目中移除",
+    "projectLeaveDetail": "其任务会一同移动。位于此项目专属列中的任务会显示在收件箱中，直到该列表重新加入具有该列的项目。",
+    "deleteProject": "删除项目…",
+    "deleteProjectConfirm": "删除{name}？",
+    "deleteProjectDetail": "其列表会保留，不属于任何项目。看板专属的列会一同删除。",
+    "deleteProjectAction": "删除",
+    "deleteProjectFailed": "无法删除项目"
   },
   "viewRotator": {
     "showList": "显示列表",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "代理在处理任务前先认领",
       "help": "此列表中的代理会接手未分配的“就绪”任务，先认领每个任务以免两个代理拿到同一个任务，并在工作期间保持认领有效。停止续期的认领会让任务回到“就绪”。"
+    },
+    "agentRoster": {
+      "title": "此看板上的智能体",
+      "empty": "还没有智能体检查过此看板。",
+      "lastSeen": "最后出现 {when}",
+      "notSeen": "自 {when} 起未出现",
+      "neverSeen": "尚未出现",
+      "holds": "正在处理 {task}",
+      "idle": "未持有任务",
+      "readyWait": "有 {count} 个就绪任务自 {when} 起一直在等待。",
+      "reasonNoAgent": "此看板未登记任何智能体。",
+      "reasonNotSeen": "最近在此看板上未发现任何智能体。"
     },
     "admin": {
       "descriptionLabel": "列表描述",
@@ -2597,7 +2628,8 @@
       "mentioned": "被提及",
       "replied": "已回复",
       "commented": "已评论",
-      "statusChanged": "状态已更改"
+      "statusChanged": "状态已更改",
+      "agentQuiet": "智能体已失去响应"
     }
   },
   "admin": {

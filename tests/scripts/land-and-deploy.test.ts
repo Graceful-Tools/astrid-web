@@ -7,6 +7,12 @@
  * is an outage, and one of the cases below took production down on 2026-09-18.
  */
 import { describe, it, expect } from 'vitest'
+import { resolvePolicy } from '@/lib/orchestration-policy'
+import {
+  astridFallbackPolicy,
+  migrationKind,
+  policyHold,
+} from '@/scripts/lib/land-and-deploy'
 import {
   carriesTaskId,
   deployedCompletionComment,
@@ -36,6 +42,7 @@ const pr = (over: Partial<PullRequestSummary> = {}): PullRequestSummary => ({
   mergeable: 'MERGEABLE',
   mergeStateStatus: 'CLEAN',
   checks: green,
+  files: [{ path: 'lib/auth/cookies.ts' }],
   ...over,
 })
 
@@ -172,6 +179,35 @@ describe('a PR has to be actually green', () => {
 
   it('leaves a draft alone', () => {
     expect(landablePullRequests([pr({ isDraft: true })]).land).toHaveLength(0)
+  })
+})
+
+describe('ADEV-42: workflow changes wait for a human', () => {
+  // Granting the cloud token the Workflows permission lets an agent PR edit CI,
+  // including the deploy workflow and this ship bot. Those land only by hand.
+  it('ADEV-42: holds back a PR that touches .github/workflows/', () => {
+    const decision = landablePullRequests([pr({ files: [{ path: 'lib/x.ts' }, { path: '.github/workflows/production-deployment.yml' }] })])
+    expect(decision.land).toHaveLength(0)
+    expect(decision.skipped[0].why).toMatch(/\.github\/workflows\/production-deployment\.yml.*human/)
+  })
+
+  it('ADEV-42: holds back other .github/ files too (composite actions run inside workflows)', () => {
+    expect(landablePullRequests([pr({ files: [{ path: '.github/actions/setup/action.yml' }] })]).land).toHaveLength(0)
+  })
+
+  it('ADEV-42: fails closed when the changed files were not read', () => {
+    const decision = landablePullRequests([pr({ files: undefined })])
+    expect(decision.land).toHaveLength(0)
+    expect(decision.skipped[0].why).toMatch(/changed files/)
+  })
+
+  it('ADEV-42: fails closed at the 100-file cap gh pr list reports', () => {
+    const files = Array.from({ length: 100 }, (_, i) => ({ path: `lib/f${i}.ts` }))
+    expect(landablePullRequests([pr({ files })]).land).toHaveLength(0)
+  })
+
+  it('ADEV-42: still lands an ordinary PR', () => {
+    expect(landablePullRequests([pr({ files: [{ path: 'docs/github-workflows.md' }] })]).land).toHaveLength(1)
   })
 })
 
@@ -500,5 +536,58 @@ describe('the news posted to the list chat', () => {
     expect(text).toContain('#420')
     expect(text).not.toContain('#296')
     expect(text).not.toContain('#419')
+  })
+})
+
+// ADEV-20: Astrid's own runner reads the stored orchestration policy instead of carrying its own rules.
+describe('ADEV-20: the runner asks the stored policy', () => {
+  const additive = { name: '20261011150000_x', sql: 'ALTER TABLE "T" ADD COLUMN "a" TEXT;' }
+  const drop = { name: '20260917120000_y', sql: 'ALTER TABLE "T" DROP COLUMN "a";' }
+  const astrid = astridFallbackPolicy()
+  const ask = (autonomy: object) => resolvePolicy({ autonomy } as never, null)
+
+  it('ADEV-20: the fallback policy is the core fixture: merge, deploy and additive allowed', () => {
+    expect(astrid.autonomy.merge).toBe('allowed')
+    expect(astrid.autonomy.deploy).toBe('allowed')
+    expect(astrid.autonomy.migrate.additive).toBe('allowed')
+    expect(astrid.autonomy.migrate.destructive).toBe('ask')
+  })
+
+  it('ADEV-20: classifies pending migrations', () => {
+    expect(migrationKind([])).toBeNull()
+    expect(migrationKind([additive])).toBe('additive')
+    expect(migrationKind([additive, drop])).toBe('destructive')
+    expect(migrationKind([{ name: 'z', sql: null }])).toBe('destructive')
+  })
+
+  it('ADEV-20: policyHold is null when allowed and names the answer when ask or never', () => {
+    expect(policyHold(astrid, 'claude', 'merge')).toBeNull()
+    expect(policyHold(ask({ merge: 'ask' }), 'claude', 'merge')).toMatch(/ask/)
+    expect(policyHold(ask({ deploy: 'never' }), 'claude', 'deploy')).toMatch(/never/)
+  })
+
+  it('ADEV-20: migrate.additive ask holds an additive migration with exit 3', () => {
+    const policy = ask({ deploy: 'allowed', migrate: { additive: 'ask' } })
+    const verdict = deployVerdict({ landedOrAlreadyOnMain: true, pending: [additive], predeployGreen: true, policy, agent: 'claude' })
+    expect(verdict).toMatchObject({ deploy: false, code: 3, approval: 'migrate' })
+  })
+
+  it('ADEV-20: putting it back ships the additive migration', () => {
+    const verdict = deployVerdict({ landedOrAlreadyOnMain: true, pending: [additive], predeployGreen: true, policy: astrid, agent: 'claude' })
+    expect(verdict).toEqual({ deploy: true })
+  })
+
+  it('ADEV-20: deploy ask holds a code-only change; the red gate rule is unchanged', () => {
+    const policy = ask({ deploy: 'ask' })
+    expect(deployVerdict({ landedOrAlreadyOnMain: true, pending: [], predeployGreen: true, policy, agent: 'claude' }))
+      .toMatchObject({ deploy: false, code: 3, approval: 'deploy' })
+    expect(deployVerdict({ landedOrAlreadyOnMain: true, pending: [], predeployGreen: false, policy: astrid, agent: 'claude' }))
+      .toMatchObject({ deploy: false, code: 4 })
+  })
+
+  it('ADEV-20: a destructive migration still holds even if a policy allowed it', () => {
+    const policy = ask({ migrate: { additive: 'allowed', destructive: 'allowed' } })
+    expect(deployVerdict({ landedOrAlreadyOnMain: true, pending: [drop], predeployGreen: true, policy, agent: 'claude' }))
+      .toMatchObject({ deploy: false, code: 3 })
   })
 })

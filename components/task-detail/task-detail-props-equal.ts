@@ -12,7 +12,6 @@ interface ComparedProps {
   task: Task
   currentUser: User
   readOnly?: boolean
-  displayMode?: string | null
   /** A board callout's arrow (AITD-679): it must move when the card scrolls. */
   calloutArrow?: { side: 'left' | 'right'; offset: number } | null
 }
@@ -52,7 +51,6 @@ export function taskDetailPropsEqual(prevProps: ComparedProps, nextProps: Compar
     // fine and the pane went on showing the old column (AWTD-1275).
     prevProps.task.statusRole === nextProps.task.statusRole &&
     prevProps.readOnly === nextProps.readOnly &&
-    prevProps.displayMode === nextProps.displayMode &&
     prevProps.calloutArrow?.side === nextProps.calloutArrow?.side &&
     prevProps.calloutArrow?.offset === nextProps.calloutArrow?.offset &&
     !listsChanged &&

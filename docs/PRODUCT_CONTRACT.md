@@ -70,6 +70,15 @@ A plain project member can no longer attach or detach (before 2026-11-15 any mem
 attach). Tasks move with the list; a task whose custom `statusRole` the destination lacks
 shows in Inbox there and keeps its stored role, so moving back restores it.
 
+**Renaming a project (ADEV-48).** `PATCH /api/v1/projects/:id { name }` (scope `projects:write`)
+sets the display name, trimmed and non-empty (`400 PROJECT_NAME_REQUIRED`), with no length limit,
+the same as create. Who may: the project's **owner or an admin**, the same bar as moving a list
+in or out. Decided 2026-11-16 (agent): Jon asked for "admin", and `authorizeBoardOwner` alone
+would have refused admins. A plain member or non-member gets `403 PROJECT_RENAME_FORBIDDEN`.
+`{ key }` stays owner-only (AWTD-1024), and `{ name, key }` together need the owner; if the key
+is refused nothing changes. Members' list caches are invalidated. Online only; old clients never
+send `name`, so the halves ship independently.
+
 An absent `project` relation means **"not loaded"**, never "no project access".
 Any query backing a permission check must include it (`PROJECT_ACCESS_INCLUDE`),
 or project members silently lose access. Visibility is derived from the same
@@ -181,8 +190,27 @@ answers, not two:
 Unassigned used to be folded in with "mine", so a task nobody owns rendered
 identically to a task you own. That is the bug this rule exists to prevent.
 
-- **The mark changes; the action does not.** Tapping the unassigned mark still
-  completes the task.
+- **The mark changes; so may the action.** On web, the unassigned mark and
+  someone else's photo open the task options sheet rather than completing
+  (AWTD-877, AWTD-919); your own checkbox completes in one tap.
+- **Completing a task that is not yours asks first** (ADEV-56, widening
+  AWTD-877). Someone else's task *and an unassigned one* show "Complete this
+  task?" naming the assignee, or saying nobody holds it, before completing.
+  Your own task never asks, and reopening never asks. Web:
+  `completionNeedsConfirmation` in `lib/task-leading-control.ts`, asked by the
+  options sheet, the leading control and the complete-task shortcut — and, since
+  ADEV-71, by a subtask's checkbox (by the *subtask's* assignee), a reminder's
+  Complete, choosing Done in a status picker, and dragging a card onto Done
+  (nothing moves until the answer, so a cancelled drag leaves the card where it
+  was). Moving into any other column never asks. The decision reads
+  `assigneeId`, never the loaded `assignee`. A push notification's Complete
+  cannot show a dialog, so it completes only when the sender marked the task
+  as the recipient's own (`completesWithoutAsking`) and otherwise opens the
+  task.
+- **Web has no "Project" task layout** (ADEV-56). The `taskDisplayMode`
+  setting is still stored and served for iOS/Mac, where `project` remains a
+  valid value; web always renders the list layout and no longer offers the
+  choice in Appearance.
 - **The picker shows the mark you will then see.** The assignee picker's
   unassigned option uses the same mark.
 - **It applies everywhere the control appears** — task row, task details,

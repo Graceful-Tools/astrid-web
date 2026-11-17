@@ -137,13 +137,13 @@ export function ListItem({
             {(privacy === 'PUBLIC' || hasAdditionalMembers) && (
               <div>
                 {privacy === 'PUBLIC' ? (
-                  <Globe className="w-3 h-3 text-success" />
+                  <Globe className="w-3 h-3 text-brand" />
                 ) : hasAdditionalMembers ? (
-                  <Users className="w-3 h-3 text-brand" />
+                  <Users className="w-3 h-3 text-success" />
                 ) : null}
               </div>
             )}
-            <span className="text-caption2 theme-count-bg theme-text-primary px-2 py-1 rounded">
+            <span className="text-caption2 theme-count-bg theme-text-secondary px-2 py-1 rounded-full">
               {taskCount}
             </span>
             {isMobile && onSettingsClick && (

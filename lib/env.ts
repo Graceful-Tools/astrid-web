@@ -241,6 +241,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
   { name: 'ASTRID_CORE_PUSH', scope: 'tooling', description: 'Set by agent-run.yml: 1 when the runner can push to astrid-core, 0 when it cannot, so claim-next-fixall-task.ts skips core tasks.' },
   { name: 'ASTRID_PREDEPLOY_FILE_TASKS', scope: 'tooling', description: 'Predeploy files a "Predeploy Failed" board task only when HEAD is on origin/main (ADEV-31); 1 forces filing, 0 forbids it.' },
+  { name: 'ASTRID_RUN_STARTED_AT', scope: 'tooling', description: 'Set by agent-run.yml when the agent starts: heartbeat-held-claims.ts renews only claim leases taken since then (ADEV-37).' },
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
   { name: 'ASTRID_FIXALL_HARNESS', scope: 'tooling', description: 'Explicit polling harness selector; controls queue identity and retained cloud wake-state scope.' },
   { name: 'AGENT_QUEUE_DUE_FIRST', scope: 'optional', description: 'Agent queue selection mode: off preserves legacy selection (default), shadow compares and returns the legacy result, and on selects due tasks before the page cap. Set back to off to roll back.', validate: v => (['off', 'shadow', 'on'].includes(v.trim()) ? null : 'Must be off, shadow, or on') },

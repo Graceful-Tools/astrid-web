@@ -12,6 +12,7 @@ import { agentServiceLabel } from "@/lib/ai/agent-config"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Bot, ChevronDown, ChevronUp, RefreshCw, Repeat } from "lucide-react"
 import { Github } from "@/components/ui/brand-icons"
+import { ListAgentRoster } from "@/components/list-admin/ListAgentRoster"
 import { AgentLoopRecipes } from "@/components/agent-runtime-settings"
 import type { TaskList } from "@/types/task"
 
@@ -148,6 +149,8 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
           }}
         />
       </div>
+
+      <ListAgentRoster listId={list.id} />
 
       {/* Assistant model for this list. Server-run, so it needs a keyed agent —
           hidden rather than disabled when the account has none. */}

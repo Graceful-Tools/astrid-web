@@ -2,11 +2,11 @@
  * AWTD-919 (web half of astrid-ios AITD-382, fixed there in 2bcb0e4): tapping
  * the mark on an UNASSIGNED task completed it.
  *
- * `leadingControlOpensOptions` asked three questions — the display mode, the
- * board, and whose task it is — and never asked about the MARK IT ACTUALLY
- * DREW. For a task nobody owns, on a plain list row:
+ * `leadingControlOpensOptions` asked three questions — the display mode (gone
+ * since ADEV-56), the board, and whose task it is — and never asked about the
+ * MARK IT ACTUALLY DREW. For a task nobody owns, on a plain list row:
  *
- *   usesCompactTaskDetail('list')  false
+ *   display mode 'list'            no
  *   onBoard                        false
  *   isSomeoneElses                 false   <- correct; nobody's is not someone else's
  *
@@ -35,11 +35,10 @@ const ME = 'user-me'
 const THEM = 'user-them'
 const AGENT = 'ai-agent-claude'
 
-/** What a plain list row asks: no board, no project mode. */
+/** What a plain list row asks: no board. */
 function opensOnListRow(assigneeId: string | null, completed = false) {
   const kind = taskLeadingControlKind({ assigneeId, currentUserId: ME, completed })
   return leadingControlOpensOptions({
-    displayMode: 'list',
     onBoard: false,
     isSomeoneElses: Boolean(assigneeId) && assigneeId !== ME,
     kind,
@@ -86,24 +85,15 @@ describe('the unassigned mark does not complete on tap (AWTD-919)', () => {
 
 describe('the existing reasons to open the sheet are unchanged (AWTD-919)', () => {
   it('omitting kind keeps the pre-AWTD-919 answers', () => {
-    // kind is optional and defaults to 'checkbox', the same convention this
-    // module already uses for displayMode. Callers that predate this task must
-    // not change behaviour.
-    expect(leadingControlOpensOptions({ displayMode: 'list', onBoard: false })).toBe(false)
-    expect(leadingControlOpensOptions({ displayMode: 'list', onBoard: true })).toBe(true)
-    expect(leadingControlOpensOptions({ displayMode: 'project', onBoard: false })).toBe(true)
-    expect(
-      leadingControlOpensOptions({ displayMode: 'list', onBoard: false, isSomeoneElses: true }),
-    ).toBe(true)
+    // kind is optional and defaults to 'checkbox'. Callers that predate this
+    // task must not change behaviour.
+    expect(leadingControlOpensOptions({ onBoard: false })).toBe(false)
+    expect(leadingControlOpensOptions({ onBoard: true })).toBe(true)
+    expect(leadingControlOpensOptions({ onBoard: false, isSomeoneElses: true })).toBe(true)
   })
 
-  it('an unassigned task on a board or in project mode still opens the sheet', () => {
+  it('an unassigned task on a board still opens the sheet', () => {
     expect(opensOnListRow(null)).toBe(true)
-    expect(
-      leadingControlOpensOptions({ displayMode: 'project', onBoard: false, kind: 'unassigned' }),
-    ).toBe(true)
-    expect(
-      leadingControlOpensOptions({ displayMode: 'list', onBoard: true, kind: 'unassigned' }),
-    ).toBe(true)
+    expect(leadingControlOpensOptions({ onBoard: true, kind: 'unassigned' })).toBe(true)
   })
 })

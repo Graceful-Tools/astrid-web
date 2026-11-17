@@ -21,6 +21,8 @@ export const NOTIFICATION_KINDS = [
   'commented',
   'status_changed',
   'completed',
+  // An agent on a board the user owns has stopped checking in (AWTD-1697).
+  'agent_quiet',
 ] as const
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]
@@ -32,6 +34,7 @@ export const NOTIFICATION_KIND_LABELS: Record<NotificationKind, string> = {
   commented: 'Commented',
   status_changed: 'Status changed',
   completed: 'Completed',
+  agent_quiet: 'Agent quiet',
 }
 
 /**

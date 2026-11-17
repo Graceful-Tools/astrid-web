@@ -3,6 +3,7 @@
     "myTasks": "Minhas Tarefas",
     "today": "Hoje",
     "lists": "Listas",
+    "favorites": "Favoritos",
     "addList": "Adicionar Lista",
     "publicSharedLists": "Listas Públicas Compartilhadas",
     "publicLists": "Listas Públicas",
@@ -109,6 +110,7 @@
     "createdBy": "Criado por",
     "confirmCompleteTitle": "Concluir esta tarefa?",
     "confirmCompleteAssigned": "Atribuída a {name}",
+    "confirmCompleteUnassigned": "Não atribuída a ninguém",
     "waitingOn": {
       "label": "À espera de",
       "add": "Esperar por uma tarefa…",
@@ -198,6 +200,14 @@
       "count": "Comentários ({count})",
       "hideSystemTitle": "Ocultar comentários do sistema",
       "showSystemTitle": "Mostrar comentários do sistema",
+      "approval": {
+        "approve": "Aprovar",
+        "decline": "Recusar",
+        "declineReasonPlaceholder": "Por que você está recusando?",
+        "approvedBy": "Aprovado por {name}",
+        "declinedBy": "Recusado por {name}: {reason}",
+        "decisionError": "Não foi possível registrar sua decisão. Tente novamente."
+      },
       "hideSystem": "Ocultar do sistema",
       "showSystem": "Mostrar do sistema",
       "refreshShort": "Atualizar",
@@ -233,7 +243,8 @@
     "userAvatarAlt": "Usuário",
     "assigneeYou": "Você",
     "board": {
-      "addTaskTo": "Adicionar tarefa a {name}"
+      "addTaskTo": "Adicionar tarefa a {name}",
+      "addTaskPlaceholder": "Adicionar uma tarefa"
     },
     "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"
   },
@@ -1370,15 +1381,6 @@
         "quickAccess": "Pressione ? em qualquer lugar no gerenciador de tarefas para abrir atalhos de teclado.",
         "quickAccessLabel": "Acesso rápido"
       },
-      "taskDisplayMode": {
-        "title": "Layout dos detalhes da tarefa",
-        "description": "Como prioridade, responsável e estado aparecem numa tarefa (sincronizado entre dispositivos)",
-        "label": "Layout",
-        "list": "Lista",
-        "project": "Projeto",
-        "listDesc": "A caixa de seleção conclui a tarefa, e prioridade e responsável têm cada um a sua própria linha.",
-        "projectDesc": "Compacto. Tocar na caixa abre prioridade, responsável, estado e concluir."
-      },
       "taskTitles": {
         "title": "Títulos das tarefas",
         "description": "Quanto de um título longo a linha de uma tarefa mostra (guardado neste dispositivo)",
@@ -1812,6 +1814,12 @@
     "showLists": "Mostrar listas de {name}",
     "hideLists": "Ocultar listas de {name}",
     "boardAddList": "Adicionar lista",
+    "boardSettings": "Configurações do projeto",
+    "settingsTitle": "Configurações do projeto",
+    "settingsNameLabel": "Nome do projeto",
+    "settingsSave": "Salvar",
+    "settingsCancel": "Cancelar",
+    "settingsSaveFailed": "Não foi possível salvar o nome do projeto. Tente novamente.",
     "boardRemoveRow": "Remover {name} deste quadro",
     "boardColumnCount": "{column}: {count}",
     "boardDoneCount": "{column}: {count} (últimas {hours} h)",
@@ -1822,9 +1830,20 @@
     "projectNone": "Nenhum",
     "projectMoveFailed": "Não foi possível mover esta lista",
     "projectLockedIn": "Em {name}. Somente o proprietário ou um administrador do projeto pode removê-la.",
+    "projectNew": "Novo projeto…",
+    "projectLeaveConfirm": "Remover {list} de {project}?",
     "newListInProject": "Nova lista no projeto…",
     "newListName": "Nome da lista",
-    "newListFailed": "Não foi possível criar a lista"
+    "newListFailed": "Não foi possível criar a lista",
+    "boardNewList": "Nova lista…",
+    "moveToProject": "Mover para projeto",
+    "removeFromProject": "Remover do projeto",
+    "projectLeaveDetail": "As tarefas vão junto. Uma tarefa em uma das colunas próprias deste projeto aparece na Caixa de entrada até a lista voltar a um projeto com essa coluna.",
+    "deleteProject": "Excluir projeto…",
+    "deleteProjectConfirm": "Excluir {name}?",
+    "deleteProjectDetail": "As listas permanecem, fora de qualquer projeto. As colunas próprias do quadro são excluídas com ele.",
+    "deleteProjectAction": "Excluir",
+    "deleteProjectFailed": "Não foi possível excluir o projeto"
   },
   "viewRotator": {
     "showList": "Mostrar lista",
@@ -1888,6 +1907,18 @@
     "agentClaimRequired": {
       "label": "Os agentes reivindicam as tarefas antes de trabalhar nelas",
       "help": "Os agentes desta lista pegam tarefas Prontas sem responsável, reivindicam cada uma primeiro para que dois agentes nunca peguem a mesma e mantêm a reivindicação ativa enquanto trabalham. Uma reivindicação que deixa de ser renovada devolve a tarefa para Pronta."
+    },
+    "agentRoster": {
+      "title": "Agentes neste quadro",
+      "empty": "Nenhum agente consultou este quadro ainda.",
+      "lastSeen": "Visto pela última vez {when}",
+      "notSeen": "Não visto desde {when}",
+      "neverSeen": "Ainda não visto",
+      "holds": "Trabalhando em {task}",
+      "idle": "Sem tarefa em andamento",
+      "readyWait": "{count} tarefa(s) em Pronto aguardam desde {when}.",
+      "reasonNoAgent": "Nenhum agente está inscrito neste quadro.",
+      "reasonNotSeen": "Nenhum agente foi visto neste quadro recentemente."
     },
     "admin": {
       "descriptionLabel": "Descrição da lista",
@@ -2597,7 +2628,8 @@
       "mentioned": "Menção",
       "replied": "Resposta",
       "commented": "Comentário",
-      "statusChanged": "Status alterado"
+      "statusChanged": "Status alterado",
+      "agentQuiet": "Um agente parou de responder"
     }
   },
   "admin": {

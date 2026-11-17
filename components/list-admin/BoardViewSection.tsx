@@ -22,6 +22,8 @@ import { fetchProjects, type ClientProject } from "@/lib/client-projects"
 import { apiCall, refusalReason } from "@/lib/api"
 import { listProjectMoves } from "@/lib/list-project-moves"
 
+const NEW_PROJECT_VALUE = "__new_project__"
+
 interface BoardViewSectionProps {
   list: TaskList
   /** Whose standing decides the Project picker's options (AWTD-1703). */
@@ -162,7 +164,10 @@ export function BoardViewSection({
   const destinationProjects = moves.destinations
     .map(id => projects.find(project => project.id === id))
     .filter((project): project is ClientProject => Boolean(project))
-  const canMove = destinationProjects.length > 0 || moves.canLeave
+  // New Project… is the existing create-from-list flow: only for a list in no project (ADEV-62).
+  const canCreateProject = !list.projectId && canEditSettings
+  const canMove = destinationProjects.length > 0 || moves.canLeave || canCreateProject
+  const [showLeaveConfirmation, setShowLeaveConfirmation] = useState(false)
 
   // Moving a list is one PUT; a refusal keeps the picker where it was (the list is only
   // updated on success) and shows the server's reason.
@@ -183,6 +188,18 @@ export function BoardViewSection({
       setIsMoving(false)
     }
   }, [isMoving, list, onUpdate, t])
+
+  // Leaving can hide tasks sitting in the project's own columns, so None asks first and New
+  // Project… reuses the create flow (ADEV-62; iOS ListProjectControl.action).
+  const handlePickProject = (value: string) => {
+    if (value === NEW_PROJECT_VALUE) {
+      void handleCreateProjectBoard()
+    } else if (value === "" && list.projectId) {
+      setShowLeaveConfirmation(true)
+    } else {
+      void handleMoveToProject(value)
+    }
+  }
 
   const handleRenameKey = useCallback(async () => {
     if (!list.projectId || !renameKey || renameKey === currentKey || isRenamingKey) return
@@ -310,7 +327,7 @@ export function BoardViewSection({
                 id={`list-project-${list.id}`}
                 value={list.projectId ?? ""}
                 disabled={isMoving}
-                onChange={(event) => void handleMoveToProject(event.target.value)}
+                onChange={(event) => handlePickProject(event.target.value)}
                 className="h-7 rounded-md border theme-border bg-transparent px-2 text-xs theme-text-primary"
               >
                 {(moves.canLeave || !list.projectId) && <option value="">{t("projectMode.projectNone")}</option>}
@@ -318,10 +335,11 @@ export function BoardViewSection({
                 {destinationProjects.map(project => (
                   <option key={project.id} value={project.id}>{projectName(project)}</option>
                 ))}
+                {canCreateProject && <option value={NEW_PROJECT_VALUE}>{t("projectMode.projectNew")}</option>}
               </select>
             ) : (
               <span className="text-xs theme-text-muted">
-                {t("projectMode.projectLockedIn", { name: currentProject ? projectName(currentProject) : "" })}
+                {currentProject ? projectName(currentProject) : ""}
               </span>
             )}
           </div>
@@ -390,6 +408,32 @@ export function BoardViewSection({
           onClose={() => setShowRequestDialog(false)}
           onRequested={() => setHasRequested(true)}
         />
+      )}
+
+      {showLeaveConfirmation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isMoving && setShowLeaveConfirmation(false)}>
+          <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <p className="theme-text-primary mb-4">
+              {t("projectMode.projectLeaveConfirm", { list: list.name, project: currentProject ? projectName(currentProject) : "" })}
+            </p>
+            <div className="flex space-x-3 justify-end">
+              <Button variant="outline" size="sm" disabled={isMoving} onClick={() => setShowLeaveConfirmation(false)}>
+                {t("actions.cancel")}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={isMoving}
+                onClick={async () => {
+                  await handleMoveToProject("")
+                  setShowLeaveConfirmation(false)
+                }}
+              >
+                {t("actions.confirm")}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {showDisableBoardConfirmation && (

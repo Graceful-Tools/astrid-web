@@ -12,7 +12,7 @@
  *     adds it.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import type { Task, TaskList } from '@/types/task'
 
 const flags = vi.hoisted(() => ({ projectMode: true }))
@@ -48,7 +48,6 @@ vi.mock('@/components/task-detail', () => ({
     <div data-testid="inline-task-detail">{task.title}<button onClick={onClose}>close</button></div>
   ),
 }))
-vi.mock('@/hooks/useUserSettings', () => ({ useUserSettings: () => ({ taskDisplayMode: 'list' }) }))
 
 vi.mock('@/components/task-row-content', () => ({
   TaskRowContent: ({ task }: { task: Task }) => <span>{task.title}</span>,
@@ -131,7 +130,7 @@ describe('Projects sidebar section gating (AWTD-1660)', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('lists the person\'s projects, which expand to their lists', async () => {
+  it('lists the person\'s projects with their lists showing, hidden by the chevron (ADEV-61)', async () => {
     const onSelectProject = vi.fn()
     render(
       <ProjectsSection
@@ -146,13 +145,15 @@ describe('Projects sidebar section gating (AWTD-1660)', () => {
     )
     const project = await screen.findByTestId('sidebar-project-p1')
     expect(project).toHaveTextContent('Astrid')
-    expect(screen.queryByTestId('sidebar-project-p1-lists')).toBeNull()
-
-    fireEvent.click(screen.getByTestId('sidebar-project-p1-toggle'))
+    // Lists show by default since ADEV-61 (iOS ADEV-57); the chevron hides them.
     const children = screen.getByTestId('sidebar-project-p1-lists')
     expect(children).toHaveTextContent('Web')
     expect(children).toHaveTextContent('iOS')
     expect(children).not.toHaveTextContent('Groceries')
+
+    fireEvent.click(screen.getByTestId('sidebar-project-p1-toggle'))
+    expect(screen.queryByTestId('sidebar-project-p1-lists')).toBeNull()
+    fireEvent.click(screen.getByTestId('sidebar-project-p1-toggle'))
 
     fireEvent.click(screen.getByTestId('sidebar-project-p1-open'))
     expect(onSelectProject).toHaveBeenCalledWith('p1')
@@ -197,11 +198,14 @@ describe('ProjectBoard rows (AWTD-1660)', () => {
     renderBoard(vi.fn(), onCreateTask)
     await screen.findByTestId('project-board-row-ios')
 
-    fireEvent.change(screen.getByTestId('project-board-add-input-ios-doing'), { target: { value: 'Ship it' } })
-    fireEvent.submit(screen.getByTestId('project-board-add-input-ios-doing').closest('form')!)
+    // ADEV-63: the column's add bar is the full quick-add (a growing field, Enter adds).
+    const field = within(screen.getByTestId('project-board-add-ios-doing')).getByRole('textbox')
+    expect(field).toHaveAttribute('placeholder', 'Add a task')
+    fireEvent.change(field, { target: { value: 'Ship it' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
 
-    await waitFor(() => expect(onCreateTask).toHaveBeenCalledWith('Ship it', { listIds: ['ios'], statusRole: 'doing' }))
-    expect(screen.queryByTestId('project-board-add-input-ios-done')).toBeNull()
+    await waitFor(() => expect(onCreateTask).toHaveBeenCalledWith('Ship it', expect.objectContaining({ listIds: ['ios'], statusRole: 'doing' })))
+    expect(screen.queryByTestId('project-board-add-ios-done')).toBeNull()
   })
 
   it('× on a row header removes the row and saves the choice on the server', async () => {
@@ -278,7 +282,8 @@ describe('ProjectBoardHost gating (AWTD-1660)', () => {
   it('draws the selected project\'s board for someone with project_mode', async () => {
     setSelectedProjectId('p1')
     renderHost()
-    expect(await screen.findByTestId('project-board')).toHaveTextContent('Astrid')
+    // The board no longer repeats the project name (ADEV-63); the header names it.
+    expect(await screen.findByTestId('project-board')).toBeInTheDocument()
   })
 
   it('without project_mode it draws nothing and closes the selection', async () => {

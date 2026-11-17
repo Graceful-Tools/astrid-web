@@ -7,8 +7,8 @@
  * listened for reviews at all — so the owner had to open GitHub to learn
  * whether a PR was reviewed, approved or blocked.
  *
- * Now a PR that names a task — its identifier (AWTD-123) in the branch, title
- * or body, or a link to it — gets a comment on that task when it is opened,
+ * Now a PR that names a task — its identifier (AWTD-123) in the branch or
+ * title, or on a `Task:` line in the body, or a link to it — gets a comment on that task when it is opened,
  * reviewed, merged or closed.
  *
  * Two rules keep this safe and quiet:
@@ -35,9 +35,14 @@ export const REVIEW_EXCERPT_CHARS = 1200
 const IDENTIFIER_TOKEN = /\b([A-Za-z][A-Za-z0-9]{1,4}-\d+)\b/g
 const TASK_URL_UUID = /\/tasks?\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/gi
 
+/** A body line that declares the PR's task: `Task: ADEV-1`, `- **Task:** <link>`. */
+const BODY_TASK_LINE = /^[ \t>*_-]*task[ \t]*:[ \t*_]*(.*)$/gim
+
 /**
  * The task references in a PR, in the order they appear: identifiers in the
- * branch, title and body, and task links (/task/<uuid>, /tasks/<uuid>).
+ * branch and title, on `Task:` lines of the body, and task links
+ * (/task/<uuid>, /tasks/<uuid>) in those places. Other body text is ignored:
+ * a PR mentioning another task in passing is not that task's PR (ADEV-35).
  * Deduplicated, capped at MAX_TASK_REFS. Pure.
  *
  * Over-matching is harmless — "SHA-256" parses as an identifier and then
@@ -53,7 +58,8 @@ export function taskReferencesInPullRequest(pr: {
   const add = (ref: string) => {
     if (!refs.includes(ref) && refs.length < MAX_TASK_REFS) refs.push(ref)
   }
-  for (const text of [pr.branch, pr.title, pr.body]) {
+  const bodyTaskLines = [...(pr.body ?? '').matchAll(BODY_TASK_LINE)].map(m => m[1]).join('\n')
+  for (const text of [pr.branch, pr.title, bodyTaskLines]) {
     if (!text) continue
     for (const match of text.matchAll(TASK_URL_UUID)) add(match[1].toLowerCase())
     for (const match of text.matchAll(IDENTIFIER_TOKEN)) {

@@ -7,7 +7,7 @@ import en from '@/lib/i18n/locales/en.json'
 
 /**
  * The rendered half of task 2bb1b196: three distinct marks for three distinct
- * states, and the same completion action behind all of them.
+ * states. Completing a task that is not yours asks first (ADEV-56).
  */
 function renderControl(props: Partial<React.ComponentProps<typeof TaskLeadingControl>> = {}) {
   const onToggleComplete = vi.fn()
@@ -47,21 +47,27 @@ describe('TaskLeadingControl (task 2bb1b196)', () => {
     expect(screen.queryByTestId('task-checkbox-art')).not.toBeInTheDocument()
   })
 
-  it('still completes the task when the "U" mark is clicked — the mark changed, the action did not', async () => {
+  it('completes the task when the "U" mark is clicked, once the ADEV-56 confirmation is accepted', async () => {
+    // With no options sheet wired, the "U" completes directly — but a task
+    // nobody owns is not yours, so it asks first (ADEV-56).
     const user = userEvent.setup()
     const { onToggleComplete } = renderControl({ assigneeId: null })
 
     await user.click(screen.getByText('U'))
+    expect(onToggleComplete).not.toHaveBeenCalled()
+    expect(screen.getByText(en.tasks.confirmCompleteUnassigned)).toBeInTheDocument()
 
+    await user.click(screen.getByRole('button', { name: en.common.complete }))
     expect(onToggleComplete).toHaveBeenCalledTimes(1)
   })
 
-  it('completes the task from the keyboard, so the "U" mark is not mouse-only', async () => {
+  it('reaches the same confirmation from the keyboard, so the "U" mark is not mouse-only', async () => {
     const user = userEvent.setup()
     const { onToggleComplete } = renderControl({ assigneeId: null })
 
     await user.tab()
     await user.keyboard('{Enter}')
+    await user.click(screen.getByRole('button', { name: en.common.complete }))
 
     expect(onToggleComplete).toHaveBeenCalledTimes(1)
   })

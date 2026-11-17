@@ -118,7 +118,7 @@ describe('completing someone else\'s task from the options sheet (AWTD-877)', ()
 
 describe('what completes without asking (AWTD-877)', () => {
   it('your own task', () => {
-    // Trap 1: in project mode your own task wears your photo too, so a
+    // Trap 1: iOS's project layout puts your own photo on your own task, so a
     // confirmation keyed off the avatar MARK would stop you finishing your own
     // work. This compares ids.
     const onToggleComplete = vi.fn()
@@ -132,14 +132,9 @@ describe('what completes without asking (AWTD-877)', () => {
     expect(onToggleComplete).toHaveBeenCalledTimes(1)
   })
 
-  it('an unassigned task — there is nobody the dialog could name', () => {
-    const onToggleComplete = vi.fn()
-    openSheet({ onToggleComplete, selectedAssignee: null })
-
-    fireEvent.click(completeButton())
-
-    expect(onToggleComplete).toHaveBeenCalledTimes(1)
-  })
+  // An unassigned task used to complete without asking here ("there is nobody
+  // the dialog could name"). ADEV-56 asks for it too, saying nobody holds it —
+  // see tests/components/adev-56-no-project-layout.test.tsx.
 
   it('REOPENING someone else\'s task, which takes nothing away from them', () => {
     const onToggleComplete = vi.fn()

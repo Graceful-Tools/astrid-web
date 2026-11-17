@@ -64,6 +64,23 @@ export function loadProjectsOnce(): Promise<ClientProject[]> {
   return inflightProjects
 }
 
+/**
+ * Show a rename now, in the sidebar and on the open board, instead of after a
+ * reload (ADEV-54). A project not in the cache is left alone.
+ */
+export function renameLoadedProject(projectId: string, name: string) {
+  if (!cachedProjects) return
+  cachedProjects = cachedProjects.map(project => (project.id === projectId ? { ...project, name } : project))
+  for (const listener of projectListeners) listener(cachedProjects)
+}
+
+/** Drop a deleted project from the sidebar and the open board now, not after a reload (ADEV-61). */
+export function removeLoadedProject(projectId: string) {
+  if (!cachedProjects) return
+  cachedProjects = cachedProjects.filter(project => project.id !== projectId)
+  for (const listener of projectListeners) listener(cachedProjects)
+}
+
 /** What `loadProjectsOnce` already holds, without asking. */
 export function peekLoadedProjects(): ClientProject[] | null {
   return cachedProjects
