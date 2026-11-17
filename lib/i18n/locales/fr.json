@@ -1835,7 +1835,15 @@
     "newListInProject": "Nouvelle liste dans le projet…",
     "newListName": "Nom de la liste",
     "newListFailed": "Impossible de créer la liste",
-    "boardNewList": "Nouvelle liste…"
+    "boardNewList": "Nouvelle liste…",
+    "moveToProject": "Déplacer vers un projet",
+    "removeFromProject": "Retirer du projet",
+    "projectLeaveDetail": "Ses tâches la suivent. Une tâche dans une des colonnes propres à ce projet apparaît dans la Boîte de réception jusqu'à ce que la liste rejoigne un projet ayant cette colonne.",
+    "deleteProject": "Supprimer le projet…",
+    "deleteProjectConfirm": "Supprimer {name} ?",
+    "deleteProjectDetail": "Ses listes sont conservées, hors de tout projet. Les colonnes propres au tableau sont supprimées avec lui.",
+    "deleteProjectAction": "Supprimer",
+    "deleteProjectFailed": "Impossible de supprimer le projet"
   },
   "viewRotator": {
     "showList": "Afficher la liste",

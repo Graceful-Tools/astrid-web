@@ -1835,7 +1835,15 @@
     "newListInProject": "Nueva lista en el proyecto…",
     "newListName": "Nombre de la lista",
     "newListFailed": "No se pudo crear la lista",
-    "boardNewList": "Nueva lista…"
+    "boardNewList": "Nueva lista…",
+    "moveToProject": "Mover a proyecto",
+    "removeFromProject": "Quitar del proyecto",
+    "projectLeaveDetail": "Sus tareas se van con ella. Una tarea en una de las columnas propias de este proyecto aparece en la Bandeja de entrada hasta que la lista vuelva a un proyecto con esa columna.",
+    "deleteProject": "Eliminar proyecto…",
+    "deleteProjectConfirm": "¿Eliminar {name}?",
+    "deleteProjectDetail": "Sus listas se conservan, fuera de cualquier proyecto. Las columnas propias del tablero se eliminan con él.",
+    "deleteProjectAction": "Eliminar",
+    "deleteProjectFailed": "No se pudo eliminar el proyecto"
   },
   "viewRotator": {
     "showList": "Mostrar lista",

@@ -1835,7 +1835,15 @@
     "newListInProject": "프로젝트에 새 목록…",
     "newListName": "목록 이름",
     "newListFailed": "목록을 만들 수 없습니다",
-    "boardNewList": "새 목록…"
+    "boardNewList": "새 목록…",
+    "moveToProject": "프로젝트로 이동",
+    "removeFromProject": "프로젝트에서 제거",
+    "projectLeaveDetail": "작업도 함께 이동합니다. 이 프로젝트 고유 열에 있는 작업은 목록이 그 열이 있는 프로젝트에 다시 들어갈 때까지 받은편지함에 표시됩니다.",
+    "deleteProject": "프로젝트 삭제…",
+    "deleteProjectConfirm": "{name}을(를) 삭제할까요?",
+    "deleteProjectDetail": "목록은 어떤 프로젝트에도 속하지 않은 채로 남습니다. 보드 고유의 열은 함께 삭제됩니다.",
+    "deleteProjectAction": "삭제",
+    "deleteProjectFailed": "프로젝트를 삭제할 수 없습니다"
   },
   "viewRotator": {
     "showList": "목록 보기",

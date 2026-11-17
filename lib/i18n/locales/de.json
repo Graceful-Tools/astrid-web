@@ -1835,7 +1835,15 @@
     "newListInProject": "Neue Liste im Projekt…",
     "newListName": "Listenname",
     "newListFailed": "Liste konnte nicht erstellt werden",
-    "boardNewList": "Neue Liste…"
+    "boardNewList": "Neue Liste…",
+    "moveToProject": "In Projekt verschieben",
+    "removeFromProject": "Aus Projekt entfernen",
+    "projectLeaveDetail": "Ihre Aufgaben wandern mit. Eine Aufgabe in einer eigenen Spalte dieses Projekts erscheint im Eingang, bis die Liste wieder einem Projekt mit dieser Spalte beitritt.",
+    "deleteProject": "Projekt löschen…",
+    "deleteProjectConfirm": "{name} löschen?",
+    "deleteProjectDetail": "Die Listen bleiben erhalten, außerhalb jedes Projekts. Die eigenen Spalten des Boards werden mit gelöscht.",
+    "deleteProjectAction": "Löschen",
+    "deleteProjectFailed": "Das Projekt konnte nicht gelöscht werden"
   },
   "viewRotator": {
     "showList": "Liste anzeigen",

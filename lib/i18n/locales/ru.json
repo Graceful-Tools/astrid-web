@@ -1835,7 +1835,15 @@
     "newListInProject": "Новый список в проекте…",
     "newListName": "Название списка",
     "newListFailed": "Не удалось создать список",
-    "boardNewList": "Новый список…"
+    "boardNewList": "Новый список…",
+    "moveToProject": "Переместить в проект",
+    "removeFromProject": "Убрать из проекта",
+    "projectLeaveDetail": "Задачи переносятся вместе со списком. Задача в собственной колонке этого проекта будет во Входящих, пока список снова не войдёт в проект с такой колонкой.",
+    "deleteProject": "Удалить проект…",
+    "deleteProjectConfirm": "Удалить {name}?",
+    "deleteProjectDetail": "Списки останутся, вне какого-либо проекта. Собственные колонки доски будут удалены вместе с ним.",
+    "deleteProjectAction": "Удалить",
+    "deleteProjectFailed": "Не удалось удалить проект"
   },
   "viewRotator": {
     "showList": "Показать список",

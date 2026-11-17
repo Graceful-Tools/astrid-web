@@ -130,7 +130,7 @@ describe('Projects sidebar section gating (AWTD-1660)', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('lists the person\'s projects, which expand to their lists', async () => {
+  it('lists the person\'s projects with their lists showing, hidden by the chevron (ADEV-61)', async () => {
     const onSelectProject = vi.fn()
     render(
       <ProjectsSection
@@ -145,13 +145,15 @@ describe('Projects sidebar section gating (AWTD-1660)', () => {
     )
     const project = await screen.findByTestId('sidebar-project-p1')
     expect(project).toHaveTextContent('Astrid')
-    expect(screen.queryByTestId('sidebar-project-p1-lists')).toBeNull()
-
-    fireEvent.click(screen.getByTestId('sidebar-project-p1-toggle'))
+    // Lists show by default since ADEV-61 (iOS ADEV-57); the chevron hides them.
     const children = screen.getByTestId('sidebar-project-p1-lists')
     expect(children).toHaveTextContent('Web')
     expect(children).toHaveTextContent('iOS')
     expect(children).not.toHaveTextContent('Groceries')
+
+    fireEvent.click(screen.getByTestId('sidebar-project-p1-toggle'))
+    expect(screen.queryByTestId('sidebar-project-p1-lists')).toBeNull()
+    fireEvent.click(screen.getByTestId('sidebar-project-p1-toggle'))
 
     fireEvent.click(screen.getByTestId('sidebar-project-p1-open'))
     expect(onSelectProject).toHaveBeenCalledWith('p1')

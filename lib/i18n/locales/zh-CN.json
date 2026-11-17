@@ -1835,7 +1835,15 @@
     "newListInProject": "在项目中新建列表…",
     "newListName": "列表名称",
     "newListFailed": "无法创建列表",
-    "boardNewList": "新建列表…"
+    "boardNewList": "新建列表…",
+    "moveToProject": "移至项目",
+    "removeFromProject": "从项目中移除",
+    "projectLeaveDetail": "其任务会一同移动。位于此项目专属列中的任务会显示在收件箱中，直到该列表重新加入具有该列的项目。",
+    "deleteProject": "删除项目…",
+    "deleteProjectConfirm": "删除{name}？",
+    "deleteProjectDetail": "其列表会保留，不属于任何项目。看板专属的列会一同删除。",
+    "deleteProjectAction": "删除",
+    "deleteProjectFailed": "无法删除项目"
   },
   "viewRotator": {
     "showList": "显示列表",
