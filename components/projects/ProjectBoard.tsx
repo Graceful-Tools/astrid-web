@@ -160,14 +160,14 @@ export function ProjectBoard({
     return (
       <>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-start gap-2">
+          <div className="flex flex-col items-start gap-1">
             {lane.list.imageUrl && (
-               
+
               <img src={lane.list.imageUrl} alt="" className="h-6 w-6 shrink-0 rounded object-cover" />
             )}
             <div className="min-w-0 break-words text-sm font-semibold leading-tight">{lane.list.name}</div>
           </div>
-          <ul className="space-y-0.5 text-xs opacity-90" data-testid={`project-board-counts-${lane.list.id}`}>
+          <ul className="space-y-0.5 text-sm opacity-90" data-testid={`project-board-counts-${lane.list.id}`}>
             {columns.map(column => {
               const count = lane.cells[column.id]?.length ?? 0
               const label = boardColumnLabel(column, t)
@@ -272,7 +272,7 @@ export function ProjectBoard({
       )}
 
       <div
-        className={`flex-1 min-h-0 overflow-auto p-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
+        className={`flex-1 min-h-0 overflow-auto p-4 pt-0 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
         data-testid="project-board-scroller"
         data-board-callout-viewport
       >
@@ -282,7 +282,7 @@ export function ProjectBoard({
           </div>
         ) : (
           <div className={`${isOneColumn ? "flex" : "inline-flex min-w-full"} flex-col gap-3`}>
-            <div className="sticky top-0 z-10 -mx-4 -mt-4 flex gap-3 border-b theme-border theme-bg-primary px-4 py-2" role="row" data-testid="project-board-column-headers">
+            <div className="sticky top-0 z-10 -mx-4 flex gap-3 border-b theme-border theme-bg-primary px-4 py-2" role="row" data-testid="project-board-column-headers">
               {!isOneColumn && <div className="w-32 shrink-0" />}
               {columns.map(column => (
                 <div key={column.id} className={`flex ${columnWidth} items-center gap-2 px-2 text-sm font-semibold theme-text-primary`} role="columnheader">
