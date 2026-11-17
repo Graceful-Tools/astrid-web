@@ -1274,9 +1274,6 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
       <div
         className="flex-1 overflow-y-auto scrollbar-hide p-4 space-y-4 relative"
         ref={scrollAreaCallbackRef}
-        onTouchStart={pullToRefresh.onTouchStart}
-        onTouchMove={pullToRefresh.onTouchMove}
-        onTouchEnd={pullToRefresh.onTouchEnd}
       >
         {/* Pull-to-refresh indicator */}
         {isMobileDevice() && (pullToRefresh.isPulling || pullToRefresh.isRefreshing) && (

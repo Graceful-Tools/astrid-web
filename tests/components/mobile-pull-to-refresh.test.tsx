@@ -78,9 +78,6 @@ describe('Mobile Pull-to-Refresh', () => {
       })
     )
 
-    expect(typeof result.current.pullToRefresh.onTouchStart).toBe('function')
-    expect(typeof result.current.pullToRefresh.onTouchMove).toBe('function')
-    expect(typeof result.current.pullToRefresh.onTouchEnd).toBe('function')
     expect(typeof result.current.pullToRefresh.bindToElement).toBe('function')
   })
 
