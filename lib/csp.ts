@@ -55,13 +55,21 @@ const FRAME_HOSTS = [
  *   would make it guessable and therefore useless.
  * @param isProduction dev needs 'unsafe-eval' for React Refresh, and
  *   upgrade-insecure-requests breaks Safari on localhost.
+ * @param allowWasm add `'wasm-unsafe-eval'`, which lets the page compile
+ *   WebAssembly and nothing else (JS eval stays blocked). Only astrid-core's
+ *   browser build needs it (AWTD-1586), so it follows that build's flag and the
+ *   policy is unchanged while the flag is off.
  */
-export function buildContentSecurityPolicy(nonce: string, isProduction: boolean): string {
+export function buildContentSecurityPolicy(
+  nonce: string,
+  isProduction: boolean,
+  allowWasm: boolean = process.env.NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER === 'on',
+): string {
   const directives = [
     `default-src 'self'`,
     // No 'unsafe-inline'. The nonce covers Next's own scripts; strict-dynamic
     // lets those load the rest of the chunk graph.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isProduction ? '' : `'unsafe-eval'`} ${SCRIPT_HOSTS.join(' ')}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${isProduction ? '' : `'unsafe-eval'`} ${allowWasm ? `'wasm-unsafe-eval'` : ''} ${SCRIPT_HOSTS.join(' ')}`,
     `worker-src 'self' blob:`,
     // style-src KEEPS 'unsafe-inline'. Tailwind and every React inline `style`
     // prop produce inline styles, and a style nonce cannot reach a style
