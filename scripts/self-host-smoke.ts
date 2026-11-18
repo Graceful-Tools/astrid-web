@@ -188,16 +188,8 @@ async function main() {
     return `brand ${body.brand?.appName}, sign-in ${JSON.stringify(body.auth?.providers?.map((p: { id: string }) => p.id) ?? body.auth)}`
   })
 
-  // ADEV-99: the hosted MCP and the agent queue are served by this instance, and an
-  // unauthenticated call must be refused by it (401), not 404 or answered by another host.
-  await check('/mcp challenges for a bearer token', async () => {
-    const response = await fetch(`${base}/mcp`, { method: 'POST', redirect: 'manual' })
-    expectStatus(response, 401)
-    const challenge = response.headers.get('www-authenticate') ?? ''
-    if (!challenge.includes('resource_metadata=')) throw new Error(`no OAuth challenge: "${challenge}"`)
-    return challenge
-  })
-
+  // ADEV-99: the agent queue is served by this instance and refuses an unauthenticated
+  // call. /mcp's own answer depends on the MCP capability; the probes below cover it.
   await check('/api/v1/agent-queue refuses without a token', async () => {
     expectStatus(await fetch(`${base}/api/v1/agent-queue`, { redirect: 'manual' }), 401)
   })
@@ -245,6 +237,8 @@ async function main() {
         if (probe.status === 401) {
           const metadata = resourceMetadataUrl(response.headers.get('www-authenticate'))
           if (!metadata) throw new Error(`no resource_metadata in WWW-Authenticate: ${response.headers.get('www-authenticate')}`)
+          // ADEV-99: the challenge points at this deployment, not the brand domain.
+          if (new URL(metadata).origin !== new URL(base).origin) throw new Error(`resource_metadata on another origin: ${metadata}`)
           return metadata
         }
         if (probe.status === 200) {
