@@ -1,6 +1,7 @@
 import { prisma } from "./prisma"
 import { sendVerificationEmail } from "./email"
 import { completeVerifyEmailTask } from "./system-tasks"
+import { ensureInitialAdmin } from "./admin-auth"
 import crypto from "crypto"
 import { createLogger } from '@/lib/logger'
 
@@ -111,6 +112,16 @@ export async function verifyEmailToken(token: string): Promise<EmailVerification
 
     // Auto-complete the verify email system task
     await completeVerifyEmailTask(user.id)
+
+    // The bootstrap admin grant needs a verified email, and this is the moment
+    // it becomes one. Without this a fresh instance waited for the 08:00 UTC
+    // analytics cron, which stays as the backstop (ADEV-104). Never fails the
+    // verification itself.
+    try {
+      await ensureInitialAdmin()
+    } catch (error) {
+      log.error({ err: error, userId: user.id }, "Initial admin grant after verification failed; the analytics cron will retry")
+    }
 
     return {
       success: true,

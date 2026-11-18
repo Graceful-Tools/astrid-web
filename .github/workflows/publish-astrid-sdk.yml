@@ -23,7 +23,9 @@ jobs:
   publish:
     runs-on: ubuntu-26.04
     # Skip if commit message contains [skip-publish] or is a version bump commit
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
     if: |
+      github.repository_owner == 'Graceful-Tools' &&
       !contains(github.event.head_commit.message, '[skip-publish]') &&
       !contains(github.event.head_commit.message, 'chore: bump @gracefultools/astrid-sdk')
     permissions:

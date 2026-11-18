@@ -2737,7 +2737,8 @@
     "optionsFailed": "無法發起通行金鑰請求，請再試一次。",
     "registrationFailed": "通行金鑰註冊失敗",
     "authenticationFailed": "通行金鑰登入失敗",
-    "defaultName": "我的通行金鑰"
+    "defaultName": "我的通行金鑰",
+    "registrationNotAllowed": "此伺服器僅允許已核准的電子郵件地址註冊。請向管理員申請存取權限。"
   },
   "oauthScopes": {
     "tasks_read": "讀取任務",

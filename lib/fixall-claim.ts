@@ -1,4 +1,5 @@
 import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
+import { IS_ASTRID_IDENTITY } from "@/lib/brand/config"
 import { harnessAgentMailboxes } from "@/lib/ai/harness-agents"
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from "@/lib/task-status"
 import { parseAgentResumeContext, type AgentResumeContext } from '@/lib/agent-handback'
@@ -55,17 +56,22 @@ export function fixallClaimAgentEmail(mailbox: FixallClaimMailbox): string {
  * empty: this is the allowlist the running loop depends on, and failing closed
  * on an env var that has to be present at DEPLOY time — the exact trap
  * ASTRID.md warns about — would silently stop every agent claiming work.
+ *
+ * That fallback is Astrid's own boards, so it applies only while the deployment
+ * presents Astrid's identity (IS_ASTRID_IDENTITY). A partner left unconfigured
+ * gets an empty allowlist rather than ids that exist only in Astrid's
+ * database: nothing is claimable until it names its own boards (ADEV-103).
  */
 function resolveBoardIds(): readonly string[] {
   const configured = process.env.FIXALL_CLAIM_BOARD_IDS?.trim()
   if (configured) {
     return configured.split(",").map((id) => id.trim()).filter(Boolean)
   }
-  return DEFAULT_FIXALL_CLAIM_BOARD_IDS
+  return IS_ASTRID_IDENTITY ? DEFAULT_FIXALL_CLAIM_BOARD_IDS : []
 }
 
 /**
- * Astrid's own web, iOS, Windows and Android to-do boards. A board missing here does not
+ * Astrid's own web, iOS, Windows, Android and Astrid Code to-do boards. A board missing here does not
  * fail loudly: its claims 409 exactly like a lost race, and the loop skips them
  * without comment (AWTD-1008).
  */
@@ -75,6 +81,9 @@ const DEFAULT_FIXALL_CLAIM_BOARD_IDS = [
   "abb4f961-55ee-499e-9c51-d4a2e31ee439",
   // Astrid Android To-do (AATD-22).
   "85eef4ce-3d4d-4072-9ca7-bd631ca815b1",
+  // Astrid Code To-do — the Code-OSS fork and astrid-vscode, worked by the iOS
+  // machine's Claude loop (ADEV-113).
+  "5975ee1d-dc76-44b8-b09d-75bd97c7e30b",
 ] as const
 
 export const FIXALL_CLAIM_BOARD_IDS: readonly string[] = resolveBoardIds()

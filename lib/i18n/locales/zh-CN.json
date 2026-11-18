@@ -2737,7 +2737,8 @@
     "optionsFailed": "无法发起通行密钥请求，请重试。",
     "registrationFailed": "通行密钥注册失败",
     "authenticationFailed": "通行密钥登录失败",
-    "defaultName": "我的通行密钥"
+    "defaultName": "我的通行密钥",
+    "registrationNotAllowed": "此服务器仅允许已批准的电子邮件地址注册。请向管理员申请访问权限。"
   },
   "oauthScopes": {
     "tasks_read": "读取任务",
