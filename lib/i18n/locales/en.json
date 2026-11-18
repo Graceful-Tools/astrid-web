@@ -2737,7 +2737,8 @@
     "optionsFailed": "Couldn't start the passkey request. Please try again.",
     "registrationFailed": "Passkey registration failed",
     "authenticationFailed": "Passkey sign-in failed",
-    "defaultName": "My Passkey"
+    "defaultName": "My Passkey",
+    "registrationNotAllowed": "Sign-up on this server is limited to approved email addresses. Ask your administrator for access."
   },
   "oauthScopes": {
     "tasks_read": "Read tasks",

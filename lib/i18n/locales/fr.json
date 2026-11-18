@@ -2737,7 +2737,8 @@
     "optionsFailed": "Impossible de lancer la demande de clé d’accès. Veuillez réessayer.",
     "registrationFailed": "L’enregistrement de la clé d’accès a échoué",
     "authenticationFailed": "La connexion avec la clé d’accès a échoué",
-    "defaultName": "Ma clé d’accès"
+    "defaultName": "Ma clé d’accès",
+    "registrationNotAllowed": "L’inscription sur ce serveur est réservée aux adresses e-mail autorisées. Demandez l’accès à votre administrateur."
   },
   "oauthScopes": {
     "tasks_read": "Lire les tâches",
