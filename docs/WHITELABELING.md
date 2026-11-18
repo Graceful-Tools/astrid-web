@@ -522,16 +522,46 @@ group and Apple team. The **Whitelabel** build configuration carries these, and
 cd ../astrid-ios
 ./scripts/make-brand-variant.sh acme                    # a profile name, from ../astrid-web/brands
 ./scripts/make-brand-variant.sh ~/acme/acme.brand.json  # or a path: no astrid-web checkout needed
-./scripts/make-brand-variant.sh acme --team ABCDE12345 --bundle-id com.acme.tasks
+./scripts/make-brand-variant.sh acme --team ABCDE12345 --bundle-id com.acme.tasks \
+  --url-scheme acmetasks
 ```
 
 Each value comes from three places, and later ones win:
 1. the defaults, which are Astrid's own Whitelabel variant;
 2. an optional `ios` block in the profile;
-3. the arguments `--bundle-id`, `--app-group`, `--keychain-group`, `--team` and
-   `--display-name`.
+3. the arguments `--bundle-id`, `--app-group`, `--keychain-group`, `--team`,
+   `--display-name` and `--url-scheme`.
 
-The `ios` block sits beside `env` and is ignored by the web. The script rewrites only the
+`--url-scheme` is the custom URL scheme the app registers (`acmetasks://`). It overrides
+`NEXT_PUBLIC_BRAND_APP_URL_SCHEME` from the profile's `env` block, and it must match the
+scheme the web side sends (§1, "The scheme must match on both sides").
+
+The `ios` block sits beside `env` and is ignored by the web. `copyright` is the line the
+Mac About box shows:
+
+```json
+"ios": {
+  "bundleId": "example.acme.Tasks",
+  "appGroup": "group.example.acme.Tasks",
+  "keychainGroup": "example.acme.Tasks",
+  "developmentTeam": "ACME000001",
+  "displayName": "Acme Tasks",
+  "copyright": "© Acme Corporation"
+}
+```
+
+**A re-identified variant is refused when it would ship Astrid's identity.** Any variant
+whose bundle ID is not Whitelabel's own (`--bundle-id` or `ios.bundleId`) is a partner's
+app, and `make-brand-variant.sh` stops, writing nothing, if:
+- the profile has no `ios.appIcon`;
+- `ios.appIcon` names art that cannot be found; or
+- there is no URL scheme: neither `NEXT_PUBLIC_BRAND_APP_URL_SCHEME` in the profile nor
+  `--url-scheme`.
+
+Without these the app would ship with Astrid's icon and claim Astrid's URL scheme. The
+default Whitelabel variant (Astrid's own bundle ID) is not subject to them.
+
+The script rewrites only the
 Whitelabel configurations in `project.pbxproj` and records what it wrote in a
 `variant.json` beside them, so it can be re-run. With no `ios` block it reproduces the
 committed files byte for byte. The full reference is astrid-ios's
