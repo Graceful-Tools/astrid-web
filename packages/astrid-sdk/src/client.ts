@@ -226,6 +226,11 @@ export class AstridClient {
     throw new AstridApiError(status, `HTTP ${status} from claim-fixall${reason ? `: ${reason}` : ''}`, body)
   }
 
+  /** `GET /api/v1/lists/:id/orchestration-policy`: the routing and autonomy agents on the board run under. */
+  async getListPolicy(listId: string): Promise<{ effective?: { routing?: { assignTo?: string | null; agents?: string[] | null } } }> {
+    return this.request(`/api/v1/lists/${encodeURIComponent(listId)}/orchestration-policy`)
+  }
+
   async getTask(taskId: string): Promise<AstridTask> {
     const body = await this.request<{ task: AstridTask }>(`/api/v1/tasks/${encodeURIComponent(taskId)}`)
     return body.task
