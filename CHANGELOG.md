@@ -7,9 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-11-18
+
+One image, many brands: the published image reads its brand when it starts, so a partner mounts a profile instead of building their own image.
+Upgrade: back up, pull `:1.4.0` and `:1.4.0-migrator`, run the migrator, roll the app (docs/deployment/SELF_HOSTING.md). The seven new migrations only add tables, columns and indexes. Read **Upgrade notes** below first.
+
+### Upgrade notes
+- Self-host compose publishes the app on `127.0.0.1` only (ADEV-105). If you reach port 3000 from another machine without `--profile tls`, set `APP_BIND=0.0.0.0`.
+- Clients that read public lists' tasks through an unscoped `GET /api/v1/tasks` must now pass `?listId=` (see Changed).
+
+### Added
+- Runtime brand profiles: mount a profile and set `BRAND_PROFILE` (and `BRAND_ASSETS_DIR` for artwork); every brand value, `NEXT_PUBLIC_*` included, is read at start-up (AWTD-1587). Self-host CI proves a mounted brand on an unbranded image (AWTD-1606).
+- `npm run brand:launch <profile>`: from a profile to a smoke-tested deployment (AWTD-1590). Every icon is generated from one source icon (AWTD-1588); profiles accept `windows`, `android`, `vscode` and `code` blocks and are checked against the shared brand schema (AWTD-1589).
+- The first account on a fresh instance becomes admin once its email is verified, and `REGISTRATION_ALLOWED_EMAIL_DOMAINS` limits who can sign up (ADEV-104).
+- Agents: atomic task claims with leases over MCP and the SDK (AWTD-1557), a stored per-board orchestration policy for merge, deploy, migrate, release and spend, and handoffs that return to the assignee.
+- Copilot works against a self-hosted instance and a third-party board, with an optional event wake (`repository_dispatch`) alongside the 30-minute poll (ADEV-101, ADEV-102). Guide: docs/deployment/COPILOT_SELF_HOSTED.md.
+- The self-host smoke test checks MCP, the job worker, live updates (SSE) and the agent queue (ADEV-105, ADEV-99).
+- Lists can be created inside a project; project board view; per-user locale.
+
 ### Changed
 - `GET /api/v1/tasks` and `GET /api/tasks` without `listId` no longer include tasks from public lists the caller does not own, belong to, or have a task assigned in. Public lists are still read with `?listId=`. Clients that relied on the unscoped read for public tasks (iOS, Windows, Android sync) must fetch them by `listId`.
-- Self-host compose publishes the app on `127.0.0.1` only (ADEV-105), so with `--profile tls` it cannot be reached around Caddy. Upgrade: if you reach the app on port 3000 from another machine (no `--profile tls`, or your own proxy elsewhere), set `APP_BIND=0.0.0.0` in the self-host settings file.
+- Hosted `/mcp` calls its own instance (`ASTRID_API_BASE_URL`, else the `NEXTAUTH_URL` origin) instead of the brand domain, so a self-hosted instance no longer forwards a client's token elsewhere (ADEV-99).
+- The reference brand profiles turn off the www redirect and enable Copilot; acme enables MCP (ADEV-97).
+- A partner with no operator or support address set inherits none of Astrid's (AWTD-1640); legal pages name the brand's operator (AWTD-1584).
+- The Azure template runs the job worker by default and its guide matches the runtime-brand image (ADEV-100). Documented image tags agree, and a test keeps them so (ADEV-98).
+- 26 unused dependencies removed (AWTD-1593).
+
+### Fixed
+- Sign-in silently failed when the instance's address was outside the brand domain: the session cookie is now host-only there (ADEV-96).
+- The root 404 renders per request in a runtime-brand image (AWTD-1599).
 
 ## [1.3.0] - 2026-11-01
 
