@@ -14,8 +14,8 @@ param name = 'wlp'
 
 // One image is one brand: build it with --build-arg BRAND=whitelabel-partner
 // and push it to your registry (AZURE.md, "Images").
-param appImage = readEnvironmentVariable('APP_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.0.0-whitelabel-partner')
-param migratorImage = readEnvironmentVariable('MIGRATOR_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.0.0-migrator')
+param appImage = readEnvironmentVariable('APP_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.4.0')
+param migratorImage = readEnvironmentVariable('MIGRATOR_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.4.0-migrator')
 param registryServer = readEnvironmentVariable('REGISTRY_SERVER', '')
 param registryUsername = readEnvironmentVariable('REGISTRY_USERNAME', '')
 param registryPassword = readEnvironmentVariable('REGISTRY_PASSWORD', '')
