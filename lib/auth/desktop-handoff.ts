@@ -63,34 +63,52 @@ export interface DesktopClient {
   redirectUri: string
 }
 
-function callbackUri(): string {
-  return `${BRAND.appUrlScheme}://auth/callback`
+/**
+ * The URL scheme Graceful Tools' own Astrid apps register (ADEV-124).
+ *
+ * A partner can run this server for the STOCK Astrid apps rather than shipping
+ * branded ones: the person types the partner's address into the app's sign-in
+ * screen. Those apps listen on this scheme, not on the partner's
+ * `BRAND.appUrlScheme`, so a deployment also accepts it when the app names it.
+ * The set stays fixed (this and the deployment's own), so the redirect is still
+ * never whatever a request asks for, and PKCE still makes an intercepted code
+ * worthless.
+ */
+export const STOCK_APP_URL_SCHEME = 'astrid'
+
+/** The schemes a code may be delivered on, the deployment's own first. */
+export function desktopCallbackSchemes(): readonly string[] {
+  return [...new Set([BRAND.appUrlScheme, STOCK_APP_URL_SCHEME])]
 }
 
-const CLIENTS: Record<DesktopClientId, () => DesktopClient> = {
-  windows: () => ({
+function callbackUri(scheme: string = BRAND.appUrlScheme): string {
+  return `${scheme}://auth/callback`
+}
+
+const CLIENTS: Record<DesktopClientId, (scheme?: string) => DesktopClient> = {
+  windows: scheme => ({
     id: 'windows',
     name: `${BRAND.appName} for Windows`,
-    redirectUri: callbackUri(),
+    redirectUri: callbackUri(scheme),
   }),
   // The Apple apps open this page in ASWebAuthenticationSession bound to the
   // same scheme, so the callback returns to the session that started it.
-  ios: () => ({
+  ios: scheme => ({
     id: 'ios',
     name: `${BRAND.appName} for iOS`,
-    redirectUri: callbackUri(),
+    redirectUri: callbackUri(scheme),
   }),
-  mac: () => ({
+  mac: scheme => ({
     id: 'mac',
     name: `${BRAND.appName} for Mac`,
-    redirectUri: callbackUri(),
+    redirectUri: callbackUri(scheme),
   }),
   // astrid-android opens this page in a Custom Tab; the app's intent filter for the scheme takes
   // the callback (AATD-2).
-  android: () => ({
+  android: scheme => ({
     id: 'android',
     name: `${BRAND.appName} for Android`,
-    redirectUri: callbackUri(),
+    redirectUri: callbackUri(scheme),
   }),
 }
 
@@ -126,16 +144,18 @@ export function desktopSignInProvider(
  * Returns null for anything not in the registry, so adding a platform is a
  * deliberate edit here rather than something a request can assert.
  */
-export function desktopClientFor(raw: unknown): DesktopClient | null {
+export function desktopClientFor(raw: unknown, scheme?: string): DesktopClient | null {
   if (typeof raw !== 'string') return null
-  const build = CLIENTS[raw as DesktopClientId]
-  return build ? build() : null
+  if (!Object.prototype.hasOwnProperty.call(CLIENTS, raw)) return null
+  return CLIENTS[raw as DesktopClientId](scheme)
 }
 
 export interface DesktopGrantRequest {
   client: DesktopClient
   state: string
   codeChallenge: string
+  /** The scheme the app asked for, if it named one (ADEV-124). */
+  scheme?: string
 }
 
 export type GrantValidation =
@@ -155,7 +175,17 @@ export function validateGrantRequest(input: unknown): GrantValidation {
   }
   const body = input as Record<string, unknown>
 
-  const client = desktopClientFor(body.client)
+  // Absent means the deployment's own scheme, as before ADEV-124. Present, it
+  // must be one of the fixed set; anything else is refused, never echoed.
+  let scheme: string | undefined
+  if (body.scheme !== undefined) {
+    if (typeof body.scheme !== 'string' || !desktopCallbackSchemes().includes(body.scheme)) {
+      return { ok: false, error: 'Unsupported app scheme' }
+    }
+    scheme = body.scheme
+  }
+
+  const client = desktopClientFor(body.client, scheme)
   if (!client) return { ok: false, error: 'Unsupported client' }
 
   if (body.codeChallengeMethod !== DESKTOP_CODE_CHALLENGE_METHOD) {
@@ -176,7 +206,7 @@ export function validateGrantRequest(input: unknown): GrantValidation {
     return { ok: false, error: 'Invalid code challenge' }
   }
 
-  return { ok: true, value: { client, state, codeChallenge } }
+  return { ok: true, value: { client, state, codeChallenge, ...(scheme ? { scheme } : {}) } }
 }
 
 /**

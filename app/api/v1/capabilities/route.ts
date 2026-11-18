@@ -20,6 +20,7 @@ import { AUTH_PROVIDERS, CAPABILITIES } from '@/lib/brand/capabilities'
 import { BRAND } from '@/lib/brand/config'
 import { BRAND_COPY } from '@/lib/brand/copy'
 import { AUTH_PROVIDER_KINDS } from '@/lib/brand/auth-providers'
+import { SERVER_API_LEVEL } from '@/lib/api-level'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,7 +98,8 @@ export async function GET() {
       // platform with nothing keeping the copies in step. Served here so it is
       // configured exactly once, in the brand profile.
       ...(hasBrandCopy ? { copy: BRAND_COPY } : {}),
-      meta: { apiVersion: 'v1' as const },
+      // apiLevel: which client-facing behaviour this server has (lib/api-level.ts).
+      meta: { apiVersion: 'v1' as const, apiLevel: SERVER_API_LEVEL },
     },
     {
       headers: {

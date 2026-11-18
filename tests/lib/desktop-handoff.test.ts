@@ -225,3 +225,37 @@ describe('session cookie name', () => {
     expect(sessionCookieNameFor(false)).toBe('next-auth.session-token')
   })
 })
+
+// ADEV-124: the stock Astrid app, pointed at a partner's deployment, must get the code back on
+// ITS scheme. The redirect stays one of a fixed set: the deployment's own scheme or the stock app's.
+describe('callback scheme for the stock app on a partner server (ADEV-124)', () => {
+  it('delivers to the stock app scheme when asked', async () => {
+    const { STOCK_APP_URL_SCHEME } = await import('@/lib/auth/desktop-handoff')
+    const result = validateGrantRequest(grantInput({ client: 'ios', scheme: STOCK_APP_URL_SCHEME }))
+    expect(result.ok).toBe(true)
+    if (result.ok) expect(result.value.client.redirectUri).toBe(`${STOCK_APP_URL_SCHEME}://auth/callback`)
+  })
+
+  it("delivers to the deployment's own scheme when asked for it, or when nothing is asked", async () => {
+    const { BRAND } = await import('@/lib/brand/config')
+    const named = validateGrantRequest(grantInput({ client: 'mac', scheme: BRAND.appUrlScheme }))
+    const unnamed = validateGrantRequest(grantInput({ client: 'mac' }))
+    expect(named.ok && named.value.client.redirectUri).toBe(`${BRAND.appUrlScheme}://auth/callback`)
+    expect(unnamed.ok && unnamed.value.client.redirectUri).toBe(`${BRAND.appUrlScheme}://auth/callback`)
+  })
+
+  it('refuses any other scheme rather than redirecting to it', () => {
+    for (const scheme of ['evil', 'https', 'javascript', 'astrid://x', '', 42]) {
+      const result = validateGrantRequest(grantInput({ client: 'ios', scheme }))
+      expect(result.ok, String(scheme)).toBe(false)
+    }
+  })
+
+  it('round-trips the scheme into the callback URL', async () => {
+    const { STOCK_APP_URL_SCHEME } = await import('@/lib/auth/desktop-handoff')
+    const result = validateGrantRequest(grantInput({ client: 'ios', scheme: STOCK_APP_URL_SCHEME }))
+    if (!result.ok) throw new Error(result.error)
+    expect(buildDesktopCallbackUrl(result.value.client, { code: 'c', state: 's' }))
+      .toBe(`${STOCK_APP_URL_SCHEME}://auth/callback?code=c&state=s`)
+  })
+})
