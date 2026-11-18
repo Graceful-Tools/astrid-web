@@ -19,6 +19,8 @@ on:
 
 jobs:
   validate:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     name: 'Validate Task'
     runs-on: ubuntu-26.04
     outputs:
@@ -38,6 +40,8 @@ jobs:
           echo "✅ Task: ${TASK_ID} — ${TASK_TITLE}"
 
   fix-task:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     name: 'Fix Task'
     # The Mac's astrid-web runner was retired with the Mac web loop (AWTD-1363).
     runs-on: ubuntu-26.04
@@ -139,7 +143,8 @@ jobs:
     name: 'Deploy Preview'
     runs-on: ubuntu-26.04
     needs: [validate, fix-task]
-    if: ${{ inputs.deploy_preview == true && needs.fix-task.result == 'success' }}
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (inputs.deploy_preview == true && needs.fix-task.result == 'success') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

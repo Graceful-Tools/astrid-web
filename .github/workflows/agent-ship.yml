@@ -31,8 +31,10 @@ permissions:
 
 jobs:
   ship:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
     if: >-
-      ${{ github.ref == 'refs/heads/main'
+      ${{ github.repository_owner == 'Graceful-Tools'
+      && github.ref == 'refs/heads/main'
       && (github.event_name == 'workflow_dispatch' || vars.ASTRID_SHIP_ENABLED == 'true')
       && (github.event_name != 'workflow_run'
           || (github.event.workflow_run.conclusion == 'success'

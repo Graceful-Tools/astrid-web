@@ -92,7 +92,8 @@ jobs:
     # than spend a runner reading a queue that is not ours. `any` is an
     # unassigned Ready task, which any loop may claim. The run job needs this
     # one, so a skip here skips the workers too.
-    if: ${{ github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox) }}
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox)) }}
     runs-on: ubuntu-26.04
     timeout-minutes: 5
     permissions: {}
@@ -121,6 +122,8 @@ jobs:
           echo "${N} worker slot(s)"
 
   run:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     name: "Agent run (${{ (inputs.harness || 'claude-code') }}, slot ${{ matrix.slot }})"
     needs: plan
     # A matrix, not N workflows or N concurrency groups chosen at random: one
@@ -723,7 +726,8 @@ jobs:
   chain:
     name: Start the next run
     needs: run
-    if: ${{ !cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped' }}
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (!cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped') }}
     runs-on: ubuntu-26.04
     # AGENT_GH_TOKEN is an `agent` environment secret; without this it reads empty.
     environment: agent
