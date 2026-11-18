@@ -47,6 +47,30 @@ deployment enables every integration.
 | Realtime and rate-limit services | Realtime events and rate-limit/cache state, depending on selected backend. | Redis, Upstash, or deployment-local memory as configured. | `lib/env.ts` (`REALTIME_BUS`, `REDIS_URL`, `UPSTASH_REDIS_REST_*`); `lib/realtime/bus.ts`; `lib/rate-limiter.ts` |
 | Operational logs | Structured application log records are written to the configured process output; the hosting platform determines where they are collected. | The deployment operator's logging platform. | `lib/logger.ts`; `docs/deployment/AZURE.md` → “Logs and traces” |
 
+## The stock native apps on your server (ADEV-123)
+
+You don't have to ship branded apps. People can install the stock Astrid iOS and Mac apps and
+point them at your deployment ("Use a different server" on the sign-in screen, or your MDM's
+managed app configuration). What the app then contacts:
+
+| Flow | Recipient | Notes |
+|---|---|---|
+| Everything the app does (sign-in, tasks, lists, comments, chat, sync, live updates, attachments) | Your deployment only | The app has no endpoint of ours for any of it, and its data core refuses to start without a named server. |
+| Images and files at URLs your data contains (profile photos, attachments, list images) | Wherever those URLs point | Your storage, or a photo host a user's sign-in provider gave. |
+| Pages a person opens (help pages, your sign-in page, a task link in the browser) | That site | Opened in the browser by a tap. |
+| Crash reports and usage statistics a person chose to share with developers | Apple, then the app's publisher | **For the stock app the publisher is Graceful Tools.** Anonymised, with no task content or account identity. If you can't accept that, ship a branded build under your own Apple account. |
+| Google / Apple native sign-in | Google / Apple | Only on Astrid's own server. On yours, sign-in happens on your own page. |
+
+No analytics or crash-reporting SDK ships in the app. Switching servers signs out and wipes the
+device's copy of the previous server's data first.
+
+- **Policy:** astrid-ios `docs/NETWORK_POLICY.md`, including how to check it yourself with
+  an intercepting proxy.
+- **Enforced** by the astrid-ios predeploy rule `talks-only-to-its-server`: a new host in app
+  source, or a new network session, fails the build.
+- **MDM keys:** astrid-ios `docs/MANAGED_CONFIG.md`.
+- **Server version:** [the API level](./WHITE_LABEL_COMPATIBILITY.md).
+
 ## Sessions, secrets, and access
 
 - `NEXTAUTH_SECRET` signs JWT sessions and WebAuthn state; the configured JWT session
