@@ -199,7 +199,7 @@ export function useTaskManagerController({
   // Filter state management
   const newFilterState = useFilterState({
     selectedListId: navigationState.selectedListId,
-    currentList: listState.lists.find(l => l.id === navigationState.selectedListId),
+    currentList: listState.lists.find(l => l.id === navigationState.selectedListId), currentUserId: listState.currentUserId,
     getManualOrder: useCallback((listId: string) => {
       // The tasks this view holds: My Tasks by its scope, a list by membership.
       const relevant = listId === 'my-tasks'
