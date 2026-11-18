@@ -223,6 +223,12 @@ or device activation is implied by these repository changes.
 ### Native dispatch and return-path boundaries
 
 `scripts/native-copilot-bridge.ts` defaults to read-only; `--execute` is explicit.
+Its target comes from the run, not the script (ADEV-102): the repository is
+`GITHUB_REPOSITORY`, the origin is `ASTRID_API_URL` or the brand origin, and the
+board is `--list`/`ASTRID_OAUTH_LIST_ID` (repo variable `ASTRID_WEB_LIST_ID`;
+the owner's web board is the default only in Graceful-Tools). Another board must
+also be in `FIXALL_CLAIM_BOARD_IDS` (repo variable) and in the server's own
+`FIXALL_CLAIM_BOARD_IDS`, which authorizes every claim.
 An inert GitHub issue mirror is created before the exclusive exact-board claim,
 then the documented REST assignment starts **GitHub's built-in agent**. At most
 one new session starts per tick. Issue mapping, attempt records and reply

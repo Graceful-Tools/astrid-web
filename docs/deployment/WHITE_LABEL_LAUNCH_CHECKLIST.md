@@ -8,8 +8,9 @@ and [Whitelabeling](../WHITELABELING.md#deployment-and-tenancy-boundary).
 
 ## Status: verified versus assumed
 
-**Verified in this repository:** brand profiles are applied at build time; `npm run
-check:brands` tests the profiles in `brands/`; the app has a PostgreSQL schema, migrations,
+**Verified in this repository:** a brand profile is applied when the container starts,
+either mounted (`BRAND_PROFILE`) or built into the image; `npm run check:brands` tests the
+profiles in `brands/`; the app has a PostgreSQL schema, migrations,
 selectable object-storage drivers, deployment-level authentication, and a health and
 capabilities endpoint. Evidence: `lib/brand/profile.ts`, `scripts/brand-env-file.ts`,
 `tests/brands/brand-matrix.test.ts`, `lib/env.ts`, `prisma/schema.prisma`, and
@@ -72,7 +73,7 @@ and release compatibility. Treat each as an operator check below. In particular,
   and callback URLs, and authorize the selected sender domain with the chosen mail relay.
   See [Whitelabeling — sign-in providers](../WHITELABELING.md#sign-in-providers),
   [Email Setup](../setup/EMAIL_SETUP.md), and
-  [Self-hosting — email](./SELF_HOSTING.md#email).
+  [Self-hosting — settings, *Email*](./SELF_HOSTING.md#settings).
 - [ ] **Run the smoke test and record the release.** Confirm `GET /api/health` reports
   healthy and the expected commit, confirm `GET /api/v1/capabilities` reports the expected
   brand and enabled sign-in methods, then run
@@ -89,8 +90,9 @@ and release compatibility. Treat each as an operator check below. In particular,
 ## Optional or conditional setup
 
 - [ ] **Web push:** configure the VAPID key pair only if browser push notifications are
-  part of the launch. The public key is build-time configuration (`lib/env.ts`); see
-  [Self-hosting](./SELF_HOSTING.md#your-brand-goes-in-at-build-time).
+  part of the launch. The public key (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`) is still a build
+  argument of the image, unlike the brand; see
+  [Self-hosting](./SELF_HOSTING.md#your-brand-mounted-at-runtime-or-built-in).
 - [ ] **Native clients:** if shipping branded mobile or desktop apps, build and sign each
   platform variant for the settled domain. A release binary cannot switch servers.
   Follow [Whitelabeling — native apps](../WHITELABELING.md#native-apps-per-platform) and
