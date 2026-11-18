@@ -12,6 +12,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import * as glue from '@/packages/astrid-rules/web/astrid_rules_wasm.js'
+import * as smartParseCore from '@/lib/core-rules/smart-parse-core'
 import { smartParseThroughCore } from '@/lib/core-rules/smart-parse-core'
 import {
   browserCoreRules,
@@ -103,7 +104,7 @@ describe('AWTD-1586: parseTaskInput routes through the door only when it is load
 
   it('asks core smartParse once the door is loaded', () => {
     const runJson = vi.fn(glue.runJson)
-    resetBrowserCoreRulesForTests({ runJson, answers: (k) => k === 'smartParse' })
+    resetBrowserCoreRulesForTests({ runJson, answers: (k) => k === 'smartParse' }, { smartParse: smartParseCore })
     const parsed = parseTaskInput('Milk tomorrow', 'inbox', undefined, lists)
     expect(runJson).toHaveBeenCalledTimes(1)
     expect(JSON.parse(runJson.mock.calls[0][0]).kind).toBe('smartParse')
@@ -112,17 +113,17 @@ describe('AWTD-1586: parseTaskInput routes through the door only when it is load
 
   it('leaves "assign to" / "for" (D13, web-only) to the TypeScript', () => {
     const runJson = vi.fn(glue.runJson)
-    resetBrowserCoreRulesForTests({ runJson, answers: () => true })
+    resetBrowserCoreRulesForTests({ runJson, answers: () => true }, { smartParse: smartParseCore })
     parseTaskInput('Call mom for jon', 'inbox', { user: { id: 'u1' } }, lists)
     expect(runJson).not.toHaveBeenCalled()
   })
 
   it('falls back when the build does not answer smartParse, or answers with an error', () => {
     const runJson = vi.fn(() => JSON.stringify({ ok: false, error: { kind: 'badRequest' } }))
-    resetBrowserCoreRulesForTests({ runJson, answers: () => false })
+    resetBrowserCoreRulesForTests({ runJson, answers: () => false }, { smartParse: smartParseCore })
     expect(parseTaskInput('Milk tomorrow', 'inbox', undefined, lists).title).toBe('Milk')
     expect(runJson).not.toHaveBeenCalled()
-    resetBrowserCoreRulesForTests({ runJson, answers: () => true })
+    resetBrowserCoreRulesForTests({ runJson, answers: () => true }, { smartParse: smartParseCore })
     expect(parseTaskInput('Milk tomorrow', 'inbox', undefined, lists).title).toBe('Milk')
     expect(runJson).toHaveBeenCalledTimes(1)
   })
