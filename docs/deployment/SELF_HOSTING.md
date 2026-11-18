@@ -50,7 +50,8 @@ docker compose -f deploy/self-host/docker-compose.yml --profile tls up -d --buil
 Then:
 
 1. Open `https://<your domain>` and create the first account with a passkey. Passkeys
-   need nothing configured.
+   need nothing configured. To make that account the admin, set `INITIAL_ADMIN_EMAIL` to
+   its address and verify the email (see *Sign-up and the first admin* below).
 2. Check that it is healthy. `GET /api/health` reports `healthy` and the commit you built,
    and `GET /api/v1/capabilities` reports your brand and sign-in methods.
 3. Run the smoke test against it. It checks pages, the API, cron authentication and an
@@ -182,9 +183,41 @@ everything it receives: set `EMAIL_TRANSPORT=smtp` and `SMTP_URL=smtp://mailpit:
 read the inbox at `http://localhost:8025`. Inbound email-to-task still uses webhooks, as
 on hosted Astrid.
 
+**Sign-up and the first admin:**
+
+| Variable | |
+|---|---|
+| `INITIAL_ADMIN_EMAIL` | The address granted admin. The grant happens as soon as that account verifies its email. The nightly analytics cron (08:00 UTC) re-applies it as a backstop. A passkey sign-up alone is not enough, because it does not prove you own the address |
+| `REGISTRATION_ALLOWED_EMAIL_DOMAINS` | Who may create an account: domains (`acme.example`) and/or full addresses (`contractor@elsewhere.test`), comma-separated. Unset means anyone who can reach the URL can sign up |
+
+With the allowlist set, passkey sign-up refuses other addresses ("Sign-up on this server is
+limited to approved email addresses"). So does a Google, Apple, GitHub or SSO sign-in whose
+email has no account yet. Domains match exactly, so list each subdomain you mean. Accounts
+that already exist are unaffected: their owners still sign in and add passkeys.
+`INITIAL_ADMIN_EMAIL` is always admitted.
+
+With no email transport configured, nothing is sent and the verification link is written to
+the app's log instead. To bootstrap the admin on an instance like that, sign up with the
+`INITIAL_ADMIN_EMAIL` address, then find the link and open it in the same browser:
+
+```bash
+docker compose -f deploy/self-host/docker-compose.yml logs app | grep verifyUrl
+```
+
+Opening `…/auth/verify-email?token=…` verifies the address and grants admin at the same
+time. The link expires after 24 hours. If it has expired, ask for a new one from the app's
+account settings.
+
 **Behind a proxy:** set `TRUSTED_PROXY_DEPTH` to the number of proxies in front of the app
 (1 with `--profile tls`). Rate limits are keyed on the client address the proxy forwards.
 With the wrong depth, a caller chooses their own key.
+
+**The app port is loopback-only by default** (ADEV-105). Compose publishes the app on
+`127.0.0.1:3000`, so with `--profile tls` the only way in is through Caddy, and nobody can
+reach port 3000 directly to forge `X-Forwarded-For`. Without `--profile tls`, or with your
+own proxy on another machine, set `APP_BIND=0.0.0.0` in `.env` to publish it on every
+interface (`APP_PORT` picks the host port). Then make sure only your proxy can reach that
+port, and set `TRUSTED_PROXY_DEPTH` to match.
 
 ## How uploads work off Vercel
 
@@ -334,3 +367,15 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
   run from a checkout and reached as `localhost` was seen to 307-loop on `/terms` and
   `/en/terms`. The container does not (AWTD-1606): `/terms` answers 200, and `/en/terms`
   redirects once to `/terms`. The smoke test follows both, hop by hop, on every image change.
+- **What the image's CI proves, and what it does not** (`.github/workflows/self-host.yml`,
+  updated by ADEV-105). On every image change the composed stack is smoke-tested for:
+  boot and migration, health and capabilities, pages and the mounted brand, cron
+  authentication (both ways) and the cron service's calls, an upload round-trip on local
+  and Azure Blob (Azurite) storage, one email through SMTP, the `/mcp` endpoint and its
+  OAuth discovery documents (a 401 challenge and two documents with MCP on, three 404s
+  with MCP off), a job-queue drain, the worker's drains being accepted, and the SSE stream
+  refusing an unauthenticated caller. **Not exercised anywhere, so check them on your
+  own deployment:** passkey or SSO sign-in end to end, secure cookies over HTTPS on a
+  real host, an authenticated SSE stream delivering an event, the worker running a real
+  job, the Caddy (`--profile tls`) path and its certificate, S3 storage, and the agent
+  queue and token mint over `/mcp` with real credentials.

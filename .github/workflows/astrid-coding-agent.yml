@@ -21,6 +21,8 @@ env:
 jobs:
   # Job 1: Validate and setup
   setup:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     name: 'Setup & Validation'
     runs-on: ubuntu-26.04
     outputs:
@@ -66,7 +68,8 @@ jobs:
     name: 'AI Code Generation'
     runs-on: ubuntu-26.04
     needs: setup
-    if: needs.setup.outputs.should_proceed == 'true'
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (needs.setup.outputs.should_proceed == 'true') }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -134,7 +137,8 @@ jobs:
     name: 'Build & Test'
     runs-on: ubuntu-26.04
     needs: setup
-    if: needs.setup.outputs.should_proceed == 'true'
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (needs.setup.outputs.should_proceed == 'true') }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -178,7 +182,8 @@ jobs:
     name: 'Monitor AI & Deploy Preview'
     runs-on: ubuntu-26.04
     needs: [setup, ai-implementation, build-and-test]
-    if: always() && needs.setup.outputs.should_proceed == 'true' && needs.ai-implementation.result == 'success'
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (always() && needs.setup.outputs.should_proceed == 'true' && needs.ai-implementation.result == 'success') }}
     timeout-minutes: 65  # ✅ Increased to 65 to accommodate 60-minute workflow monitoring
     steps:
       - name: Monitor AI Workflow Progress
@@ -337,7 +342,8 @@ jobs:
     name: 'Notify Completion'
     runs-on: ubuntu-26.04
     needs: [setup, ai-implementation, build-and-test, monitor-and-preview]
-    if: always() && needs.setup.outputs.should_proceed == 'true'
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (always() && needs.setup.outputs.should_proceed == 'true') }}
     steps:
       - name: Determine Overall Status
         id: status

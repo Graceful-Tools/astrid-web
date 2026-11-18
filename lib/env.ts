@@ -101,6 +101,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GOOGLE_ALLOWED_AUDIENCES', scope: 'optional', description: 'Extra Google client ids whose ID tokens are accepted (comma-separated).' },
   { name: 'APPLE_CLIENT_IDS', scope: 'optional', description: 'Apple client ids whose identity tokens are accepted (comma-separated); adds to the iOS bundle id.' },
   { name: 'INITIAL_ADMIN_EMAIL', scope: 'optional', description: 'Address granted admin on bootstrap. Unset means no bootstrap admin at all.', validate: isEmail },
+  { name: 'REGISTRATION_ALLOWED_EMAIL_DOMAINS', scope: 'optional', description: 'Comma-separated domains and/or full addresses that may create an account (passkey sign-up and first federated sign-in). Existing accounts are unaffected; INITIAL_ADMIN_EMAIL is always admitted. Unset means registration is open (ADEV-104).' },
   { name: 'PROJECT_MODE_ALLOWLIST_EMAILS', scope: 'optional', description: 'Comma-separated emails that get the project_mode flag on top of admin grants (AWTD-1660). Verified accounts only; unset means nobody.' },
   { name: 'NEXT_PUBLIC_BRAND_WEBAUTHN_RP_ID', scope: 'optional', description: 'Overrides the WebAuthn RP ID. Changing it on a live deployment invalidates every registered passkey.' },
 
@@ -245,7 +246,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
   { name: 'ASTRID_FIXALL_HARNESS', scope: 'tooling', description: 'Explicit polling harness selector; controls queue identity and retained cloud wake-state scope.' },
   { name: 'AGENT_QUEUE_DUE_FIRST', scope: 'optional', description: 'Agent queue selection mode: off preserves legacy selection (default), shadow compares and returns the legacy result, and on selects due tasks before the page cap. Set back to off to roll back.', validate: v => (['off', 'shadow', 'on'].includes(v.trim()) ? null : 'Must be off, shadow, or on') },
-  { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps this deployment’s defaults.' },
+  { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps the default brand’s own boards, and none for any other brand.' },
 
   // ── Brand ─────────────────────────────────────────────────────────────────
   { name: 'NEXT_PUBLIC_BRAND_NAME', scope: 'optional', description: 'Short product name.' },

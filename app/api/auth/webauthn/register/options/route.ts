@@ -7,6 +7,7 @@ import { randomUUID as uuid } from "crypto"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
 import { createSafeErrorResponse } from '@/lib/logging/error-sanitizer'
+import { isRegistrationAllowed, registrationNotAllowedBody } from '@/lib/auth/registration-allowlist'
 
 const log = createLogger('auth.webauthn.register.options')
 
@@ -57,6 +58,13 @@ async function registrationOptionsHandler(request: NextRequest) {
       // existing account's credential list never leaks through excludeCredentials.
       userId = uuid()
       userEmail = email.toLowerCase()
+
+      // Sign-up only: the allowlist decides who may CREATE an account (ADEV-104).
+      // The answer depends on the address alone, never on whether it has an
+      // account, so this is no enumeration oracle either.
+      if (!isRegistrationAllowed(userEmail)) {
+        return NextResponse.json(registrationNotAllowedBody(), { status: 403 })
+      }
     } else {
       return NextResponse.json(
         { error: "Email required for new account registration" },
