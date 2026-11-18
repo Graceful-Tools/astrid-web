@@ -56,7 +56,10 @@ enrollment entry (`boardId=owner/repo`), else the board's connected repository
 `repository_dispatch.types`. The run reads the queue and claims before working, exactly as a
 cron run does, so the payload is a hint, not an instruction: a forged or stale dispatch can
 only start a run that finds nothing. The run job skips a wake whose mailbox is neither this
-worker's (`claude`) nor `any`.
+worker's (`claude`) nor `any`. It runs Claude, so it never takes a `copilot` wake. The generated
+Actions workflows (`lib/agent-skill/loop-recipes.ts`: queue gate, Claude Code, Copilot CLI) listen
+for `astrid-wake` too, and each gate runs only for a wake addressed to its own mailbox or `any`
+(ADEV-102). That is how a Copilot board, or a partner's repository, gets woken.
 
 **Later, for SDK/self-hosted agents: SSE.** The same job publishes an `agent.wake` event on the
 realtime bus for the agent's channel. The SDK channel (AWTD-1565) treats it as "reconcile now".

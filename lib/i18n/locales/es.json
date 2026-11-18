@@ -2737,7 +2737,8 @@
     "optionsFailed": "No se pudo iniciar la solicitud de llave de acceso. Inténtalo de nuevo.",
     "registrationFailed": "No se pudo registrar la llave de acceso",
     "authenticationFailed": "No se pudo iniciar sesión con la llave de acceso",
-    "defaultName": "Mi llave de acceso"
+    "defaultName": "Mi llave de acceso",
+    "registrationNotAllowed": "El registro en este servidor está limitado a direcciones de correo aprobadas. Pide acceso a tu administrador."
   },
   "oauthScopes": {
     "tasks_read": "Leer tareas",

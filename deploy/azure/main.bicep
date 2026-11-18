@@ -32,7 +32,7 @@ param name string
 
 param location string = resourceGroup().location
 
-@description('The app image, built for this brand (one image is one brand): e.g. myregistry.azurecr.io/tasks:1.4.0 or ghcr.io/graceful-tools/astrid-web:1.4.0-<brand>.')
+@description('The app image: one built with this brand (--build-arg BRAND=<brand>), e.g. myregistry.azurecr.io/tasks:1.4.0. AZURE.md, "Images".')
 param appImage string
 
 @description('The migrator image of the SAME release: e.g. ghcr.io/graceful-tools/astrid-web:1.4.0-migrator. Brand-independent.')
@@ -74,8 +74,8 @@ param appMemory string = '2Gi'
 @description('Concurrent requests per replica before scaling out. Open SSE streams count.')
 param appConcurrentRequests int = 200
 
-@description('The durable-job worker (scripts/job-worker.mjs, AWTD-1460). Off until the image you deploy ships that script.')
-param deployWorker bool = false
+@description('The durable-job worker (scripts/job-worker.mjs, AWTD-1460), in the image since v1.3.0. Without it agent replies and retries wait for the minute cron. Set false only for an older image.')
+param deployWorker bool = true
 
 @allowed(['Burstable', 'GeneralPurpose', 'MemoryOptimized'])
 @description('Burstable has no built-in PgBouncer, so DATABASE_URL then points at the server directly.')
@@ -122,7 +122,7 @@ param cronSecret string
 @description('Further secrets as { ENV_NAME: value }: SMTP_URL, SMTP_PASS, VAPID_PRIVATE_KEY, AUTH_SSO_CLIENT_SECRET, GOOGLE_CLIENT_SECRET, OPENAI_API_KEY ... Empty values are skipped. Each becomes a Key Vault secret.')
 param optionalSecrets object = {}
 
-@description('Plain (non-secret) runtime settings as { ENV_NAME: value }: FROM_EMAIL, EMAIL_TRANSPORT, AUTH_SSO_ISSUER, VAPID_PUBLIC_KEY ... NEXT_PUBLIC_* values are compiled into the image and ignored here.')
+@description('Plain (non-secret) runtime settings as { ENV_NAME: value }: FROM_EMAIL, EMAIL_TRANSPORT, AUTH_SSO_ISSUER, VAPID_PUBLIC_KEY ... Brand values (NEXT_PUBLIC_BRAND_*) belong in the brand profile, not here.')
 param appSettings object = {}
 
 param tags object = {}

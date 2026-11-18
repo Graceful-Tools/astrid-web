@@ -2737,7 +2737,8 @@
     "optionsFailed": "Die Passkey-Anfrage konnte nicht gestartet werden. Bitte versuche es erneut.",
     "registrationFailed": "Passkey-Registrierung fehlgeschlagen",
     "authenticationFailed": "Anmeldung mit Passkey fehlgeschlagen",
-    "defaultName": "Mein Passkey"
+    "defaultName": "Mein Passkey",
+    "registrationNotAllowed": "Die Registrierung auf diesem Server ist auf freigegebene E-Mail-Adressen beschränkt. Frag deine Administration nach Zugang."
   },
   "oauthScopes": {
     "tasks_read": "Aufgaben lesen",
