@@ -13,6 +13,11 @@
 # What lands in packages/astrid-rules/:
 #   REVISION                  the astrid-core commit the files were built from
 #   node/                     wasm-bindgen's Node package: runJson(string) -> string
+#   web/                      wasm-bindgen's browser package (ES module glue + the .wasm), the
+#                             smaller build that answers only the rules web's client calls
+#                             (AWTD-1586; astrid-core docs/BROWSER_DOOR.md). lib/core-rules/browser.ts
+#                             imports it after first paint; the glue's `new URL(…wasm,
+#                             import.meta.url)` makes the bundler emit the .wasm as a hashed asset.
 #   fixtures/permissions.json the contract fixtures at that revision, for the parity tests
 #   fixtures/search.json      (tests/lib/core-rules-*-parity.test.ts)
 #   fixtures/smart.json
@@ -28,8 +33,8 @@
 #   fixtures/decisions.json   (tests/lib/core-rules-decisions-parity.test.ts, AWTD-1626)
 #   brand/schema.json         the brand profile schema (tests/brands/core-brand-schema-awtd-1589.test.ts)
 #
-# Server-only: no browser build is vendored (377 KB gzipped is too much to ship to every page for
-# a shadow check). astrid-core's scripts/build-wasm.sh writes one when that changes.
+# The browser build is ~187 KB brotli (Jon accepted that size on 2026-11-17, task 4d05306d), and
+# it is never on the first-load path: nothing imports it until the page has painted.
 #
 # Needs: git, Rust (rustup), and the wasm-bindgen CLI version astrid-core's Cargo.lock pins —
 # its build-wasm.sh says which and how to install it.
@@ -66,9 +71,10 @@ git -C "$core" worktree add --quiet --detach "$tree" "$rev"
 # Reuse the checkout's target directory: a cold build of the dependency graph is most of the time.
 CARGO_TARGET_DIR="$core/target" "$tree/scripts/build-wasm.sh" "$out"
 
-rm -rf "$pkg/node" "$pkg/fixtures"
+rm -rf "$pkg/node" "$pkg/web" "$pkg/fixtures"
 mkdir -p "$pkg/fixtures"
 cp -R "$out/node" "$pkg/node"
+cp -R "$out/web" "$pkg/web"
 # The glue is CommonJS; say so, so a "type": "module" anywhere above it cannot change how it loads.
 printf '{ "type": "commonjs" }\n' >"$pkg/node/package.json"
 for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders waiting decisions sidebar-projects orchestration; do

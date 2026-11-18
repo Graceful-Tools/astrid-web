@@ -544,6 +544,8 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     const claude = step('Run Claude Code').run
     expect(claude).toContain('--add-dir "${ASTRID_CORE_DIR}"')
     expect(claude).toContain('Bash(cargo *)')
+    // ADEV-89: core's size gate is a node script; without this an unattended run stalls on approval.
+    expect(claude).toContain('Bash(node scripts/*)')
     expect(step('Preserve unfinished astrid-core work')['working-directory']).toBe('${{ env.ASTRID_CORE_DIR }}')
   })
 

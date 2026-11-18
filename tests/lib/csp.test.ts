@@ -47,6 +47,15 @@ describe('Content Security Policy (task eea00b1b)', () => {
     expect(scriptSrc(buildContentSecurityPolicy('n', true))).not.toContain(`'unsafe-eval'`)
   })
 
+  it("AWTD-1586: allows WebAssembly compilation only when astrid-core's browser build is on", () => {
+    // Off (the default): the policy is exactly what it was.
+    expect(scriptSrc(buildContentSecurityPolicy('n', true, false))).not.toContain('wasm-unsafe-eval')
+    // On: wasm may compile, and JS eval is still blocked in production.
+    const on = scriptSrc(buildContentSecurityPolicy('n', true, true))
+    expect(on).toContain(`'wasm-unsafe-eval'`)
+    expect(on.split(' ')).not.toContain(`'unsafe-eval'`)
+  })
+
   it('keeps the non-script protections', () => {
     const policy = buildContentSecurityPolicy('n', true)
     expect(policy).toContain(`object-src 'none'`)
