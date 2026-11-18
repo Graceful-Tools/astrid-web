@@ -2737,7 +2737,8 @@
     "optionsFailed": "Não foi possível iniciar a solicitação da chave de acesso. Tente novamente.",
     "registrationFailed": "Falha ao registrar a chave de acesso",
     "authenticationFailed": "Falha ao entrar com a chave de acesso",
-    "defaultName": "Minha chave de acesso"
+    "defaultName": "Minha chave de acesso",
+    "registrationNotAllowed": "O cadastro neste servidor é limitado a endereços de e-mail aprovados. Peça acesso ao seu administrador."
   },
   "oauthScopes": {
     "tasks_read": "Ler tarefas",

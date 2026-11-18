@@ -2737,7 +2737,8 @@
     "optionsFailed": "패스키 요청을 시작하지 못했습니다. 다시 시도하세요.",
     "registrationFailed": "패스키 등록에 실패했습니다",
     "authenticationFailed": "패스키 로그인에 실패했습니다",
-    "defaultName": "내 패스키"
+    "defaultName": "내 패스키",
+    "registrationNotAllowed": "이 서버의 가입은 승인된 이메일 주소로 제한됩니다. 관리자에게 접근 권한을 요청하세요."
   },
   "oauthScopes": {
     "tasks_read": "작업 읽기",

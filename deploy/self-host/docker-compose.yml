@@ -71,8 +71,12 @@ services:
     restart: unless-stopped
     env_file: .env
     environment: *app-env
+    # Loopback unless APP_BIND says otherwise (ADEV-105). Under --profile tls Caddy
+    # is the only way in: TRUSTED_PROXY_DEPTH=1 trusts the last X-Forwarded-For
+    # hop, so a caller reaching :3000 directly could forge it and pick their own
+    # rate-limit key. With no proxy, or one on another host, set APP_BIND=0.0.0.0.
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
     volumes:
       - uploads:/app/data/uploads
       # Your brand, mounted (AWTD-1587, AWTD-1606): one image serves any brand. Put
