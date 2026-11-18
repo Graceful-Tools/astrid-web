@@ -23,7 +23,7 @@ function parseBackend(raw: string): URL {
 
 function isConfiguredBackend(url: URL): boolean {
   // The operator's own settings: the explicit backend, else this deployment's origin
-  // (what mcpDefaultBaseUrl falls back to, ADEV-99).
+  // (what mcpHostedBaseUrl falls back to, ADEV-99).
   const configured = [process.env.ASTRID_API_BASE_URL, nextAuthOrigin()]
   return configured.some(value => Boolean(value && parseBackend(value).href === url.href))
 }

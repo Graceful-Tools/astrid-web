@@ -1,6 +1,6 @@
 import type { NextApiRequest } from "next"
 import { NextRequest } from "next/server"
-import { BRAND, brandOrigin, mcpDefaultBaseUrl, nextAuthOrigin } from "@/lib/brand/config"
+import { BRAND, brandOrigin, mcpHostedBaseUrl, nextAuthOrigin } from "@/lib/brand/config"
 import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { sameOrigin } from "@/lib/auth-host"
 import { createHash } from "crypto"
@@ -30,7 +30,7 @@ export async function validateMCPAuthContext(
   options: AstridMCPServerOptions,
   localOrigin = nextAuthOrigin() ?? brandOrigin(),
 ): Promise<void> {
-  const baseUrl = options.baseUrl || mcpDefaultBaseUrl()
+  const baseUrl = options.baseUrl || mcpHostedBaseUrl()
   mcpBackendUrl(baseUrl)
   if (!options.accessToken) return // Basic credentials use the protected client-credentials flow.
   const canonicalOrigins = [brandOrigin(), `https://www.${BRAND.domain}`]
@@ -94,7 +94,7 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
   }
 
   const defaultListId = headerValue(req, HEADER_LIST_ID) || null
-  const baseUrl = headerValue(req, HEADER_BASE_URL) || mcpDefaultBaseUrl()
+  const baseUrl = headerValue(req, HEADER_BASE_URL) || mcpHostedBaseUrl()
 
   if (!accessToken && (!clientId || !clientSecret)) {
     return null
