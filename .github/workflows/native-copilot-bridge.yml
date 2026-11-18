@@ -19,7 +19,9 @@ permissions:
 
 jobs:
   bridge:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
     if: >-
+      github.repository_owner == 'Graceful-Tools' &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' || vars.ASTRID_NATIVE_COPILOT_ENABLED == 'true')
     runs-on: ubuntu-26.04

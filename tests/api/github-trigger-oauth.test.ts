@@ -137,3 +137,25 @@ describe('POST /api/coding-agent/github-trigger', () => {
     expect(prisma.comment.create).not.toHaveBeenCalled()
   })
 })
+
+describe('GET documentation link follows the brand (ADEV-103)', () => {
+  it('ADEV-103: a partner deployment is not pointed at Astrid’s repository docs', async () => {
+    vi.resetModules()
+    vi.stubEnv('NEXT_PUBLIC_BRAND_NAME', 'Acme')
+    vi.stubEnv('NEXT_PUBLIC_BRAND_DOMAIN', 'acme.example')
+    try {
+      const { GET: partnerGET } = await import('@/app/api/coding-agent/github-trigger/route')
+      const body = await (await partnerGET()).json()
+      expect(body.documentation).toBeUndefined()
+    } finally {
+      vi.unstubAllEnvs()
+      vi.resetModules()
+    }
+  })
+
+  it('ADEV-103: Astrid keeps its documentation link', async () => {
+    const { GET } = await import('@/app/api/coding-agent/github-trigger/route')
+    const body = await (await GET()).json()
+    expect(body.documentation).toMatch(/^https:\/\/github\.com\//)
+  })
+})

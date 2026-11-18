@@ -13,6 +13,8 @@
  * exists.
  */
 
+import { scriptApiOrigin } from './script-client'
+
 /**
  * Author id for the comments these writes sign; see scripts/lib/agent-author.ts.
  * (The client-side Ready/Waiting sweep this was extracted from is gone: the server
@@ -34,7 +36,7 @@ export class SweepApi {
      */
     private readonly authorId: SweepAuthorId = null,
     private readonly fetchImpl: typeof fetch = fetch,
-    private readonly apiBase: string = 'https://astrid.cc',
+    private readonly apiBase: string = scriptApiOrigin(),
   ) {}
 
   /**
