@@ -50,7 +50,8 @@ docker compose -f deploy/self-host/docker-compose.yml --profile tls up -d --buil
 Then:
 
 1. Open `https://<your domain>` and create the first account with a passkey. Passkeys
-   need nothing configured.
+   need nothing configured. To make that account the admin, set `INITIAL_ADMIN_EMAIL` to
+   its address and verify the email (see *Sign-up and the first admin* below).
 2. Check that it is healthy. `GET /api/health` reports `healthy` and the commit you built,
    and `GET /api/v1/capabilities` reports your brand and sign-in methods.
 3. Run the smoke test against it. It checks pages, the API, cron authentication and an
@@ -179,6 +180,31 @@ locally, `--profile mail` runs [mailpit](https://mailpit.axllent.org), a sink th
 everything it receives: set `EMAIL_TRANSPORT=smtp` and `SMTP_URL=smtp://mailpit:1025`, then
 read the inbox at `http://localhost:8025`. Inbound email-to-task still uses webhooks, as
 on hosted Astrid.
+
+**Sign-up and the first admin:**
+
+| Variable | |
+|---|---|
+| `INITIAL_ADMIN_EMAIL` | The address granted admin. The grant happens as soon as that account verifies its email. The nightly analytics cron (08:00 UTC) re-applies it as a backstop. A passkey sign-up alone is not enough, because it does not prove you own the address |
+| `REGISTRATION_ALLOWED_EMAIL_DOMAINS` | Who may create an account: domains (`acme.example`) and/or full addresses (`contractor@elsewhere.test`), comma-separated. Unset means anyone who can reach the URL can sign up |
+
+With the allowlist set, passkey sign-up refuses other addresses ("Sign-up on this server is
+limited to approved email addresses"). So does a Google, Apple, GitHub or SSO sign-in whose
+email has no account yet. Domains match exactly, so list each subdomain you mean. Accounts
+that already exist are unaffected: their owners still sign in and add passkeys.
+`INITIAL_ADMIN_EMAIL` is always admitted.
+
+With no email transport configured, nothing is sent and the verification link is written to
+the app's log instead. To bootstrap the admin on an instance like that, sign up with the
+`INITIAL_ADMIN_EMAIL` address, then find the link and open it in the same browser:
+
+```bash
+docker compose -f deploy/self-host/docker-compose.yml logs app | grep verifyUrl
+```
+
+Opening `…/auth/verify-email?token=…` verifies the address and grants admin at the same
+time. The link expires after 24 hours. If it has expired, ask for a new one from the app's
+account settings.
 
 **Behind a proxy:** set `TRUSTED_PROXY_DEPTH` to the number of proxies in front of the app
 (1 with `--profile tls`). Rate limits are keyed on the client address the proxy forwards.

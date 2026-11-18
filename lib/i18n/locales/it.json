@@ -2737,7 +2737,8 @@
     "optionsFailed": "Impossibile avviare la richiesta della passkey. Riprova.",
     "registrationFailed": "Registrazione della passkey non riuscita",
     "authenticationFailed": "Accesso con passkey non riuscito",
-    "defaultName": "La mia passkey"
+    "defaultName": "La mia passkey",
+    "registrationNotAllowed": "La registrazione su questo server è limitata agli indirizzi email approvati. Chiedi l’accesso al tuo amministratore."
   },
   "oauthScopes": {
     "tasks_read": "Leggere le attività",
