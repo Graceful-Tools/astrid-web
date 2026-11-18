@@ -13,6 +13,8 @@ on:
 
 jobs:
   copilot-setup-steps:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     environment: copilot
     env:
       ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
