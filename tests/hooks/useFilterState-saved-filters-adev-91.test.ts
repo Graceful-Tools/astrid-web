@@ -2,9 +2,10 @@
  * ADEV-91 — a list's saved priority, assignee and due-date filters apply on web, as they do
  * on iOS and the Mac (core `rows`).
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { useFilterState } from '@/hooks/useFilterState'
+import { useFilterState, savedPriorityFilter, savedAssigneeFilter, savedDueDateFilter } from '@/hooks/useFilterState'
+import { coreOrderedIds, savedViewFor, type LiveFilters } from '@/lib/core-rules/rows-core'
 import type { TaskList } from '@/types/task'
 
 const list = (o: Partial<TaskList> = {}) =>
@@ -45,5 +46,60 @@ describe('useFilterState saved filters (ADEV-91)', () => {
     expect(result.current.filters.priority).toEqual([1])
     act(() => result.current.clearAllFilters())
     expect(result.current.filters.priority).toEqual([2])
+  })
+})
+
+/**
+ * ADEV-91 acceptance, second half: once web applies the saved three, a list showing them is
+ * still a saved view, so core `rows` is asked, and asked with the saved three rather than
+ * cleared ones.
+ */
+describe('core rows sends the saved three (ADEV-91)', () => {
+  const live = (o: Partial<LiveFilters> = {}): LiveFilters => ({
+    search: '', completed: 'default', priority: [], assignee: [], dueDate: 'all', sortBy: 'auto', ...o,
+  })
+  const ask = (l: TaskList, filters: LiveFilters, currentUserId?: string) =>
+    savedViewFor({
+      selectedListId: l.id,
+      currentList: l,
+      filters,
+      savedCompletion: 'default',
+      savedSortBy: 'auto',
+      saved: {
+        priority: savedPriorityFilter(l.filterPriority),
+        assignee: savedAssigneeFilter(l.filterAssignee, currentUserId),
+        dueDate: savedDueDateFilter(l.filterDueDate),
+      },
+    })
+
+  it('a list showing its saved priority, assignee and due date is a saved view', () => {
+    const l = list({ filterPriority: '3', filterAssignee: 'current_user', filterDueDate: 'today' })
+    expect(ask(l, live({ priority: [3], assignee: ['me'], dueDate: 'today' }), 'me')).toMatchObject({
+      kind: 'list',
+      filters: { filterPriority: '3', filterAssignee: 'current_user', filterDueDate: 'today' },
+    })
+  })
+
+  it('a live edit away from the saved three is not', () => {
+    const l = list({ filterPriority: '3' })
+    expect(ask(l, live({ priority: [2] }))).toBeNull()
+    expect(ask(l, live())).toBeNull()
+  })
+
+  it('a saved filter web does not apply is sent cleared, as web shows it', () => {
+    const l = list({ filterAssignee: 'not_current_user' })
+    expect(ask(l, live(), 'me')).toMatchObject({
+      kind: 'list',
+      filters: { filterPriority: null, filterAssignee: null, filterDueDate: null },
+    })
+  })
+
+  it('the rows request carries the saved three', () => {
+    const l = list({ filterPriority: '3', filterDueDate: 'today' })
+    const view = ask(l, live({ priority: [3], dueDate: 'today' }))!
+    const runJson = vi.fn(() => JSON.stringify({ ok: true, value: { ids: [] } }))
+    coreOrderedIds({ runJson, view, candidates: [], lists: [l], currentUserId: 'me', now: new Date() })
+    const request = JSON.parse((runJson.mock.calls[0] as unknown as [string])[0])
+    expect(request.list).toMatchObject({ filterPriority: '3', filterAssignee: null, filterDueDate: 'today' })
   })
 })
