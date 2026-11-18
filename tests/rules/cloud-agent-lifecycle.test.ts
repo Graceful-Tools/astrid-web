@@ -666,7 +666,7 @@ describe('ADEV-26: parallel cloud workers', () => {
   })
 
   describe('the preflight, executed', () => {
-    const preflight = (slot: string, snapshot: object, opts: { work: boolean; wakeKeys?: string[] }) => {
+    const preflight = (slot: string, snapshot: object, opts: { work: boolean; wakeKeys?: string[]; pinned?: string }) => {
       fakeNpx()
       mkdirSync(join(dir, '.agent-output'), { recursive: true })
       const output = join(dir, 'github-output')
@@ -674,7 +674,7 @@ describe('ADEV-26: parallel cloud workers', () => {
       const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight'), {
         cwd: dir,
         env: {
-          PATH: `${dir}:${process.env.PATH}`, DRY_RUN: 'false', GITHUB_OUTPUT: output,
+          PATH: `${dir}:${process.env.PATH}`, DRY_RUN: 'false', GITHUB_OUTPUT: output, PINNED_TASK: opts.pinned ?? '',
           GH_TOKEN: 'token', ASTRID_FIXALL_HARNESS: 'claude-code', ASTRID_OAUTH_LIST_ID: 'board', ASTRID_AGENT_SLOT: slot,
           FAKE_PREFLIGHT: JSON.stringify({ version: 1, work: opts.work, wakeKeys: opts.wakeKeys ?? [], snapshot }),
         },
@@ -697,6 +697,22 @@ describe('ADEV-26: parallel cloud workers', () => {
     it('ADEV-26: another slot works only Ready tasks, never the inbox, and carries no wake keys', () => {
       expect(preflight('2', queue(1), { work: true, wakeKeys: ['comment:c1'] })).toMatchObject({ work: 'true', keys: [] })
       expect(preflight('3', queue(0), { work: true, wakeKeys: ['comment:c1'] })).toMatchObject({ work: 'false', keys: [] })
+    })
+
+    const PINNED_ID = '3f2a77c1-0b4e-4d6a-9c1e-2b7d8e9f0a12'
+    it('ADEV-88: a pinned task_id works on slot 2 even with an empty queue, and nowhere else', () => {
+      expect(preflight('2', queue(0), { work: false, pinned: PINNED_ID }).work).toBe('true')
+      expect(preflight('1', queue(3), { work: true, pinned: PINNED_ID }).work).toBe('false')
+      expect(preflight('3', queue(3), { work: false, pinned: PINNED_ID }).work).toBe('false')
+    })
+
+    it('ADEV-88: task_id must be a task uuid (the status script and the claim route both take one)', () => {
+      const result = runWorkflowStep(workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight'), {
+        cwd: dir,
+        env: { PATH: process.env.PATH ?? '', PINNED_TASK: 'ADEV-88', DRY_RUN: 'false', GITHUB_OUTPUT: join(dir, 'github-output') },
+      })
+      expect(result.status).not.toBe(0)
+      expect(result.stdout + result.stderr).toContain('task_id must be a task uuid')
     })
 
     it('ADEV-26: only slot 1 runs the stale-Doing sweep, so a task is never released twice', () => {
@@ -757,6 +773,21 @@ describe('ADEV-26: parallel cloud workers', () => {
       expect(run).toContain('declare -f run_claude > "${RUNNER_TEMP}/run-claude.sh"')
       expect(run).toContain('--command "bash')
       expect(run).toContain('run-claude.sh')
+    })
+
+    it('ADEV-88: a task_id dispatch input pins the task slot 2 runs, and the other slots stand down', () => {
+      const workflow = yaml.load(read('.github/workflows/agent-run.yml'))
+      expect(workflow.on.workflow_dispatch.inputs.task_id).toMatchObject({ default: '', type: 'string' })
+      const run = workflowStep(AGENT_RUN, 'run', 'Run Claude Code').run as string
+      expect(run).toContain('TASK_FLAGS=(--task "${PINNED_TASK}")')
+      expect(run).toContain('"${TASK_FLAGS[@]}" --command')
+      // The server's ready claim matches only a Ready task, so an Inbox task is moved to Ready
+      // immediately before the claim; a woken worker needs minutes to start, the claim milliseconds.
+      expect(run).toMatch(/set-task-status\.ts "\$\{PINNED_TASK\}" Ready[\s\S]*astrid-agent run/)
+      expect(workflowStep(AGENT_RUN, 'run', 'Run Claude Code').env?.PINNED_TASK).toContain('inputs.use_runner')
+      const preflight = workflowStep(AGENT_RUN, 'run', 'Queue and inbox preflight')
+      expect(preflight.env?.PINNED_TASK).toContain('inputs.use_runner')
+      expect(preflight.run).toContain('const work=pinned ? slot===2 :')
     })
 
     it('ADEV-26: another slot claims the next free task before the costly steps and hands it to the session', () => {
