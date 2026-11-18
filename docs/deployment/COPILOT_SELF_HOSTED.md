@@ -24,7 +24,7 @@ Below, **`<origin>`** is your public URL (e.g. `https://tasks.example.com`) and
 |---|---|---|---|
 | **VS Code**, stock, with `.vscode/mcp.json` | Browser OAuth | No | **Recommended.** No token to store or rotate |
 | Copilot CLI, local | Browser OAuth (`copilot mcp add`) | With your own cron | A machine has to stay on |
-| Copilot CLI in **GitHub Actions** (generated workflow) | Agent-bound token | Every 30 min, or a manual run | Steps 3–5 |
+| Copilot CLI in **GitHub Actions** (generated workflow) | Agent-bound token | Event wake, every 30 min, or a manual run | Steps 3–5 |
 | Copilot cloud agent on GitHub.com | Agent-bound token | No; assign it work on GitHub | GitHub cannot open browser OAuth |
 
 Every setup connects to the same remote MCP endpoint, `<origin>/mcp`, and registers it
@@ -120,11 +120,16 @@ it to the repository as `.github/workflows/<wordmark>-copilot.yml`. It has two j
    `<origin>/mcp` with the same token, and runs
    `copilot -p "$PROMPT" --additional-mcp-config … --allow-all-tools --no-ask-user`.
 
-**What starts it today:** `schedule` (`*/30 * * * *`) and `workflow_dispatch`, a manual
-run from the Actions tab. Nothing on the server starts it. The generated workflow has no
-`repository_dispatch` trigger, so the server's opt-in wake (`ASTRID_AGENT_WAKE`) does not
-reach it. Expect up to 30 minutes between marking a task Ready and Copilot starting, or
-run the workflow by hand.
+**What starts it:** `schedule` (`*/30 * * * *`), `workflow_dispatch` (a manual run from
+the Actions tab), and `repository_dispatch` of type `astrid-wake`, which is the server's
+opt-in event wake. A wake runs the workflow only when it is addressed to `copilot` or to
+`any`, so a Claude workflow in the same repository is not started by it (ADEV-102). The
+wake reaches the repository only when the server has `ASTRID_AGENT_WAKE=on`, the board
+is in `ASTRID_AGENT_WAKE_LISTS`, and your instance's GitHub App is installed on the
+repository ([AGENT_EVENT_WAKE.md](../architecture/AGENT_EVENT_WAKE.md)). Without those,
+expect up to 30 minutes between marking a task Ready and Copilot starting (GitHub also
+skips some scheduled runs), or run the workflow by hand. A workflow generated before
+this change has no `repository_dispatch` trigger. Regenerate it from Settings to get one.
 
 Then, on a board:
 
