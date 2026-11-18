@@ -601,6 +601,9 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   sanitiser's allowlist. Typed HTML reads as text and a reference inside code as typed, as on
   iOS. There is no server-side markdown render; if one is needed, ask the core, never the
   no-DOM fallback (escaped text only).
+  In the browser the same `listAccess` answers the UI's affordances once core's browser build
+  has loaded (flag `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER`, ADEV-90): `lib/core-rules/browser.ts`
+  installs the decider from `list-permissions-decider.ts`, TypeScript as fallback.
   The quick-add parser `parseTaskInput` runs only in the browser, so it stays
   TypeScript; `core-rules-smart-parity.test.ts` pins it to the core's
   `smartParse` (what iOS and the Mac run).
