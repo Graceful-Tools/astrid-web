@@ -1,6 +1,45 @@
 import type { AgentQueueResult } from '@/lib/agent-queue'
 import { FIXALL_CLAIM_BOARD_IDS, nativeCopilotClaimMarker } from '@/lib/fixall-claim'
 import { createHash } from 'node:crypto'
+import { mcpDefaultBaseUrl } from '@/lib/brand/config'
+
+/** Where the bridge works: one GitHub repository, one Astrid origin, one explicit board. */
+export interface BridgeConfig {
+  repo: string
+  origin: string
+  listId: string
+}
+
+/**
+ * The repository the bridge assigns issues in when not running in Actions:
+ * the owner's, which is what the script always targeted.
+ */
+const DEFAULT_BRIDGE_REPOSITORY = 'Graceful-Tools/astrid-web'
+const REPOSITORY_PATTERN = /^[\w.-]+\/[\w.-]+$/
+
+/**
+ * The bridge's target, from the run rather than hardcoded (ADEV-102). The entry
+ * script used to pin Graceful-Tools/astrid-web and https://astrid.cc, so a
+ * partner's bridge assigned issues in the owner's repository.
+ *
+ * - repo: GITHUB_REPOSITORY, which Actions sets to the repository running the
+ *   workflow; the owner's repository outside Actions.
+ * - origin: ASTRID_API_URL, else the canonical mcpDefaultBaseUrl()
+ *   (ASTRID_API_BASE_URL or the brand origin).
+ * - listId: --list, else ASTRID_OAUTH_LIST_ID. Never guessed: the board is
+ *   what scopes every claim.
+ */
+export function resolveBridgeConfig(env: Record<string, string | undefined>, argv: readonly string[]): BridgeConfig {
+  const repo = env.GITHUB_REPOSITORY?.trim() || DEFAULT_BRIDGE_REPOSITORY
+  if (!REPOSITORY_PATTERN.test(repo)) throw new Error(`GITHUB_REPOSITORY must be owner/repo, got "${repo}"`)
+  const origin = (env.ASTRID_API_URL?.trim() || mcpDefaultBaseUrl()).replace(/\/+$/, '')
+  const index = argv.indexOf('--list')
+  const flag = index < 0 ? undefined : argv[index + 1]
+  if (index >= 0 && (!flag || flag.startsWith('--'))) throw new Error('--list needs a board id')
+  const listId = flag || env.ASTRID_OAUTH_LIST_ID?.trim()
+  if (!listId) throw new Error('--list (or ASTRID_OAUTH_LIST_ID) is required')
+  return { repo, origin, listId }
+}
 
 export interface BridgeTransport {
   astrid<T>(path: string, body?: unknown): Promise<T>

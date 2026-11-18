@@ -366,7 +366,7 @@ describe('the loop keeps itself going without the scheduler', () => {
   it('ADEV-26: chains once if any worker finished a task, from per-slot verdicts, not matrix outputs', () => {
     const workflow = agentRun()
     expect(workflow.jobs.chain.if).toBe(
-      "${{ !cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped' }}")
+      "${{ github.repository_owner == 'Graceful-Tools' && (!cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped') }}")
     // A matrix job's outputs are last-writer-wins, so the chain must not read them.
     expect(workflow.jobs.run.outputs).toBeUndefined()
     expect(JSON.stringify(workflow.jobs.chain)).not.toContain('needs.run.outputs')
@@ -482,7 +482,7 @@ describe('AWTD-1556: an astrid-wake dispatch starts the cron\'s worker', () => {
   it('AWTD-1556: runs only for this harness\'s mailbox or an unassigned task, and keeps the queue read and claim', () => {
     const workflow = agentRun()
     expect(workflow.jobs.plan.if).toBe(
-      `\${{ github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox) }}`)
+      `\${{ github.repository_owner == 'Graceful-Tools' && (github.event.action != 'astrid-wake' || contains(fromJSON('["claude","any"]'), github.event.client_payload.mailbox)) }}`)
     // No special path: the preflight that reads the queue is the same step for every trigger.
     const preflight = workflow.jobs.run.steps.find((s: { name?: string }) => s.name === 'Queue and inbox preflight')
     expect(preflight.if).toBeUndefined()

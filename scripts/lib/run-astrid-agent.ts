@@ -4,21 +4,21 @@
  *
  *   - Credentials come from `.env.local`, which wins over inherited shell exports
  *     (scripts/lib/load-env.ts). The bare bin reads only the environment.
- *   - The origin stays `astrid.cc`, which these scripts always called; the SDK's own default
- *     is `www.astrid.cc`.
+ *   - The origin is scriptApiOrigin() (the brand's own, `astrid.cc` for Astrid); the SDK's
+ *     own default is `www.astrid.cc`.
  *
  * Everything else — flags, exit codes, log lines — is `astrid-agent`'s.
  */
 
 import { runCli } from '../../packages/astrid-sdk/src/cli'
 import { loadScriptEnv } from './load-env'
-import { ASTRID_API } from './script-client'
+import { scriptApiOrigin } from './script-client'
 
 export function runAstridAgent(argv: string[]): void {
   loadScriptEnv()
   const origin = argv.includes('--origin')
     ? []
-    : ['--origin', process.env.ASTRID_API_URL ?? process.env.ASTRID_API_BASE_URL ?? ASTRID_API]
+    : ['--origin', scriptApiOrigin()]
   runCli([...argv, ...origin], {
     env: process.env,
     stdout: line => console.log(line),

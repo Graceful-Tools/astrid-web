@@ -29,6 +29,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { adoptUnverifiedAccount } from '@/lib/auth/adopt-unverified-account'
+import { isRegistrationAllowed } from '@/lib/auth/registration-allowlist'
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { createDefaultListsForUser } from '@/lib/default-lists'
 import { createLogger } from '@/lib/logger'
@@ -109,7 +110,15 @@ async function decideFederatedLink(signIn: Omit<FederatedSignIn, 'email'> & { em
   }
 
   const existing = await prisma.user.findUnique({ where: { email } })
-  if (!existing) return { kind: 'new', email }
+  if (!existing) {
+    // Creating an account, so the deployment's sign-up allowlist applies; an
+    // existing account below links whatever the list says (ADEV-104).
+    if (!isRegistrationAllowed(email)) {
+      log.warn({ provider, domain: domainOf(email) }, 'Refusing federated sign-up: email outside REGISTRATION_ALLOWED_EMAIL_DOMAINS')
+      return { kind: 'refused', reason: 'refused' }
+    }
+    return { kind: 'new', email }
+  }
   if (existing.isAIAgent) {
     log.warn({ provider }, 'Refusing federated sign-in onto an AI agent')
     return { kind: 'refused', reason: 'refused' }

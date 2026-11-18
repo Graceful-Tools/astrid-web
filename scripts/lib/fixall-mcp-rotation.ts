@@ -1,4 +1,7 @@
-export const FIXALL_AGENT_EMAIL = "copilot@astrid.cc"
+import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
+
+/** The fixall harness's mailbox on this brand's agent domain, not a hardcoded Astrid one (ADEV-103). */
+export const FIXALL_AGENT_EMAIL = agentEmail(AGENT_MAILBOXES.copilot).toLowerCase()
 export const FIXALL_REPOSITORIES = [
   "Graceful-Tools/astrid-web",
   "Graceful-Tools/astrid-ios",
