@@ -19,6 +19,27 @@ an automatic cross-client compatibility guarantee, or a tested compatibility res
 your particular deployment. Native client releases and their core pins must be verified
 from their own build/release records.
 
+## The stock apps on your server: the API level (ADEV-124)
+
+A deployment doesn't have to ship branded apps. People can install the stock Astrid apps and
+type your server's address on the sign-in screen ("Use a different server"). Then our app
+updates on our schedule and your server on yours, and this is the rule that keeps that working:
+
+- **Your server states its level.** `GET /api/v1/capabilities` returns `meta.apiLevel`, an
+  integer that rises by one whenever the server gains behaviour a client may depend on
+  (`lib/api-level.ts` keeps the history). A server older than the field sends none, which
+  clients read as `0`.
+- **An app refuses a server below the level it needs, by name.** It shows "this server needs an
+  update" rather than signing in and failing later. It applies only to a server the person
+  chose: an app built for a deployment ships with it.
+- **What an app needs.** The stock apps need level **1** (browser sign-in on your server
+  calls back to the stock app's scheme). An app raises its minimum only for a feature it can't
+  work without. Optional features follow the capability flags instead, so a newer app keeps
+  working, with less, against an older server.
+- **Support window.** Keep your server within one minor release of `main`. The stock apps
+  raise their minimum level only in a release whose notes say so, and at least 30 days after
+  the server change that introduced that level reached `main`.
+
 ## Deployment compatibility record
 
 Copy one row per deployment release. Do not replace version or digest fields with
