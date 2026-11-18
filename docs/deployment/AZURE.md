@@ -27,7 +27,7 @@ One resource group per brand (or per tenant: see [Per-tenant keys](#per-tenant-k
 | `<name>-app` Container App | The web app and API. Minimum one replica, scales on concurrent requests | `app` |
 | `<name>-migrator` Container Apps Job | `prisma migrate deploy`, started by hand before every roll | `migrate` |
 | `<name>-cron-*` Container Apps Jobs | One scheduled Job per entry in `vercel.json` `crons` | `cron` |
-| `<name>-worker` Container App | The durable-job worker. **Off by default** (see [Worker](#the-worker)) | — |
+| `<name>-worker` Container App | The durable-job worker. On by default (see [Worker](#9-the-worker)) | `worker` |
 | PostgreSQL Flexible Server | Private access only (delegated subnet), built-in PgBouncer | `postgres` |
 | Azure Cache for Redis | Realtime bus and cache, TLS only | `redis` |
 | Storage account + `uploads` container | `STORAGE_DRIVER=azure-blob`, through the managed identity | `uploads` volume |
@@ -49,14 +49,33 @@ migrations), `REDIS_URL`, `REALTIME_BUS=redis`, `STORAGE_DRIVER=azure-blob`,
   (`az login`). It includes Bicep.
 - A container registry you can push to. Azure Container Registry is the simplest.
 - An SMTP relay for email: Azure Communication Services Email has SMTP. Any relay works.
+  You can deploy without one first: mail is then logged, not sent ([Deploy](#3-deploy)).
 - The brand profile, settled: `brands/<brand>.brand.json` ([WHITELABELING.md](../WHITELABELING.md)).
-  Its domain is compiled into the image and into the native apps.
+  Its `NEXT_PUBLIC_BRAND_DOMAIN` is the hostname the app will serve on, and it is compiled
+  into the native apps. Settle it before anyone builds them ([Custom domain](#4-custom-domain-and-certificate)).
 
 ## 1. Images
 
-One image is one brand: the brand's name, colours, domain and sign-in providers are
-compiled in ([SELF_HOSTING.md](./SELF_HOSTING.md#your-brand-goes-in-at-build-time)). Build
-yours in Azure from a checkout of the release tag, with no local Docker needed:
+The brand is not compiled into the image any more. Since AWTD-1587 the image reads every
+brand value when it starts, `NEXT_PUBLIC_*` included: mount a profile and point
+`BRAND_PROFILE` at it ([SELF_HOSTING.md](./SELF_HOSTING.md#your-brand-mounted-at-runtime-or-built-in)).
+That arrives in the first release after v1.3.0. Images from v1.3.0 and earlier can only
+carry a brand they were built with.
+
+On Azure there are two ways to give the app its brand:
+
+- **Build it in** (what this template supports today). The profile becomes the image's
+  default brand, and its artwork in the checkout goes in with it. Changing the brand means
+  a rebuild and a redeploy.
+- **Mount it at runtime.** The published image, unchanged, with your profile mounted and
+  `BRAND_PROFILE` (and `BRAND_ASSETS_DIR` for artwork) set. Changing the brand means a
+  restart. **This template does not mount a profile yet** (see [Still to do](#still-to-do)).
+  Container Apps can mount files from an Azure Files share or from its own secrets. The
+  storage account here disables shared keys, and an Azure Files mount needs one, so that
+  route needs a separate storage account.
+
+To build it in, build in Azure from a checkout of the release tag, with no local Docker
+needed:
 
 ```bash
 git checkout v1.4.0
@@ -114,7 +133,10 @@ recovered for 90 days. Keep your own copy as well.
 az group create -n tasks-wlp -l westeurope
 export APP_IMAGE=<registry>.azurecr.io/tasks:1.4.0
 export MIGRATOR_IMAGE=<registry>.azurecr.io/tasks:1.4.0-migrator
+export EMAIL_TRANSPORT=smtp                                    # leave unset to log mail instead
 export SMTP_URL='smtp://<user>:<pass>@smtp.azurecomm.net:587'
+export FROM_EMAIL='Tasks <noreply@tasks.partner.example>'      # optional: default noreply@<brand domain>
+export VAPID_SUBJECT='mailto:support@tasks.partner.example'    # with the VAPID keys, for web push
 az deployment group create -g tasks-wlp \
   -f deploy/azure/main.bicep -p deploy/azure/whitelabel-partner.bicepparam
 ```
@@ -141,10 +163,12 @@ SMOKE_BASE_URL=https://<appUrl> npx tsx scripts/self-host-smoke.ts   # NEXTAUTH_
 If the first run fails with a Key Vault access error on a container app, the identity's
 role assignment had not propagated yet. Run the same command again.
 
-The parameters file sets `EMAIL_TRANSPORT=smtp`. **Without `SMTP_URL` the app refuses to
-start**, and the log names the missing setting. That is deliberate: it is better than
-silently not sending email. To deploy without email, set `EMAIL_TRANSPORT` to `log` in the
-brand's parameters file.
+**Email.** The parameters file reads `EMAIL_TRANSPORT` from your shell and defaults it to
+`log`, so a first deployment starts with no relay. Every message is written to the app's
+log instead of sent, so nobody receives invitations, sign-in links or reminders. Before
+real users arrive, export `EMAIL_TRANSPORT=smtp` with `SMTP_URL` and deploy again. With
+`smtp` and no `SMTP_URL` the app refuses to start and the log names the missing setting.
+That is deliberate: it is better than silently not sending.
 
 ## 4. Custom domain and certificate
 
@@ -161,6 +185,13 @@ variable:
    `NEXTAUTH_URL` now uses it.
 4. `export BIND_MANAGED_CERTIFICATE=true` and deploy. The certificate is issued (a few
    minutes) and bound. It renews itself.
+
+**The custom domain must be the brand's domain.** Set `CUSTOM_DOMAIN` to exactly the
+profile's `NEXT_PUBLIC_BRAND_DOMAIN`. Session cookies, passkeys, email links and the native
+apps all use that hostname. The native apps have it compiled in, so settle the domain and
+get it serving with its certificate before anyone builds them. Moving it later means new
+app builds, and every passkey registered on the old hostname stops working. Serving on the
+generated `appFqdn` alone is fine for a first check, but not for real users.
 
 Then register `https://tasks.partner.example/api/auth/callback/<provider>` with each
 sign-in provider. Keep `CUSTOM_DOMAIN` and `BIND_MANAGED_CERTIFICATE` exported for every
@@ -201,8 +232,9 @@ Entra ID is the deployment's `sso` provider: one OIDC issuer for the whole deplo
 ([WHITELABELING.md](../WHITELABELING.md), *Sign-in providers*).
 
 1. **The brand must list it.** `NEXT_PUBLIC_BRAND_AUTH_PROVIDERS` in the brand profile
-   includes `sso` (e.g. `"sso,passkey"`). This is compiled in, so changing it means
-   rebuilding the image.
+   includes `sso` (e.g. `"sso,passkey"`). It is a brand value like the others
+   ([Images](#1-images)): with the brand built in, changing it means rebuilding the image.
+   With the profile mounted, it means a restart.
 2. **Register an app in Entra ID** (Microsoft Entra admin center, *App registrations*):
    - Supported account types: **this organisational directory only** (single tenant).
    - Redirect URI, platform **Web**: `https://<your domain>/api/auth/callback/sso`.
@@ -261,11 +293,17 @@ Never run both, because every job would run twice.
 
 ## 9. The worker
 
-`deployWorker` adds a `<name>-worker` container app running `node scripts/job-worker.mjs`.
-That script drains the durable job table, which is being built in
-[AWTD-1460](https://astrid.cc/t/AWTD-1460) and is **not yet in any release**. Leave
-`deployWorker` false until the release notes say the image includes the worker. Until
-then, the app drains jobs itself, as on Vercel.
+`deployWorker` (on by default) adds a `<name>-worker` container app running
+`node scripts/job-worker.mjs`, the same process as the compose file's `worker` service. It
+ships in the image from v1.3.0 ([AWTD-1460](https://astrid.cc/t/AWTD-1460)). It drains the
+durable job table every few seconds: agent replies, and work that runs after a save.
+Without it nothing is lost, because the minute cron Job drains the same table. But each
+reply and retry then waits up to a minute.
+
+The worker calls the app through its public URL, like the cron Jobs. With
+`ingressAllowedCidrs` set, the environment's outbound addresses must be allowed
+([Behind a proxy](#5-behind-a-proxy-trusted_proxy_depth)). Set `deployWorker` to false only
+for an image older than v1.3.0, which does not have the script.
 
 ## 10. Logs and traces
 
@@ -375,11 +413,18 @@ Redis. Check the current dates. Moving to Azure Managed Redis changes only `REDI
 
 ## Still to do
 
-The template has not yet been run against a real subscription. Before a partner relies on
-it:
+**This template has not been deployed for real.** It compiles, and a test checks the
+settings it names. Nobody has run it against a real subscription. Until someone does, the
+tested way to run Astrid on Azure is **docker compose on an Azure VM**:
+[SELF_HOSTING.md](./SELF_HOSTING.md) on any Linux VM with Docker, which CI proves on every
+change to the image (`.github/workflows/self-host.yml`). Before a partner relies on this
+template:
 
 - `az deployment group create` from an empty subscription, with the partner brand.
 - `scripts/self-host-smoke.ts` passes against it, including one email through the SMTP
   relay.
 - Real-time events reach a client connected to the other replica (scale to two first).
+- The custom domain and managed certificate passes, on the brand's real domain.
+- Mounting a brand profile at runtime (`BRAND_PROFILE`) from the template, so the published
+  image can be used unchanged. Today the brand has to be built in.
 - This page is read through by someone who has never seen the repository.
