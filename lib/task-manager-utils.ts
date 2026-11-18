@@ -13,6 +13,8 @@ import { priorityTextClass } from '@/lib/design/priority'
 import { isSystemListId } from "@/lib/list-permissions"
 import { isInMyTasksScope } from '@/lib/my-tasks-scope'
 import { coreDueDateWindow } from '@/lib/date-filter-utils'
+import { browserCoreRules } from '@/lib/core-rules/browser'
+import { ASSIGNEE_PHRASE, smartParseThroughCore } from '@/lib/core-rules/smart-parse-core'
 
 const log = createLogger('task-manager-utils')
 
@@ -122,6 +124,23 @@ export function parseTaskInput(input: string, selectedListId: string, effectiveS
       repeating: undefined,
       customRepeatingData: null,
     }
+  }
+
+  // astrid-core's smartParse, once the browser has loaded it and the flag is on (AWTD-1586), so
+  // the web parses a line the way iOS and the Mac do. Null (not loaded, D13, a bad reply) keeps
+  // the TypeScript below in charge.
+  const door = browserCoreRules()
+  if (door?.answers('smartParse')) {
+    const viaCore = smartParseThroughCore({
+      runJson: door.runJson,
+      input,
+      selectedListId,
+      lists: lists ?? [],
+      locale: locale || 'en',
+      now: new Date(),
+      isVirtualListId,
+    })
+    if (viaCore) return viaCore
   }
 
   // Parse hashtags for list assignment
@@ -303,7 +322,7 @@ export function parseTaskInput(input: string, selectedListId: string, effectiveS
   }
 
   // Parse assignee keywords (simplified - look for "assign to [name]" or "for [name]")
-  const assigneeRegex = /(assign to|assigned to|for)\s+(\w+)/i
+  const assigneeRegex = ASSIGNEE_PHRASE
   const assigneeMatch = title.match(assigneeRegex)
   if (assigneeMatch) {
     const assigneeName = assigneeMatch[2].toLowerCase()
