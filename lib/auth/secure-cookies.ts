@@ -32,6 +32,32 @@ export function usesSecureAuthCookies(env: AuthEnv = process.env): boolean {
   return env.NEXTAUTH_URL?.startsWith('https://') ?? Boolean(env.VERCEL)
 }
 
+/**
+ * The `Domain` attribute for brand-scoped auth cookies, or undefined to make
+ * them host-only (ADEV-96).
+ *
+ * A browser drops a cookie whose Domain does not cover the serving host, so a
+ * `NEXTAUTH_URL` outside `BRAND.domain` (Azure's generated
+ * `*.azurecontainerapps.io`, a copied profile still naming another domain)
+ * signed the user in with no error and no session. Host-only is always
+ * accepted. An unset or unparseable `NEXTAUTH_URL` keeps the brand domain, as
+ * before.
+ */
+export function authCookieDomain(
+  env: AuthEnv = process.env,
+  brandDomain: string = BRAND.domain,
+): string | undefined {
+  const domain = brandDomain.toLowerCase()
+  if (!env.NEXTAUTH_URL) return `.${domain}`
+  let host: string
+  try {
+    host = new URL(env.NEXTAUTH_URL).hostname.toLowerCase()
+  } catch {
+    return `.${domain}`
+  }
+  return host === domain || host.endsWith(`.${domain}`) ? `.${domain}` : undefined
+}
+
 /** The session cookie name both halves of NextAuth will look for. */
 export function authSessionCookieName(env: AuthEnv = process.env): string {
   return usesSecureAuthCookies(env)
@@ -76,7 +102,7 @@ export function authSessionCookie(env: AuthEnv = process.env): {
       // session started on the apex is valid on preview subdomains. Task
       // 97208a72. A `__Secure-` cookie is the only one that may carry it here:
       // over plain http the browser would reject the pair outright.
-      ...(secure ? { domain: `.${BRAND.domain}` } : {}),
+      ...(secure && authCookieDomain(env) ? { domain: authCookieDomain(env) } : {}),
     },
   }
 }

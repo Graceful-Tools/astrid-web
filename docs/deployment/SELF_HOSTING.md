@@ -140,6 +140,8 @@ The full registry, with a description of every variable: `npm run check:env`, or
 | `CRON_SECRET` | The cron service sends it. Every cron route refuses requests without it |
 | `POSTGRES_PASSWORD` | For the bundled Postgres. With your own database, set `DATABASE_URL` and `DATABASE_URL_DIRECT` instead (see *Your own database*) |
 
+> **Serving host vs brand domain (ADEV-96).** Session cookies are scoped to `.<NEXT_PUBLIC_BRAND_DOMAIN>` only when the `NEXTAUTH_URL` host is that domain or a subdomain of it. On any other host (for example Azure's generated `*.azurecontainerapps.io`) they are host-only, so sign-in works. Set `NEXT_PUBLIC_BRAND_DOMAIN` to your real domain before sharing sessions across subdomains.
+
 **Storage:**
 
 | `STORAGE_DRIVER` | Needs | Use |

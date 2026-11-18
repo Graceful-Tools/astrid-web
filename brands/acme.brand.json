@@ -1,6 +1,6 @@
 {
   "name": "Acme",
-  "description": "A fully rebranded enterprise deployment running its own back end: passkey-only sign-in, no Google Tasks sync, no MCP or ChatGPT actions, and Claude as the only AI provider. Exercises every axis of the whitelabel configuration at once.",
+  "description": "A fully rebranded enterprise deployment running its own back end: passkey-only sign-in, no Google Tasks sync, no ChatGPT actions, and Claude and Copilot as the AI providers. Exercises every axis of the whitelabel configuration at once.",
   "env": {
     "NEXT_PUBLIC_BRAND_NAME": "Acme",
     "NEXT_PUBLIC_BRAND_TITLE": "Acme Tasks",
@@ -11,11 +11,11 @@
     "NEXT_PUBLIC_BRAND_ACCENT_COLOR": "#7e22ce",
     "NEXT_PUBLIC_BRAND_AGENT_NAME": "Acme Assistant",
     "BRAND_AGENT_EMAIL_DOMAIN": "agents.acme.example",
-    "BRAND_ENABLED_AGENTS": "claude",
+    "BRAND_ENABLED_AGENTS": "claude,copilot",
     "NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_AUTH_APPLE": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS": "false",
-    "NEXT_PUBLIC_BRAND_ENABLE_MCP": "false",
+    "NEXT_PUBLIC_BRAND_ENABLE_MCP": "true",
     "NEXT_PUBLIC_BRAND_ENABLE_CHATGPT_ACTIONS": "false",
     "NEXT_PUBLIC_BRAND_ENABLE_EMAIL_TO_TASK": "false",
     "NEXT_PUBLIC_BRAND_LOGO": "/images/acme-logo.png",
@@ -26,7 +26,8 @@
     "BRAND_APPLE_APP_IDS": "ACME000001.example.acme.Tasks,ACME000001.example.acme.TasksMac",
     "BRAND_ANDROID_APP_LINKS": "example.acme.tasks:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC:AC",
     "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "acmetasks",
-    "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"
+    "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+    "NEXT_PUBLIC_BRAND_WWW_REDIRECT": "false"
   },
   "assets": {
     "icon": "/icons/acme-1024.png",
@@ -85,7 +86,8 @@
     "accentColor": "#7e22ce",
     "enabledAgents": [
       "astrid",
-      "claude"
+      "claude",
+      "copilot"
     ],
     "capabilities": {
       "githubProjects": false,
@@ -95,7 +97,7 @@
       "syncGoogleTasks": false,
       "syncGithubIssues": true,
       "codingAgent": true,
-      "integrationMcp": false,
+      "integrationMcp": true,
       "integrationOpenClaw": true,
       "integrationChatGptActions": false,
       "emailToTask": false,
