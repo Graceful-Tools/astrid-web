@@ -12,8 +12,9 @@ using 'main.bicep'
 
 param name = 'wlp'
 
-// One image is one brand: build it with --build-arg BRAND=whitelabel-partner
-// and push it to your registry (AZURE.md, "Images").
+// The brand is built into the image: --build-arg BRAND=whitelabel-partner,
+// pushed to your registry (AZURE.md, "Images"). This template does not yet
+// mount a profile at runtime (BRAND_PROFILE).
 param appImage = readEnvironmentVariable('APP_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.0.0-whitelabel-partner')
 param migratorImage = readEnvironmentVariable('MIGRATOR_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.0.0-migrator')
 param registryServer = readEnvironmentVariable('REGISTRY_SERVER', '')
@@ -43,11 +44,15 @@ param optionalSecrets = {
   OPENAI_API_KEY: readEnvironmentVariable('OPENAI_API_KEY', '')
 }
 
-// Plain runtime settings. NEXT_PUBLIC_* values (the brand, which sign-in
-// providers exist) are compiled into the image and cannot be set here.
+// Plain runtime settings. Brand values (NEXT_PUBLIC_BRAND_*, which sign-in
+// providers exist) belong in the brand profile, not here.
 param appSettings = {
-  FROM_EMAIL: 'Whitelabel <noreply@tasks.gracefultools.com>'
-  EMAIL_TRANSPORT: 'smtp'
+  // Empty: noreply@<the brand's domain>. Or 'Tasks <noreply@tasks.partner.example>'.
+  FROM_EMAIL: readEnvironmentVariable('FROM_EMAIL', '')
+  // 'log' writes mail to the log instead of sending it, so a first deployment
+  // starts without a relay. Export EMAIL_TRANSPORT=smtp with SMTP_URL before
+  // real users arrive: smtp without SMTP_URL refuses to boot (AZURE.md, "Deploy").
+  EMAIL_TRANSPORT: readEnvironmentVariable('EMAIL_TRANSPORT', 'log')
   BRAND_ENABLED_AGENTS: 'claude'
   // Entra ID as the sso provider (AZURE.md, "Sign-in with Entra ID"). Takes
   // effect only in an image whose brand lists sso in NEXT_PUBLIC_BRAND_AUTH_PROVIDERS.
@@ -56,7 +61,8 @@ param appSettings = {
   AUTH_SSO_DOMAINS: readEnvironmentVariable('AUTH_SSO_DOMAINS', '')
   AUTH_SSO_LABEL: 'Sign in with Microsoft'
   VAPID_PUBLIC_KEY: readEnvironmentVariable('VAPID_PUBLIC_KEY', '')
-  VAPID_SUBJECT: 'mailto:support@tasks.gracefultools.com'
+  // mailto: your support address, e.g. 'mailto:support@tasks.partner.example'.
+  VAPID_SUBJECT: readEnvironmentVariable('VAPID_SUBJECT', '')
 }
 
 param tags = {

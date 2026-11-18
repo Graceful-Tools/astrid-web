@@ -17,8 +17,9 @@ describe("buildAtomicFixallClaimWhere", () => {
   const iosBoardId = "aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36"
   const windowsBoardId = "abb4f961-55ee-499e-9c51-d4a2e31ee439"
   const androidBoardId = "85eef4ce-3d4d-4072-9ca7-bd631ca815b1"
+  const astridCodeBoardId = "5975ee1d-dc76-44b8-b09d-75bd97c7e30b"
 
-  it("allows the web, iOS, Windows and Android boards while preserving the other atomic guards", () => {
+  it("allows the web, iOS, Windows, Android and Astrid Code boards while preserving the other atomic guards", () => {
     expect(buildAtomicFixallClaimWhere({
       taskId: "task-1",
       agentId: "copilot-1",
@@ -27,13 +28,27 @@ describe("buildAtomicFixallClaimWhere", () => {
     })).toEqual(expect.objectContaining({
       id: "task-1",
       completed: false,
-      lists: { some: { id: { in: [webBoardId, iosBoardId, windowsBoardId, androidBoardId] } } },
+      lists: { some: { id: { in: [webBoardId, iosBoardId, windowsBoardId, androidBoardId, astridCodeBoardId] } } },
       OR: [{ assigneeId: null }, { assigneeId: "copilot-1" }],
       statusRole: "ready",
       AND: [{ OR: [{ dueDateTime: null }, { dueDateTime: { lte: now } }] }],
     }))
 
-    expect(FIXALL_CLAIM_BOARD_IDS).toEqual([webBoardId, iosBoardId, windowsBoardId, androidBoardId])
+    expect(FIXALL_CLAIM_BOARD_IDS).toEqual([webBoardId, iosBoardId, windowsBoardId, androidBoardId, astridCodeBoardId])
+  })
+
+  it("lets a loop claim Astrid Code To-do tasks, and name that board explicitly (ADEV-113)", () => {
+    // ADEV-110/111/112 sat Ready on this board while every claim 409'd as a false
+    // conflict, and `--list` was refused outright as "not an allowed board".
+    const where = buildAtomicFixallClaimWhere({
+      taskId: "c5266123-ebe9-4840-9ca0-6783df81c6df",
+      agentId: "ai-agent-claude",
+      claim: { action: "ready", commentWatermark: null, agent: "claude" },
+      now,
+    })
+    expect(where.lists.some.id.in).toContain(astridCodeBoardId)
+    expect(parseFixallClaimRequest({ action: "ready", agent: "claude", listId: astridCodeBoardId }))
+      .toEqual(expect.objectContaining({ listId: astridCodeBoardId }))
   })
 
   it("lets the Android loop claim its own board's tasks (AATD-22)", () => {

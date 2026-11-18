@@ -2737,7 +2737,8 @@
     "optionsFailed": "Het passkey-verzoek kon niet worden gestart. Probeer het opnieuw.",
     "registrationFailed": "Passkey registreren mislukt",
     "authenticationFailed": "Inloggen met passkey mislukt",
-    "defaultName": "Mijn passkey"
+    "defaultName": "Mijn passkey",
+    "registrationNotAllowed": "Registreren op deze server kan alleen met goedgekeurde e-mailadressen. Vraag je beheerder om toegang."
   },
   "oauthScopes": {
     "tasks_read": "Taken lezen",

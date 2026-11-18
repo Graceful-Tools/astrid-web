@@ -17,6 +17,7 @@ import { encode } from "next-auth/jwt"
 import type { RegistrationResponseJSON } from "@simplewebauthn/server"
 import { passkeyRateLimiter, withRateLimitHandlerAsync } from "@/lib/rate-limiter"
 import { createLogger } from '@/lib/logger'
+import { isRegistrationAllowed, registrationNotAllowedBody } from '@/lib/auth/registration-allowlist'
 
 const log = createLogger('auth.webauthn.register.verify')
 
@@ -120,6 +121,12 @@ async function registrationVerifyHandler(request: NextRequest) {
           existingUser: true,
           email: storedData.email,
         })
+      }
+
+      // Checked again here, not only at /register/options: a challenge issued
+      // before the allowlist was set lives on for its TTL (ADEV-104).
+      if (!isRegistrationAllowed(storedData.email)) {
+        return NextResponse.json(registrationNotAllowedBody(), { status: 403 })
       }
 
       // New account registration - create user (email NOT verified yet)

@@ -38,13 +38,11 @@ import { awaitsAgentReply, hasReadyStatus } from '@/lib/ready-queue-scope'
 import { pendingAgentHandback } from '@/lib/agent-handback'
 import { SYSTEM_GENERATED_MARKER } from '@/lib/comments/post-comment-side-effects'
 import { getGitHubApp, githubAppConfigured } from '@/lib/github/app'
+import { ANY_AGENT_MAILBOX, WAKE_EVENT_TYPE } from '@/lib/agent-wake-event'
 
 const log = createLogger('agent-wake')
 
-/** The repository_dispatch type agent-run.yml listens for. */
-export const WAKE_EVENT_TYPE = 'astrid-wake'
-/** The mailbox of a wake for an unassigned Ready task: any loop may claim it. */
-export const ANY_AGENT_MAILBOX = 'any'
+export { ANY_AGENT_MAILBOX, WAKE_EVENT_TYPE }
 /** At most one wake per (board, agent) in each window of this length. */
 export const WAKE_COALESCE_MS = 30_000
 /** How many recent comments a reply check reads; a handback is never far back. */
