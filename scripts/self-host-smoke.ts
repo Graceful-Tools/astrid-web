@@ -14,6 +14,11 @@
  * SMOKE_MAILPIT_URL (the compose's `--profile mail` sink), one email goes
  * through the SMTP transport and is read back.
  *
+ * The agent surfaces (ADEV-105): `/mcp` and its OAuth discovery documents answer as the
+ * deployment's `integrations.mcp` capability says (a 401 challenge and two documents
+ * when on, three 404s when off), the job queue drains through the worker's route, and
+ * the SSE stream refuses an unauthenticated caller.
+ *
  * With SMOKE_BRAND_PROFILE (a brand profile on this machine, the one the stack was
  * started with), the brand is checked too (AWTD-1606): pages carry the profile's name
  * and none of its `forbidLiterals`, the manifest is the brand's, and every icon loads
@@ -29,6 +34,7 @@ import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { createUploadToken } from '../lib/storage/upload-token'
 import { astridFileForGenerated, parseGeneratedIconFile } from '../lib/brand/icons'
+import { mcpSurfaceProbes, resourceMetadataUrl } from './lib/self-host-smoke-checks'
 
 const base = (process.env.SMOKE_BASE_URL || 'http://localhost:3000').replace(/\/+$/, '')
 const failures: string[] = []
@@ -216,6 +222,47 @@ async function main() {
   const brandProfile = process.env.SMOKE_BRAND_PROFILE?.trim()
   if (brandProfile) await checkBrand(brandProfile, process.env.SMOKE_BRAND_ASSETS_DIR?.trim() || undefined)
 
+  // The MCP surface agents connect to (ADEV-105). The capability decides which answer
+  // is right; either way the deployment must not advertise what it does not serve.
+  let mcpEnabled: boolean | undefined
+  await check('MCP capability is reported', async () => {
+    const body = await (await fetch(`${base}/api/v1/capabilities`)).json()
+    if (typeof body.integrations?.mcp !== 'boolean') throw new Error(`integrations.mcp is ${JSON.stringify(body.integrations?.mcp)}`)
+    mcpEnabled = body.integrations.mcp
+    return mcpEnabled ? 'on' : 'off'
+  })
+  if (mcpEnabled !== undefined) {
+    for (const probe of mcpSurfaceProbes(mcpEnabled)) {
+      await check(`${probe.method} ${probe.path} answers ${probe.status} with MCP ${mcpEnabled ? 'on' : 'off'}`, async () => {
+        const response = await fetch(`${base}${probe.path}`, probe.method === 'POST'
+          ? {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', accept: 'application/json, text/event-stream' },
+              body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'self-host-smoke', version: '1' } } }),
+            }
+          : undefined)
+        expectStatus(response, probe.status)
+        if (probe.status === 401) {
+          const metadata = resourceMetadataUrl(response.headers.get('www-authenticate'))
+          if (!metadata) throw new Error(`no resource_metadata in WWW-Authenticate: ${response.headers.get('www-authenticate')}`)
+          return metadata
+        }
+        if (probe.status === 200) {
+          const body = await response.json()
+          if (probe.path.includes('protected-resource') && !String(body.resource).endsWith('/mcp')) throw new Error(`resource ${body.resource}`)
+          if (probe.path.includes('authorization-server') && !body.token_endpoint) throw new Error('no token_endpoint')
+          return body.resource ?? body.issuer
+        }
+      })
+    }
+  }
+
+  await check('the SSE stream refuses an unauthenticated caller', async () => {
+    const response = await fetch(`${base}/api/v1/sse`, { headers: { accept: 'text/event-stream' } })
+    expectStatus(response, 401)
+    await response.body?.cancel()
+  })
+
   await check('cron routes fail closed without the secret', async () => {
     expectStatus(await fetch(`${base}/api/cron/abandoned-uploads`), 401)
   })
@@ -225,6 +272,17 @@ async function main() {
     if (!secret) throw new Error('CRON_SECRET is not set for the smoke test')
     const response = await fetch(`${base}/api/cron/abandoned-uploads`, { headers: { authorization: `Bearer ${secret}` } })
     expectStatus(response, 200)
+  })
+
+  // The route the worker service polls (scripts/job-worker.mjs): the Job table is
+  // migrated and a drain completes on this image. Its 200 is not proof the worker is
+  // running; self-host.yml reads the worker's own log for that.
+  await check('the job queue drains', async () => {
+    const response = await fetch(`${base}/api/cron/jobs`, { headers: { authorization: `Bearer ${process.env.CRON_SECRET ?? ''}` } })
+    expectStatus(response, 200)
+    const body = (await response.json()) as { success?: boolean; claimed?: unknown }
+    if (body.success !== true || typeof body.claimed !== 'number') throw new Error(JSON.stringify(body))
+    return `claimed ${body.claimed}`
   })
 
   await check('direct upload lands and is served back', async () => {

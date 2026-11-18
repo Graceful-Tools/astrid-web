@@ -2737,7 +2737,8 @@
     "optionsFailed": "パスキーのリクエストを開始できませんでした。もう一度お試しください。",
     "registrationFailed": "パスキーの登録に失敗しました",
     "authenticationFailed": "パスキーでのサインインに失敗しました",
-    "defaultName": "マイパスキー"
+    "defaultName": "マイパスキー",
+    "registrationNotAllowed": "このサーバーへの登録は承認されたメールアドレスに限られています。管理者にアクセスを依頼してください。"
   },
   "oauthScopes": {
     "tasks_read": "タスクの読み取り",

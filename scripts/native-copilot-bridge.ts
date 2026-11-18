@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { loadScriptEnv } from './lib/load-env'
-import { runNativeCopilotBridge, type BridgeTransport } from './lib/native-copilot-bridge'
+import { resolveBridgeConfig, runNativeCopilotBridge, type BridgeTransport } from './lib/native-copilot-bridge'
 
 loadScriptEnv()
 
@@ -16,17 +16,16 @@ function value(flag: string): string {
 }
 
 async function main() {
-  const listId = value('--list')
+  const { repo, origin, listId } = resolveBridgeConfig(process.env, argv)
   const output = value('--output')
   if (argv.includes('--execute') && argv.includes('--dry-run')) throw new Error('Use either --execute or --dry-run, not both')
   const dryRun = !argv.includes('--execute')
-  const repo = 'Graceful-Tools/astrid-web'
   const events: string[] = []
   const result: { version: 1; listId: string; dryRun: boolean; ok: boolean; events: string[]; error?: string } =
     { version: 1, listId, dryRun, ok: false, events }
   try {
     if (!process.env.GH_TOKEN) throw new Error('GH_TOKEN must be an authorized user-to-server token; no built-in token fallback')
-    const response = await fetch('https://astrid.cc/api/v1/oauth/token', {
+    const response = await fetch(`${origin}/api/v1/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -41,7 +40,7 @@ async function main() {
     const accessToken = auth.access_token
     const transport: BridgeTransport = {
       async astrid<T>(path: string, body?: unknown): Promise<T> {
-        const res = await fetch(`https://astrid.cc${path}`, {
+        const res = await fetch(`${origin}${path}`, {
           method: body === undefined ? 'GET' : 'POST',
           headers: { 'X-OAuth-Token': accessToken, 'Content-Type': 'application/json' },
           ...(body === undefined ? {} : { body: JSON.stringify(body) }),

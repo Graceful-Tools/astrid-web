@@ -65,6 +65,7 @@ import { WAITING_STATUS_ROLE, DOING_STATUS_ROLE } from "@/lib/task-status"
 import { serializeReadyTaskQueue } from "./lib/ready-tasks-output"
 import { boardTasksUrl } from './lib/board-read-url'
 import { findBoardList } from './lib/board-by-name'
+import { scriptApiOrigin } from './lib/script-client'
 
 /** One page is the whole point of this script; say so rather than truncate quietly. */
 const PAGE_LIMIT = 1000
@@ -107,7 +108,7 @@ async function main() {
     process.exit(1)
   }
 
-  const tokenResponse = await fetch("https://astrid.cc/api/v1/oauth/token", {
+  const tokenResponse = await fetch(`${scriptApiOrigin()}/api/v1/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -128,7 +129,7 @@ async function main() {
   // Resolve the board by NAME rather than hardcoding its id: an id is account
   // data, and a hardcoded one fails silently by returning an empty list, which
   // reads exactly like "nothing to do".
-  const listsResponse = await fetch("https://astrid.cc/api/v1/lists", { headers: auth })
+  const listsResponse = await fetch(`${scriptApiOrigin()}/api/v1/lists`, { headers: auth })
   if (!listsResponse.ok) throw new Error(`Board lookup failed: HTTP ${listsResponse.status}`)
   const listsBody = await listsResponse.json()
   // Fail loudly on a missing board instead of degrading to an empty queue —
