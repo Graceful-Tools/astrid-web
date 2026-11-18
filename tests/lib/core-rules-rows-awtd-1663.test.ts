@@ -11,8 +11,9 @@ import path from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import * as glue from '@/packages/astrid-rules/web/astrid_rules_wasm.js'
+import * as rowsCore from '@/lib/core-rules/rows-core'
 import { coreOrderedIds, orderLikeCore, savedViewFor, type LiveFilters } from '@/lib/core-rules/rows-core'
-import { resetBrowserCoreRulesForTests } from '@/lib/core-rules/browser'
+import { browserRowsCore, loadBrowserCoreRules, resetBrowserCoreRulesForTests } from '@/lib/core-rules/browser'
 import { sortTasksForList } from '@/lib/task-sort'
 import { useFilterState } from '@/hooks/useFilterState'
 import type { Task, TaskList } from '@/types/task'
@@ -134,7 +135,7 @@ describe('AWTD-1663: applyFiltersToTasks asks the door only for a saved view', (
 
   it('asks core rows for the saved view and shows the same tasks', () => {
     const runJson = vi.fn(glue.runJson)
-    resetBrowserCoreRulesForTests({ runJson, answers: (k) => k === 'rows' })
+    resetBrowserCoreRulesForTests({ runJson, answers: (k) => k === 'rows' }, { rows: rowsCore })
     const { result } = render()
     const shown = result.current.applyFiltersToTasks(tasks, 'user-1', [list])
     expect(runJson).toHaveBeenCalledTimes(1)
@@ -150,7 +151,7 @@ describe('AWTD-1663: applyFiltersToTasks asks the door only for a saved view', (
 
   it('does not ask once the filters are edited live, or during a search', () => {
     const runJson = vi.fn(glue.runJson)
-    resetBrowserCoreRulesForTests({ runJson, answers: () => true })
+    resetBrowserCoreRulesForTests({ runJson, answers: () => true }, { rows: rowsCore })
     const { result } = render()
     act(() => result.current.setPriority([3]))
     result.current.applyFiltersToTasks(tasks, 'user-1', [list])
@@ -160,5 +161,18 @@ describe('AWTD-1663: applyFiltersToTasks asks the door only for a saved view', (
     })
     result.current.applyFiltersToTasks(tasks, 'user-1', [list])
     expect(runJson).not.toHaveBeenCalled()
+  })
+})
+
+describe('AWTD-1663: the rows adapter loads with the door, not with the page', () => {
+  afterEach(() => resetBrowserCoreRulesForTests())
+
+  it('is null before the door loads and present after', async () => {
+    expect(browserRowsCore()).toBeNull()
+    await loadBrowserCoreRules({
+      enabled: true,
+      load: () => Promise.resolve({ default: () => Promise.resolve(), runJson: glue.runJson, kinds: glue.kinds }),
+    })
+    expect(browserRowsCore()?.savedViewFor).toBeTypeOf('function')
   })
 })

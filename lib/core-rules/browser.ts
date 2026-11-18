@@ -36,8 +36,25 @@ export const BROWSER_CORE_RULES_ON = process.env.NEXT_PUBLIC_ASTRID_CORE_RULES_B
 
 const importGlue = () => import('../../packages/astrid-rules/web/astrid_rules_wasm.js') as Promise<Glue>
 
+type RowsCore = typeof import('./rows-core')
+type SmartParseCore = typeof import('./smart-parse-core')
+
 let loaded: BrowserCoreRules | null = null
 let loading: Promise<BrowserCoreRules | null> | null = null
+// The saved-view rows adapter (AWTD-1663) rides in the same lazy load as the door, so it costs the
+// first load nothing: it is only ever used once the door is there.
+let rowsCore: RowsCore | null = null
+let smartParseCore: SmartParseCore | null = null
+
+/** The saved-view rows adapter, once the door has loaded; null before. */
+export function browserRowsCore(): RowsCore | null {
+  return loaded ? rowsCore : null
+}
+
+/** Quick-add's smartParse adapter, once the door has loaded; null before. */
+export function browserSmartParseCore(): SmartParseCore | null {
+  return loaded ? smartParseCore : null
+}
 
 /** The loaded door, or null while it is off, loading or failed. Never throws. */
 export function browserCoreRules(): BrowserCoreRules | null {
@@ -57,6 +74,11 @@ export function loadBrowserCoreRules(
     loading = load()
       .then(async (glue) => {
         await glue.default()
+        // The adapters ride in the same lazy load, so they cost the first load nothing.
+        ;[rowsCore, smartParseCore] = await Promise.all([
+          import('./rows-core').catch(() => null),
+          import('./smart-parse-core').catch(() => null),
+        ])
         const kinds = new Set(glue.kinds())
         loaded = { runJson: (request) => glue.runJson(request), answers: (kind) => kinds.has(kind) }
         // Permission affordances ask core listAccess too (ADEV-90). Lazy, like the door itself,
@@ -90,8 +112,13 @@ export function scheduleBrowserCoreRules(enabled = BROWSER_CORE_RULES_ON): () =>
 }
 
 /** Tests only: forget the loaded door. */
-export function resetBrowserCoreRulesForTests(door: BrowserCoreRules | null = null): void {
+export function resetBrowserCoreRulesForTests(
+  door: BrowserCoreRules | null = null,
+  adapters: { rows?: RowsCore | null; smartParse?: SmartParseCore | null } = {},
+): void {
   loaded = door
   loading = null
+  rowsCore = adapters.rows ?? null
+  smartParseCore = adapters.smartParse ?? null
   setListPermissionsCore(null)
 }

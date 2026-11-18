@@ -4,8 +4,7 @@ import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { applyDateFilter, type DueDateWindow } from '@/lib/date-filter-utils'
 import { sortTasksForList } from '@/lib/task-sort'
-import { browserCoreRules } from '@/lib/core-rules/browser'
-import { coreOrderedIds, orderLikeCore, savedViewFor } from '@/lib/core-rules/rows-core'
+import { browserCoreRules, browserRowsCore } from '@/lib/core-rules/browser'
 import { isInMyTasksScope, matchesAssigneeFilter, matchesPriorityFilter } from '@/lib/my-tasks-scope'
 import {
   shouldShowCompletedByFilter,
@@ -357,8 +356,9 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     // (AWTD-1663): the same order iOS and the Mac draw. Core only reorders — a different set of
     // tasks from the TypeScript's keeps the TypeScript's list (lib/core-rules/rows-core.ts).
     const door = browserCoreRules()
-    if (door?.answers('rows') && !skipListFiltering && !serverSearchApplied) {
-      const view = savedViewFor({
+    const rows = browserRowsCore()
+    if (door?.answers('rows') && rows && !skipListFiltering && !serverSearchApplied) {
+      const view = rows.savedViewFor({
         selectedListId,
         currentList,
         filters: activeFilters,
@@ -368,8 +368,8 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
       })
       const candidates = view?.kind === 'myTasks' ? tasks : members
       if (view && candidates) {
-        const ids = coreOrderedIds({ runJson: door.runJson, view, candidates, lists: lists ?? [], currentUserId: userId, now: new Date() })
-        return orderLikeCore(sortedTasks, ids)
+        const ids = rows.coreOrderedIds({ runJson: door.runJson, view, candidates, lists: lists ?? [], currentUserId: userId, now: new Date() })
+        return rows.orderLikeCore(sortedTasks, ids)
       }
     }
 

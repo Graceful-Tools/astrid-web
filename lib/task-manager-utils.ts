@@ -13,8 +13,8 @@ import { priorityTextClass } from '@/lib/design/priority'
 import { isSystemListId } from "@/lib/list-permissions"
 import { isInMyTasksScope } from '@/lib/my-tasks-scope'
 import { coreDueDateWindow } from '@/lib/date-filter-utils'
-import { browserCoreRules } from '@/lib/core-rules/browser'
-import { ASSIGNEE_PHRASE, smartParseThroughCore } from '@/lib/core-rules/smart-parse-core'
+import { browserCoreRules, browserSmartParseCore } from '@/lib/core-rules/browser'
+import { ASSIGNEE_PHRASE } from '@/lib/assignee-phrase'
 
 const log = createLogger('task-manager-utils')
 
@@ -130,8 +130,9 @@ export function parseTaskInput(input: string, selectedListId: string, effectiveS
   // the web parses a line the way iOS and the Mac do. Null (not loaded, D13, a bad reply) keeps
   // the TypeScript below in charge.
   const door = browserCoreRules()
-  if (door?.answers('smartParse')) {
-    const viaCore = smartParseThroughCore({
+  const smart = browserSmartParseCore()
+  if (door?.answers('smartParse') && smart) {
+    const viaCore = smart.smartParseThroughCore({
       runJson: door.runJson,
       input,
       selectedListId,

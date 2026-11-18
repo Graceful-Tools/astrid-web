@@ -15,8 +15,7 @@
  */
 import type { WeeklyRepeatingPattern, Weekday } from '@/types/repeating'
 
-/** "assign to jon", "for jon" — web's assignee phrase (D13). Shared with parseTaskInput. */
-export const ASSIGNEE_PHRASE = /(assign to|assigned to|for)\s+(\w+)/i
+import { ASSIGNEE_PHRASE } from '@/lib/assignee-phrase'
 
 export interface SmartParseList {
   id: string
