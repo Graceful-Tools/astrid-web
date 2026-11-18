@@ -55,7 +55,7 @@ describe('AWTD-1663: core rows names the same tasks as the TypeScript for a save
     const ts = sortTasksForList(tasks, sortBy)
     const ids = coreOrderedIds({
       runJson: glue.runJson,
-      view: { kind: 'list', list: fixtureList, completion: 'all', sortBy },
+      view: { kind: 'list', list: fixtureList, completion: 'all', sortBy, filters: { filterPriority: null, filterAssignee: null, filterDueDate: null } },
       candidates: tasks,
       lists: [fixtureList],
       currentUserId: 'u1',
