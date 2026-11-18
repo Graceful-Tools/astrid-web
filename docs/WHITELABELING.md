@@ -37,6 +37,12 @@ For the operator's end-to-end launch sequence, see the
    `brands/github-projects.brand.json` instead for a GitHub-backed brand. Every identity
    variable you leave out falls back to **Astrid's** value, so set all of §2, not just
    the name. Add `expect.forbidLiterals: ["Astrid"]` so a leak fails the check.
+   Three settings in the template are easy to miss: `NEXT_PUBLIC_BRAND_WWW_REDIRECT=false`
+   (without it a `tasks.client.com` domain 308s every page to a `www.` host with no DNS;
+   `check:brands` fails a non-astrid.cc profile that keeps it), `BRAND_ENABLED_AGENTS=claude,copilot`
+   (without `copilot` the "Create GitHub setup" card returns 409 and pickers omit Copilot) and
+   `NEXT_PUBLIC_BRAND_ENABLE_MCP=true` (it also gates the OAuth well-known routes the VS Code
+   extension signs in through). Replace the placeholder feedback list id and Apple/Android app ids too.
 
 3. **Check it.**
 
