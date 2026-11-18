@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import { startRegistration, startAuthentication } from "@simplewebauthn/browser"
 import { safeResponseJson, hasRequiredFields } from "@/lib/safe-parse"
 import { useTranslations } from "@/lib/i18n/client"
+import { REGISTRATION_NOT_ALLOWED } from "@/lib/auth/registration-allowlist"
 
 /**
  * A browser refusal (NotAllowedError, InvalidStateError, …) carries the
@@ -59,10 +60,13 @@ export function useWebAuthn() {
         options?: any
         sessionId?: string
         error?: string
+        code?: string
       }>(optionsRes, { error: t("passkeyErrors.optionsFailed") })
 
 
       if (!optionsRes.ok) {
+        // Sign-up outside the server's allowlist (ADEV-104): the reader's own language.
+        if (optionsData.code === REGISTRATION_NOT_ALLOWED) throw new Error(t("passkeyErrors.registrationNotAllowed"))
         throw new Error(optionsData.error || t("passkeyErrors.optionsFailed"))
       }
 
@@ -88,6 +92,7 @@ export function useWebAuthn() {
         existingUser?: boolean
         email?: string
         error?: string
+        code?: string
       }>(verifyRes, { error: t("passkeyErrors.registrationFailed") })
 
       // The account already existed. /register/options cannot say so without
@@ -147,6 +152,7 @@ export function useWebAuthn() {
       }
 
       if (!verifyRes.ok) {
+        if (result.code === REGISTRATION_NOT_ALLOWED) throw new Error(t("passkeyErrors.registrationNotAllowed"))
         throw new Error(result.error || t("passkeyErrors.registrationFailed"))
       }
 

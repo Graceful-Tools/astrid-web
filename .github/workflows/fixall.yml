@@ -18,8 +18,16 @@ on:
         default: false
         type: boolean
 
+# The API every step calls: the repository variable ASTRID_API_URL, else Astrid's own.
+# scripts/ready-tasks.ts reads the same name (scripts/lib/script-client.ts), so a fork
+# sets one variable rather than editing URLs here (ADEV-103).
+env:
+  ASTRID_API_URL: ${{ vars.ASTRID_API_URL || 'https://astrid.cc' }}
+
 jobs:
   list-ready-tasks:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     name: 'List Ready Tasks'
     runs-on: ubuntu-26.04
     outputs:
@@ -85,7 +93,8 @@ jobs:
     name: 'Dry Run — Task Report'
     runs-on: ubuntu-26.04
     needs: list-ready-tasks
-    if: ${{ inputs.dry_run == true }}
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (inputs.dry_run == true) }}
     steps:
       - name: Report
         run: |
@@ -99,7 +108,8 @@ jobs:
     name: 'Work Ready Tasks'
     runs-on: ubuntu-26.04
     needs: list-ready-tasks
-    if: ${{ inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true' }}
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (inputs.dry_run != true && needs.list-ready-tasks.outputs.has_tasks == 'true') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -120,7 +130,7 @@ jobs:
           ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
           ASTRID_FIXALL_HARNESS: 'github-copilot'
           ASTRID_TASK_CLAIMS: ${{ needs.list-ready-tasks.outputs.task_claims }}
-          ASTRID_TRIGGER_URL: 'https://astrid.cc/api/coding-agent/github-trigger'
+          ASTRID_TRIGGER_URL: ${{ env.ASTRID_API_URL }}/api/coding-agent/github-trigger
         run: |
           HARNESS="${ASTRID_FIXALL_HARNESS}"
           TASK_COUNT="${{ needs.list-ready-tasks.outputs.task_count }}"
@@ -130,7 +140,7 @@ jobs:
           TOKEN_RESPONSE_FILE=$(mktemp)
           TOKEN_STATUS=$(curl --silent --show-error \
             --output "${TOKEN_RESPONSE_FILE}" --write-out '%{http_code}' \
-            --request POST 'https://astrid.cc/api/v1/oauth/token' \
+            --request POST "${ASTRID_API_URL}/api/v1/oauth/token" \
             --header 'Content-Type: application/json' \
             --data "$(node -e '
               process.stdout.write(JSON.stringify({
@@ -237,7 +247,8 @@ jobs:
     name: 'Nothing to do'
     runs-on: ubuntu-26.04
     needs: list-ready-tasks
-    if: ${{ needs.list-ready-tasks.outputs.has_tasks == 'false' }}
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: ${{ github.repository_owner == 'Graceful-Tools' && (needs.list-ready-tasks.outputs.has_tasks == 'false') }}
     steps:
       - name: No ready tasks
         run: |

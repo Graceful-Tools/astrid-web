@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `GET /api/v1/tasks` and `GET /api/tasks` without `listId` no longer include tasks from public lists the caller does not own, belong to, or have a task assigned in. Public lists are still read with `?listId=`. Clients that relied on the unscoped read for public tasks (iOS, Windows, Android sync) must fetch them by `listId`.
+- Self-host compose publishes the app on `127.0.0.1` only (ADEV-105), so with `--profile tls` it cannot be reached around Caddy. Upgrade: if you reach the app on port 3000 from another machine (no `--profile tls`, or your own proxy elsewhere), set `APP_BIND=0.0.0.0` in the self-host settings file.
 
 ## [1.3.0] - 2026-11-01
 

@@ -77,7 +77,8 @@ the same as reading, though. Which client actually reads its block today:
 | `ios` | astrid-ios `make-brand-variant.sh` (bundle ID, App Group, keychain group, team, display name) | read |
 | `windows` | astrid-windows `scripts/lib/brand-profile.ps1`, via `package.ps1 -Brand <profile>` (package identity, publisher, tile directory) | read |
 | `android` | **nothing yet.** astrid-android keeps its own `brands/<name>/brand.properties`. The block uses the same names without the `astrid` prefix (`applicationId`, `accentColor` …), so the file can be generated from the profile once that tool exists | accepted, not read |
-| `vscode`, `code` | **nothing yet** (VS Code extension, Astrid Code). Any string key is accepted | accepted, not read |
+| `vscode` | astrid-vscode `scripts/make-brand-extension.mjs` (`publisher`, `extensionName`, `displayName`, `codeName`: the extension id `<publisher>.<extensionName>` and its names; without the block both come from the brand name) | read |
+| `code` | astrid-code `scripts/astrid/make-brand-variant.mts` (`appName`, `applicationName`, `bundleId`, `companyName`, `urlProtocol`, `reportIssueUrl`). Any string key is accepted | read |
 
 `windows` and `android` keys are checked against what their reader understands, so a typo
 fails `npm run check:brands` rather than being silently ignored. `acme.brand.json` carries
