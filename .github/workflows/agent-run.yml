@@ -475,7 +475,7 @@ jobs:
               --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
               "${CORE_DIRS[@]}" \
               --permission-mode acceptEdits \
-              --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
+              --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),Bash(node scripts/*),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
               | tee .agent-output/agent-transcript.txt
           }
           if [ "${USE_RUNNER}" = true ] && [ "${ASTRID_AGENT_SLOT}" != 1 ]; then
