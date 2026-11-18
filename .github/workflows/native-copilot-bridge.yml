@@ -31,7 +31,14 @@ jobs:
       GH_TOKEN: ${{ secrets.COPILOT_DISPATCH_TOKEN }}
       ASTRID_OAUTH_CLIENT_ID: ${{ secrets.ASTRID_OAUTH_CLIENT_ID }}
       ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
-      ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
+      # The board, repository and origin come from this repository (ADEV-102):
+      # GITHUB_REPOSITORY is the repo running the workflow, the board is the
+      # ASTRID_WEB_LIST_ID variable (the owner's web board only in Graceful-Tools),
+      # and the origin is ASTRID_API_URL, else the brand origin. A partner also
+      # sets FIXALL_CLAIM_BOARD_IDS to its own board, or the bridge refuses it.
+      ASTRID_OAUTH_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || (github.repository_owner == 'Graceful-Tools' && 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' || '') }}
+      ASTRID_API_URL: ${{ vars.ASTRID_API_URL }}
+      FIXALL_CLAIM_BOARD_IDS: ${{ vars.FIXALL_CLAIM_BOARD_IDS }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
