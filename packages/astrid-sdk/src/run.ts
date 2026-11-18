@@ -40,6 +40,18 @@ export interface RunOptions {
    * to the worker's own release step rather than released here.
    */
   fixall?: boolean
+  /**
+   * Read the board's orchestration policy (needs `listId`) and stand down when its routing
+   * names other agents. Fails open: a policy that cannot be read never stops the worker.
+   */
+  policy?: boolean
+}
+
+/** Whether routing admits `agent`. No list of agents admits anyone. */
+export function routingAdmits(agents: string[] | null | undefined, agent: string): boolean {
+  if (!agents || agents.length === 0) return true
+  const wanted = new Set([agent, `ai-agent-${agent}`])
+  return agents.some(name => wanted.has(name))
 }
 
 export interface HarnessProcess {
@@ -90,6 +102,18 @@ function defaultStart(argv: string[], env: Record<string, string | undefined>, s
 export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunOutcome> {
   const { client, log } = deps
   if (options.harness === 'custom' && !options.command) throw new Error('--harness custom needs --command')
+
+  if (options.policy && options.listId) {
+    try {
+      const { effective } = await client.getListPolicy(options.listId)
+      if (!routingAdmits(effective?.routing?.agents, options.agent)) {
+        log(`POLICY: routing on ${options.listId} does not admit ${options.agent}`)
+        return { kind: 'idle' }
+      }
+    } catch (error) {
+      log(`POLICY: unreadable, running without it (${error instanceof Error ? error.message : String(error)})`)
+    }
+  }
 
   const candidates = options.taskId
     ? [options.taskId]

@@ -179,3 +179,26 @@ describe('astrid-agent run --fixall: the claim a client-credentials worker can m
     expect(readFileSync(claims, 'utf8')).toContain('t1')
   })
 })
+
+describe('astrid-agent run --policy (AWTD-1696)', () => {
+  const POLICY = (agents: string[] | null) => ({ status: 200, body: { effective: { routing: { assignTo: null, agents } } } })
+
+  it('stands down when routing names other agents', async () => {
+    const spawned: { argv?: string[] } = {}
+    const h = setup(fakeFetch(POLICY(['codex'])), 0, spawned)
+    expect(await h.run(['run', '--agent', 'claude', '--list', 'L', '--policy'])).toBe(EXIT.IDLE)
+    expect(spawned.argv).toBeUndefined()
+  })
+
+  it('goes on when routing admits the agent', async () => {
+    const h = setup(fakeFetch(POLICY(['claude']), { status: 200, body: { empty: true, queue: [] } }), 0)
+    expect(await h.run(['run', '--agent', 'claude', '--list', 'L', '--policy'])).toBe(EXIT.IDLE)
+    expect(h.err.join('\n')).not.toContain('POLICY')
+  })
+
+  it('fails open when the policy cannot be read', async () => {
+    const h = setup(fakeFetch({ status: 500 }, QUEUE, CLAIMED, TASK), 0)
+    expect(await h.run(['run', '--agent', 'claude', '--list', 'L', '--policy', '--harness', 'custom', '--command', 'true'])).toBe(EXIT.WORK)
+    expect(h.err.join('\n')).toContain('POLICY: unreadable')
+  })
+})
