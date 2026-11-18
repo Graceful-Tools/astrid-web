@@ -14,8 +14,8 @@
  *   - every `required` variable is supplied by the template itself;
  *   - the cron Jobs come from vercel.json, not a copy of it;
  *   - every generated Container Apps Job name fits Azure's 32-character limit;
- *   - the worker stays off by default until scripts/job-worker.mjs exists in
- *     the image (AWTD-1460).
+ *   - the worker is on by default, and the image ships the script it runs
+ *     (AWTD-1460, in the image since v1.3.0; ADEV-100).
  */
 import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
@@ -87,7 +87,19 @@ describe('deploy/azure follows the repo, not a copy of it (AWTD-1468)', () => {
     expect(dockerfile).toContain('scripts/cron-runner.mjs')
   })
 
-  it('keeps the job worker off by default until the image ships it (AWTD-1460)', () => {
-    expect(code(bicep)).toMatch(/param deployWorker bool = false/)
+  it('ADEV-100: deploys the job worker by default, and the image ships it (AWTD-1460)', () => {
+    expect(code(bicep)).toMatch(/param deployWorker bool = true/)
+    expect(code(bicep)).toContain("'scripts/job-worker.mjs'")
+    const dockerfile = readFileSync(join(ROOT, 'Dockerfile'), 'utf8')
+    expect(dockerfile).toContain('scripts/job-worker.mjs')
+  })
+
+  it('ADEV-100: no brand file carries an owner identity, or an email transport that refuses to boot without a relay', () => {
+    for (const file of paramFiles) {
+      const source = code(read(file))
+      expect(source, `${file} names a Graceful Tools address`).not.toMatch(/gracefultools\.com|astrid\.cc/)
+      const transport = source.match(/^\s*EMAIL_TRANSPORT\s*:\s*(.+)$/m)?.[1] ?? ''
+      expect(transport, `${file}: EMAIL_TRANSPORT must not be a bare 'smtp'`).not.toMatch(/^'smtp'/)
+    }
   })
 })
