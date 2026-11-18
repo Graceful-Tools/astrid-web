@@ -311,3 +311,29 @@ export function mcpServerName(variant?: string): string {
 export function mcpDefaultBaseUrl(): string {
   return process.env.ASTRID_API_BASE_URL?.trim() || brandOrigin()
 }
+
+/**
+ * Base URL the hosted /mcp route (running inside this deployment) calls back into:
+ * ASTRID_API_BASE_URL, else this deployment's own origin, else the brand domain
+ * (ADEV-99). Server-side only. CLI helpers keep mcpDefaultBaseUrl(), because on a
+ * dev machine NEXTAUTH_URL is localhost and they must still reach the real API.
+ */
+export function mcpHostedBaseUrl(): string {
+  return process.env.ASTRID_API_BASE_URL?.trim() || nextAuthOrigin() || brandOrigin()
+}
+
+/**
+ * This deployment's own origin as the operator configured it (`NEXTAUTH_URL`), or
+ * null. The hosted /mcp route calls back into this same server, so on a self-hosted
+ * instance served away from its brand domain this must win over the brand domain, or
+ * the client's bearer token is forwarded to the brand's host (ADEV-99).
+ */
+export function nextAuthOrigin(): string | null {
+  const raw = process.env.NEXTAUTH_URL?.trim()
+  if (!raw) return null
+  try {
+    return new URL(raw).origin
+  } catch {
+    return null
+  }
+}
