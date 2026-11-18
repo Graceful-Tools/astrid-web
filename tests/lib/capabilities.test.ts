@@ -315,6 +315,19 @@ describe('GET /api/v1/capabilities (task 97208a72)', () => {
     expect(body.brand.appName).toBe('Astrid')
   })
 
+  // ADEV-124 / iOS ADEV-121: the stock apps can sign in to a partner's server, which updates on
+  // its own schedule. The level says which client-facing behaviour it has, so an app can refuse
+  // a server too old for it with a clear message instead of failing oddly.
+  it('says which API level it serves', async () => {
+    const { GET } = await import('@/app/api/v1/capabilities/route')
+    const { SERVER_API_LEVEL } = await import('@/lib/api-level')
+    const body = await (await GET()).json()
+
+    expect(body.meta).toEqual({ apiVersion: 'v1', apiLevel: SERVER_API_LEVEL })
+    expect(Number.isInteger(SERVER_API_LEVEL)).toBe(true)
+    expect(SERVER_API_LEVEL).toBeGreaterThanOrEqual(1)
+  })
+
   it('reflects what the deployment has turned off', async () => {
     process.env.NEXT_PUBLIC_BRAND_ENABLE_SYNC_GOOGLE_TASKS = 'false'
     process.env.NEXT_PUBLIC_BRAND_ENABLE_AUTH_GOOGLE = 'false'

@@ -10,6 +10,8 @@ interface Props {
   appName: string
   state: string
   codeChallenge: string
+  /** The app's own callback scheme, when it named one (ADEV-124). */
+  scheme?: string
 }
 
 /**
@@ -20,7 +22,7 @@ interface Props {
  * user should see which application they are about to be signed into before it
  * happens.
  */
-export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }: Props) {
+export function DesktopHandoffClient({ clientId, appName, state, codeChallenge, scheme }: Props) {
   const { t } = useTranslations()
   const [status, setStatus] = useState<"idle" | "working" | "handed-off" | "error">("idle")
   const [error, setError] = useState<string | null>(null)
@@ -38,6 +40,7 @@ export function DesktopHandoffClient({ clientId, appName, state, codeChallenge }
           state,
           codeChallenge,
           codeChallengeMethod: "S256",
+          ...(scheme ? { scheme } : {}),
         }),
       })
 
