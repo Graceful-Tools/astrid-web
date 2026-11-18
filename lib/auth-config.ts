@@ -20,7 +20,7 @@ import { connectGithubAppAtSignIn, type SignInAccount } from '@/lib/github/app-a
 import { isEmailVerified as isAppleEmailVerified } from '@/lib/auth/apple-identity'
 import { appleClientSecret } from '@/lib/auth/apple-client-secret'
 import { hasAppleWebCredentials } from '@/lib/auth/provider-credentials'
-import { usesSecureAuthCookies } from '@/lib/auth/secure-cookies'
+import { authCookieDomain, usesSecureAuthCookies } from '@/lib/auth/secure-cookies'
 
 const log = createLogger('auth-config')
 
@@ -431,7 +431,7 @@ const authConfig: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: true,
-        domain: `.${BRAND.domain}`, // Works for both {BRAND.domain} and www.{BRAND.domain}
+        domain: authCookieDomain(), // brand domain incl. www; host-only when NEXTAUTH_URL is outside it (ADEV-96)
       },
     },
     callbackUrl: {
@@ -440,7 +440,7 @@ const authConfig: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: true,
-        domain: `.${BRAND.domain}`,
+        domain: authCookieDomain(),
       },
     },
     // Apple returns with a cross-site form_post, on which a SameSite=Lax cookie is
