@@ -38,7 +38,8 @@ updates on our schedule and your server on yours, and this is the rule that keep
   working, with less, against an older server.
 - **Support window.** Keep your server within one minor release of `main`. The stock apps
   raise their minimum level only in a release whose notes say so, and at least 30 days after
-  the server change that introduced that level reached `main`.
+  the server change that introduced that level reached `main`. The first requirement, level 1,
+  ships with the feature itself: no server could serve the stock apps before it.
 
 ## Deployment compatibility record
 
