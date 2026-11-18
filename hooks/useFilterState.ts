@@ -4,6 +4,8 @@ import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { applyDateFilter, type DueDateWindow } from '@/lib/date-filter-utils'
 import { sortTasksForList } from '@/lib/task-sort'
+import { browserCoreRules } from '@/lib/core-rules/browser'
+import { coreOrderedIds, orderLikeCore, savedViewFor } from '@/lib/core-rules/rows-core'
 import { isInMyTasksScope, matchesAssigneeFilter, matchesPriorityFilter } from '@/lib/my-tasks-scope'
 import {
   shouldShowCompletedByFilter,
@@ -44,14 +46,15 @@ const getValidSortBy = (value?: string | null): FilterState['sortBy'] => {
   }
 }
 
-export const useFilterState = ({ selectedListId, currentList, getManualOrder }: UseFilterStateProps) => {
-  // Helper function to ensure filterCompletion is a valid value
-  const getValidFilterCompletion = (value?: string | null): "all" | "completed" | "incomplete" | "default" => {
-    if (value === "all" || value === "completed" || value === "incomplete" || value === "default") {
-      return value
-    }
-    return "default" // Changed from "incomplete" to make "default" the new default
+// Ensures filterCompletion is a valid value.
+const getValidFilterCompletion = (value?: string | null): "all" | "completed" | "incomplete" | "default" => {
+  if (value === "all" || value === "completed" || value === "incomplete" || value === "default") {
+    return value
   }
+  return "default" // Changed from "incomplete" to make "default" the new default
+}
+
+export const useFilterState = ({ selectedListId, currentList, getManualOrder }: UseFilterStateProps) => {
 
   // Regular filter state (not persisted)
   const [searchQuery, setSearchQuery] = useState("")
@@ -221,6 +224,9 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     // Check if we have an active search - if so, search universally across all accessible tasks
     const isUniversalSearch = activeFilters.search.trim().length > 0
     
+    // The candidates core's rows door is handed for a saved view (AWTD-1663): the list's members.
+    let members: Task[] | null = null
+
     // FIRST: Apply list membership filter - this is crucial! (unless skipping or doing universal search)
     if (!skipListFiltering && !isUniversalSearch) {
       const currentList = lists?.find(l => l.id === selectedListId)
@@ -243,6 +249,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
           filtered = filtered.filter(task =>
             task.lists && task.lists.some(taskList => taskList && taskList.id === selectedListId)
           )
+          members = filtered
         }
       } else {
         // List not found, show no tasks
@@ -346,7 +353,25 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
       activeFilters.sortBy === "manual" ? getManualOrder?.(selectedListId) ?? [] : undefined,
     )
 
-    // console.log('🔍 applyFiltersToTasks result:', { original: tasks.length, filtered: filtered.length, final: sortedTasks.length })
+    // A saved view is ordered by astrid-core's rows door once the browser has loaded it
+    // (AWTD-1663): the same order iOS and the Mac draw. Core only reorders — a different set of
+    // tasks from the TypeScript's keeps the TypeScript's list (lib/core-rules/rows-core.ts).
+    const door = browserCoreRules()
+    if (door?.answers('rows') && !skipListFiltering && !serverSearchApplied) {
+      const view = savedViewFor({
+        selectedListId,
+        currentList,
+        filters: activeFilters,
+        savedCompletion: getValidFilterCompletion(currentList?.filterCompletion),
+        savedSortBy: getValidSortBy(currentList?.sortBy),
+        manualOrder: activeFilters.sortBy === "manual" ? getManualOrder?.(selectedListId) : undefined,
+      })
+      const candidates = view?.kind === 'myTasks' ? tasks : members
+      if (view && candidates) {
+        const ids = coreOrderedIds({ runJson: door.runJson, view, candidates, lists: lists ?? [], currentUserId: userId, now: new Date() })
+        return orderLikeCore(sortedTasks, ids)
+      }
+    }
 
     return sortedTasks
   }, [activeFilters, selectedListId, currentList, getManualOrder])
