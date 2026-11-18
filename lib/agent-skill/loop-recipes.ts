@@ -16,6 +16,7 @@
 
 import { BRAND } from '@/lib/brand/config'
 import { ORCHESTRATION_GUIDANCE, queueContractLine } from '@/lib/agent-skill/astrid-queue-skill'
+import { ANY_AGENT_MAILBOX, WAKE_EVENT_TYPE } from '@/lib/agent-wake-event'
 
 /** Harnesses that connect over MCP and poll the queue on a schedule. */
 export type LoopHarness = 'claude-code' | 'copilot' | 'codex' | 'muse'
@@ -141,6 +142,31 @@ function wakeCacheSteps(mailbox: string): { restore: string; save: string } {
   }
 }
 
+/**
+ * The triggers every generated workflow shares: the 30-minute cron, a manual
+ * run, and the event wake lib/agent-wake.ts sends to the board's repository
+ * (ADEV-102). Without the wake trigger the dispatch reached nothing and a
+ * Ready task waited for the cron, which GitHub often skips.
+ */
+const WORKFLOW_TRIGGERS = `on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [${WAKE_EVENT_TYPE}]`
+
+/**
+ * The gate job's condition: a wake runs it only when addressed to this
+ * mailbox or to `any` (ADEV-102). One repository can hold a Claude and a
+ * Copilot workflow; a wake for one must not start the other's paid session.
+ * A skipped gate skips the agent job that needs it. Cron and manual runs
+ * always read the queue.
+ */
+function wakeGateCondition(mailbox: string): string {
+  const mailboxes = JSON.stringify([mailbox, ANY_AGENT_MAILBOX])
+  return `\${{ github.event_name != 'repository_dispatch' || contains(fromJSON('${mailboxes}'), github.event.client_payload.mailbox) }}`
+}
+
 /** The GitHub Actions queue-gate workflow file (path + YAML). */
 export function actionsQueueGateWorkflow(options: LoopRecipeOptions): { path: string; content: string } {
   const name = mcpServerName()
@@ -152,13 +178,11 @@ export function actionsQueueGateWorkflow(options: LoopRecipeOptions): { path: st
   return {
     path,
     content: `name: ${BRAND.appName} queue gate
-on:
-  schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch:
+${WORKFLOW_TRIGGERS}
 
 jobs:
   queue-gate:
+    if: ${wakeGateCondition(mailbox)}
     runs-on: ubuntu-latest
     outputs:
       has-work: \${{ steps.queue.outputs.has-work }}
@@ -219,6 +243,7 @@ function bearerQueueGateJob(options: LoopRecipeOptions): string {
   const tokenSecret = `\${{ secrets.${mcpTokenSecretName(mailbox)} }}`
   const cache = wakeCacheSteps(mailbox)
   return `  queue-gate:
+    if: ${wakeGateCondition(mailbox)}
     runs-on: ubuntu-latest
     outputs:
       has-work: \${{ steps.queue.outputs.has-work }}
@@ -258,10 +283,7 @@ export function actionsClaudeCodeWorkflow(options: LoopRecipeOptions): { path: s
   return {
     path: `.github/workflows/${name}-claude.yml`,
     content: `name: ${BRAND.appName} queue — Claude Code
-on:
-  schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch:
+${WORKFLOW_TRIGGERS}
 
 concurrency:
   group: ${name}-claude
@@ -328,10 +350,7 @@ export function actionsCopilotWorkflow(options: LoopRecipeOptions): { path: stri
   return {
     path: `.github/workflows/${name}-copilot.yml`,
     content: `name: ${BRAND.appName} queue — Copilot CLI
-on:
-  schedule:
-    - cron: "*/30 * * * *"
-  workflow_dispatch:
+${WORKFLOW_TRIGGERS}
 
 concurrency:
   group: ${name}-copilot
