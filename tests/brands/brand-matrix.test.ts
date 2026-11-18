@@ -297,6 +297,19 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     vi.resetModules()
   })
 
+  it('does not redirect a non-Astrid domain to a www host that has no DNS (ADEV-97)', async () => {
+    // The redirect is on unless set to "false" (lib/brand/config.ts), so a profile copied
+    // for tasks.client.com 308'd every page to www.tasks.client.com. An apex
+    // domain is what the default exists for.
+    const { BRAND } = await import('@/lib/brand/config')
+
+    if (profile.expect.domain.split('.').length <= 2) return // an apex domain, where www is right
+    expect(
+      BRAND.wwwRedirect,
+      `${profile.expect.domain} keeps the www redirect: set NEXT_PUBLIC_BRAND_WWW_REDIRECT=false unless www.${profile.expect.domain} exists`
+    ).toBe(false)
+  })
+
   it('has an accent a white label reads on, 4.5:1 (AWTD-1623, astrid-core DS26)', async () => {
     // accent-text is white in every theme, so an accent white cannot be read on
     // is not a brand accent. astrid-core's gen-brand refuses such a profile; Acme
@@ -625,6 +638,16 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
       .sort()
 
     expect(emails).toEqual(expected)
+  })
+
+  it('offers Copilot exactly where the profile enables it (ADEV-97)', async () => {
+    // "Create GitHub setup" mints a token for the copilot identity and 409s with "agent
+    // identity is not configured" when it is not an enabled agent.
+    const { getAllAgentConfigs } = await import('@/lib/ai/agent-config')
+
+    const emails = getAllAgentConfigs().map((a) => a.email)
+    const enabled = profile.expect.enabledAgents.includes('copilot')
+    expect(emails.includes(`copilot@${profile.expect.agentEmailDomain}`)).toBe(enabled)
   })
 
   it('reports the expected capabilities', async () => {
