@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useMyTasksPreferences } from './useMyTasksPreferences'
 import type { Task, TaskList } from '@/types/task'
 import { hasListAccess } from '@/lib/list-member-utils'
-import { applyDateFilter, type DueDateWindow } from '@/lib/date-filter-utils'
+import { applyDateFilter, coreDueDateWindow, type DueDateWindow } from '@/lib/date-filter-utils'
 import { sortTasksForList } from '@/lib/task-sort'
 import { isInMyTasksScope, matchesAssigneeFilter, matchesPriorityFilter } from '@/lib/my-tasks-scope'
 import {
@@ -24,7 +24,29 @@ interface UseFilterStateProps {
   selectedListId: string
   currentList?: TaskList
   getManualOrder?: (listId: string) => string[] | undefined
+  /** Resolves a saved `current_user` assignee filter. */
+  currentUserId?: string | null
 }
+
+/** A list's saved priority ("all" | "0".."3") as the live filter (task ADEV-91). */
+export const savedPriorityFilter = (value?: string | null): number[] => {
+  if (value === undefined || value === null || value === "all" || value === "") return []
+  const n = Number(value)
+  return Number.isInteger(n) && n >= 0 && n <= 3 ? [n] : []
+}
+
+/**
+ * A list's saved assignee as the live filter (task ADEV-91). `not_current_user` has no
+ * list-of-ids form and, like a `current_user` with nobody signed in, stays unfiltered.
+ */
+export const savedAssigneeFilter = (value?: string | null, currentUserId?: string | null): string[] => {
+  if (!value || value === "all" || value === "not_current_user") return []
+  if (value === "current_user") return currentUserId ? [currentUserId] : []
+  return [value]
+}
+
+export const savedDueDateFilter = (value?: string | null): DueDateWindow =>
+  coreDueDateWindow(value || "all") as DueDateWindow
 
 const getValidSortBy = (value?: string | null): FilterState['sortBy'] => {
   switch (value) {
@@ -44,7 +66,7 @@ const getValidSortBy = (value?: string | null): FilterState['sortBy'] => {
   }
 }
 
-export const useFilterState = ({ selectedListId, currentList, getManualOrder }: UseFilterStateProps) => {
+export const useFilterState = ({ selectedListId, currentList, getManualOrder, currentUserId }: UseFilterStateProps) => {
   // Helper function to ensure filterCompletion is a valid value
   const getValidFilterCompletion = (value?: string | null): "all" | "completed" | "incomplete" | "default" => {
     if (value === "all" || value === "completed" || value === "incomplete" || value === "default") {
@@ -58,9 +80,15 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
   const [filterCompleted, setFilterCompleted] = useState<"all" | "completed" | "incomplete" | "default">(
     getValidFilterCompletion(currentList?.filterCompletion)
   )
-  const [filterPriority, setFilterPriority] = useState<number[]>([])
-  const [filterAssignee, setFilterAssignee] = useState<string[]>([])
-  const [filterDueDate, setFilterDueDate] = useState<DueDateWindow>("all")
+  const [filterPriority, setFilterPriority] = useState<number[]>(
+    savedPriorityFilter(currentList?.filterPriority)
+  )
+  const [filterAssignee, setFilterAssignee] = useState<string[]>(
+    savedAssigneeFilter(currentList?.filterAssignee, currentUserId)
+  )
+  const [filterDueDate, setFilterDueDate] = useState<DueDateWindow>(
+    savedDueDateFilter(currentList?.filterDueDate)
+  )
   const [sortBy, setSortBy] = useState<FilterState['sortBy']>(getValidSortBy(currentList?.sortBy))
 
   // Determine which filter set to use based on selected list
@@ -90,6 +118,26 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
     }
   }, [currentList?.id, currentList?.sortBy, isMyTasks])
   
+  // The saved priority, assignee and due date load the same way, so web draws a list as iOS and
+  // the Mac do through core `rows` (task ADEV-91).
+  useEffect(() => {
+    if (currentList && !isMyTasks) {
+      setFilterPriority(savedPriorityFilter(currentList.filterPriority))
+    }
+  }, [currentList?.id, currentList?.filterPriority, isMyTasks])
+
+  useEffect(() => {
+    if (currentList && !isMyTasks) {
+      setFilterAssignee(savedAssigneeFilter(currentList.filterAssignee, currentUserId))
+    }
+  }, [currentList?.id, currentList?.filterAssignee, currentUserId, isMyTasks])
+
+  useEffect(() => {
+    if (currentList && !isMyTasks) {
+      setFilterDueDate(savedDueDateFilter(currentList.filterDueDate))
+    }
+  }, [currentList?.id, currentList?.filterDueDate, isMyTasks])
+
   const activeFilters = useMemo(() => {
     if (isMyTasks) {
       const myTasksResult = {
@@ -206,12 +254,12 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder }: 
       myTasksPreferences.clearAllFilters()
     } else {
       setFilterCompleted(getValidFilterCompletion(currentList?.filterCompletion))
-      setFilterPriority([])
-      setFilterAssignee([])
-      setFilterDueDate("all")
+      setFilterPriority(savedPriorityFilter(currentList?.filterPriority))
+      setFilterAssignee(savedAssigneeFilter(currentList?.filterAssignee, currentUserId))
+      setFilterDueDate(savedDueDateFilter(currentList?.filterDueDate))
       setSortBy("auto")
     }
-  }, [isMyTasks, myTasksPreferences, currentList])
+  }, [isMyTasks, myTasksPreferences, currentList, currentUserId])
 
   const applyFiltersToTasks = useCallback((tasks: Task[], userId?: string, lists?: TaskList[], skipListFiltering = false, skipVirtualListFilters = false, serverSearchApplied = false): Task[] => {
     let filtered = [...tasks]
