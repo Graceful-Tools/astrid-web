@@ -299,11 +299,11 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
 
   it('does not redirect a non-Astrid domain to a www host that has no DNS (ADEV-97)', async () => {
     // The redirect is on unless set to "false" (lib/brand/config.ts), so a profile copied
-    // for tasks.client.com 308'd every page to www.tasks.client.com. astrid.cc is the apex
-    // the default exists for.
+    // for tasks.client.com 308'd every page to www.tasks.client.com. An apex
+    // domain is what the default exists for.
     const { BRAND } = await import('@/lib/brand/config')
 
-    if (profile.expect.domain === 'astrid.cc') return
+    if (profile.expect.domain.split('.').length <= 2) return // an apex domain, where www is right
     expect(
       BRAND.wwwRedirect,
       `${profile.expect.domain} keeps the www redirect: set NEXT_PUBLIC_BRAND_WWW_REDIRECT=false unless www.${profile.expect.domain} exists`
