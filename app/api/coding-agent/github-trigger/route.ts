@@ -7,6 +7,7 @@ import { postCommentAs } from '@/services/post-comment-as'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
 import { FIXALL_CLAIM_AGENT_EMAIL } from '@/lib/fixall-claim'
+import { IS_ASTRID_IDENTITY } from '@/lib/brand/config'
 
 const log = createLogger('api.coding-agent.github-trigger')
 
@@ -255,7 +256,12 @@ export async function GET() {
       complete: 'POST /api/coding-agent/workflow-complete',
     },
     authentication: 'Bearer MCP_TOKEN required',
-    documentation:
-      'https://github.com/Graceful-Tools/astrid-web/blob/main/docs/archive/ai-agents/GITHUB_CODING_AGENT_IMPLEMENTATION.md',
+    // Astrid's own repository docs: a partner deployment is not pointed at them (ADEV-103).
+    ...(IS_ASTRID_IDENTITY
+      ? {
+          documentation:
+            'https://github.com/Graceful-Tools/astrid-web/blob/main/docs/archive/ai-agents/GITHUB_CODING_AGENT_IMPLEMENTATION.md',
+        }
+      : {}),
   })
 }

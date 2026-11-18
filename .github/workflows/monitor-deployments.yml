@@ -22,6 +22,8 @@ on:
 
 jobs:
   monitor:
+    # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
+    if: github.repository_owner == 'Graceful-Tools'
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     name: Monitor and Fix Deployment Issues

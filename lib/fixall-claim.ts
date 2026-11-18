@@ -1,4 +1,5 @@
 import { AGENT_MAILBOXES, agentEmail } from "@/lib/brand/agent-emails"
+import { IS_ASTRID_IDENTITY } from "@/lib/brand/config"
 import { harnessAgentMailboxes } from "@/lib/ai/harness-agents"
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from "@/lib/task-status"
 import { parseAgentResumeContext, type AgentResumeContext } from '@/lib/agent-handback'
@@ -55,13 +56,18 @@ export function fixallClaimAgentEmail(mailbox: FixallClaimMailbox): string {
  * empty: this is the allowlist the running loop depends on, and failing closed
  * on an env var that has to be present at DEPLOY time — the exact trap
  * ASTRID.md warns about — would silently stop every agent claiming work.
+ *
+ * That fallback is Astrid's own boards, so it applies only while the deployment
+ * presents Astrid's identity (IS_ASTRID_IDENTITY). A partner left unconfigured
+ * gets an empty allowlist rather than ids that exist only in Astrid's
+ * database: nothing is claimable until it names its own boards (ADEV-103).
  */
 function resolveBoardIds(): readonly string[] {
   const configured = process.env.FIXALL_CLAIM_BOARD_IDS?.trim()
   if (configured) {
     return configured.split(",").map((id) => id.trim()).filter(Boolean)
   }
-  return DEFAULT_FIXALL_CLAIM_BOARD_IDS
+  return IS_ASTRID_IDENTITY ? DEFAULT_FIXALL_CLAIM_BOARD_IDS : []
 }
 
 /**

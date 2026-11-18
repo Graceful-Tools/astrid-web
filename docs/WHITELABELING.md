@@ -806,10 +806,17 @@ own team (AWTD-1280):
    `DATABASE_URL_DIRECT`. Set the **repository variable** `PRODUCTION_URL` to their
    origin. Unset, the before-deploy probe, the commit-SHA verification and the health
    check all ask `https://astrid.cc`, which is Astrid's state, not theirs.
-5. **Delete Astrid's own workflows.** These drive Astrid's agent loops and publish
-   Astrid's SDK, and they do nothing useful in a fork:
-   `.github/workflows/fixall.yml`, `fixstuff.yml`, `astrid-coding-agent.yml` and
-   `publish-astrid-sdk.yml`.
+5. **Astrid's own workflows run nothing in a fork.** These drive Astrid's agent loops,
+   watch Astrid's deployments and publish Astrid's packages. Every job in them is gated
+   on `github.repository_owner == 'Graceful-Tools'`, so a fork's schedules and events
+   skip them and nothing needs deleting (ADEV-103). Delete them anyway if you prefer a
+   tidy Actions tab: `agent-run.yml`, `agent-ship.yml`, `astrid-coding-agent.yml`,
+   `copilot-setup-steps.yml`, `fixall.yml`, `fixstuff.yml`, `monitor-deployments.yml`,
+   `native-copilot-bridge.yml`, `publish-astrid-sdk.yml` and
+   `publish-openclaw-astrid-channel.yml`. To run Astrid's loop on your own boards
+   instead, change the owner in those gates and set the repository variable
+   `ASTRID_API_URL` to your origin, plus `FIXALL_CLAIM_BOARD_IDS` on the deployment.
+   Unset, a non-Astrid brand has no claimable boards.
 
 ### A GitHub Projects partner
 
