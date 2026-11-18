@@ -711,6 +711,17 @@ The default API base URL for the standalone MCP servers follows the brand too
 (`mcpDefaultBaseUrl()`), so a partner's server talks to their own API rather
 than requiring every operator to remember `ASTRID_API_BASE_URL`.
 
+**A self-hosted instance's hosted `/mcp` calls its own origin** (ADEV-99). The base URL is
+`ASTRID_API_BASE_URL`, else the origin of `NEXTAUTH_URL`, else the brand domain
+(`mcpHostedBaseUrl()`; the CLI helpers keep `mcpDefaultBaseUrl()`, since a dev machine's
+`NEXTAUTH_URL` is localhost), so a
+deployment served away from its brand domain (the stock `whitelabel` profile says `astrid.cc`)
+does not forward the client's bearer token to the brand's host. Set `ASTRID_API_BASE_URL` only
+when the server must reach itself on a different address (a container network name, say). The
+OAuth challenge `/mcp` returns names the `NEXTAUTH_URL` origin too, not the `Host` header, which
+behind a proxy can be `localhost`. `scripts/self-host-smoke.ts` checks `/mcp` and
+`/api/v1/agent-queue`.
+
 ### WebAuthn RP ID
 
 The RP ID is resolved **per request from the `Origin` header**, not from configuration.

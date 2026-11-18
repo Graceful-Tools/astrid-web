@@ -1,6 +1,6 @@
 import type { NextApiRequest } from "next"
 import { NextRequest } from "next/server"
-import { BRAND, brandOrigin, mcpDefaultBaseUrl } from "@/lib/brand/config"
+import { BRAND, brandOrigin, mcpHostedBaseUrl, nextAuthOrigin } from "@/lib/brand/config"
 import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { sameOrigin } from "@/lib/auth-host"
 import { createHash } from "crypto"
@@ -18,6 +18,9 @@ export function mcpAuthChallenge(baseUrl: string, invalidToken = false): string 
 }
 
 export function mcpRequestBaseUrl(req: NextApiRequest): string {
+  // Behind a proxy the Host header may be `localhost`; the configured origin is public (ADEV-99).
+  const configured = nextAuthOrigin()
+  if (configured) return configured
   const host = req.headers.host || BRAND.domain
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"
   return `${proto}://${host}`
@@ -25,9 +28,9 @@ export function mcpRequestBaseUrl(req: NextApiRequest): string {
 
 export async function validateMCPAuthContext(
   options: AstridMCPServerOptions,
-  localOrigin = brandOrigin(),
+  localOrigin = nextAuthOrigin() ?? brandOrigin(),
 ): Promise<void> {
-  const baseUrl = options.baseUrl || mcpDefaultBaseUrl()
+  const baseUrl = options.baseUrl || mcpHostedBaseUrl()
   mcpBackendUrl(baseUrl)
   if (!options.accessToken) return // Basic credentials use the protected client-credentials flow.
   const canonicalOrigins = [brandOrigin(), `https://www.${BRAND.domain}`]
@@ -91,7 +94,7 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
   }
 
   const defaultListId = headerValue(req, HEADER_LIST_ID) || null
-  const baseUrl = headerValue(req, HEADER_BASE_URL) || mcpDefaultBaseUrl()
+  const baseUrl = headerValue(req, HEADER_BASE_URL) || mcpHostedBaseUrl()
 
   if (!accessToken && (!clientId || !clientSecret)) {
     return null

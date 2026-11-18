@@ -188,6 +188,12 @@ async function main() {
     return `brand ${body.brand?.appName}, sign-in ${JSON.stringify(body.auth?.providers?.map((p: { id: string }) => p.id) ?? body.auth)}`
   })
 
+  // ADEV-99: the agent queue is served by this instance and refuses an unauthenticated
+  // call. /mcp's own answer depends on the MCP capability; the probes below cover it.
+  await check('/api/v1/agent-queue refuses without a token', async () => {
+    expectStatus(await fetch(`${base}/api/v1/agent-queue`, { redirect: 'manual' }), 401)
+  })
+
   await check('sign-in page renders', async () => {
     const { response } = await getPage('/auth/signin')
     expectStatus(response, 200)
@@ -231,6 +237,8 @@ async function main() {
         if (probe.status === 401) {
           const metadata = resourceMetadataUrl(response.headers.get('www-authenticate'))
           if (!metadata) throw new Error(`no resource_metadata in WWW-Authenticate: ${response.headers.get('www-authenticate')}`)
+          // ADEV-99: the challenge points at this deployment, not the brand domain.
+          if (new URL(metadata).origin !== new URL(base).origin) throw new Error(`resource_metadata on another origin: ${metadata}`)
           return metadata
         }
         if (probe.status === 200) {
