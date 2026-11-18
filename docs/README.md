@@ -48,6 +48,7 @@ and stack versions with `npm run check:docs`.
 - **[Brand Profiles](../brands/README.md)** - Per-partner profiles and the brand-matrix tests
 - **[Self-hosting](./deployment/SELF_HOSTING.md)** - Run it on your own infrastructure with no Vercel, Neon or Upstash account: Docker image, compose stack, storage drivers, cron runner
 - **[Azure](./deployment/AZURE.md)** - The same image on Azure Container Apps: Bicep template (Postgres Flexible Server, Cache for Redis, Blob, Key Vault), Entra ID sign-in, custom domain, upgrades and restore
+- **[GitHub Copilot against a self-hosted instance](./deployment/COPILOT_SELF_HOSTED.md)** - Enable Copilot and MCP, mint the Copilot-bound token, repository secrets, the generated Copilot CLI workflow, the cloud agent's firewall, and what is untested
 - **[Lanes: GitHub App and Marketplace listing](./deployment/LANES_GITHUB_MARKETPLACE.md)** - Draft registration values and listing copy for the GitHub Projects partner brand (not yet registered or published)
 
 ### 🚀 Setup & Deployment
