@@ -75,9 +75,10 @@ Commands:
            Give a Doing claim back to Ready. Exit 0 released, 2 not yours, 1 error.
 
   run      --agent <mailbox> [--list <listId>] [--task <taskId>] [--include-unassigned]
-           [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>] [--fixall]
+           [--harness claude|codex|copilot|custom] [--command <shell command>] [--lease-seconds <n>] [--fixall] [--policy]
            Claim a task, start the harness on it, heartbeat while it runs, and
-           release the claim if it fails. Exit 0 done, 3 nothing to claim,
+           release the claim if it fails. --policy stands down when the board's
+           orchestration routing does not admit the agent. Exit 0 done, 3 nothing to claim,
            1 harness failed or error, 2 the claim was lost mid-run.
   status   --agent <mailbox> [--list <listId>] [--include-unassigned]
            Print the queue and the agent's mode as JSON. Exit 1 if it cannot tell.
@@ -96,7 +97,7 @@ const VALUED = new Set([
   '--board', '--seen-keys', '--seen-keys-file', '--long-run-window', '--default-minutes', '--max-tasks', '--output',
 ])
 const BOOLEAN = new Set([
-  '--include-unassigned', '--write-seen', '--require-polling', '--resume', '--fixall', '--help', '-h', '--version', '-v',
+  '--include-unassigned', '--write-seen', '--require-polling', '--resume', '--fixall', '--policy', '--help', '-h', '--version', '-v',
   '--lines', '--no-write-seen', '--mark-seen', '--failed', '--dry-run', '--json',
 ])
 
@@ -367,6 +368,7 @@ async function run(client: AstridClient, args: Parsed, io: CliIO): Promise<numbe
     includeUnassigned: args.switches.has('--include-unassigned'),
     leaseSeconds: leaseSecondsOf(args),
     fixall: args.switches.has('--fixall'),
+    policy: args.switches.has('--policy'),
   }, deps)
   switch (outcome.kind) {
     case 'idle': io.stderr('RUN: nothing to claim'); return EXIT.IDLE
