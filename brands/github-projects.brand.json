@@ -20,7 +20,7 @@
     "NEXT_PUBLIC_BRAND_ICON": "/icons/whitelabel-512.png",
     "NEXT_PUBLIC_BRAND_ICON_SMALL": "/icons/whitelabel-96.png",
     "NEXT_PUBLIC_BRAND_GITHUB_APP_SLUG": "lanes-for-github-projects",
-    "BRAND_ENABLED_AGENTS": "claude",
+    "BRAND_ENABLED_AGENTS": "claude,copilot",
     "NEXT_PUBLIC_BRAND_APP_URL_SCHEME": "astrid",
     "NEXT_PUBLIC_BRAND_FEEDBACK_LIST_ID": "",
     "NEXT_PUBLIC_BRAND_AUTH_PROVIDERS": "github",
@@ -45,7 +45,8 @@
     "accentColor": "#0969da",
     "enabledAgents": [
       "astrid",
-      "claude"
+      "claude",
+      "copilot"
     ],
     "capabilities": {
       "githubProjects": true,
