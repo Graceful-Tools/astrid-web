@@ -17,6 +17,8 @@
  * literally so Next can inline it (lib/env.ts).
  */
 
+import { setListPermissionsCore } from '@/lib/list-permissions'
+
 export interface BrowserCoreRules {
   /** astrid-core `rules::run_json`: one JSON request in, one `{ ok, value?, error? }` out. */
   runJson(request: string): string
@@ -57,6 +59,14 @@ export function loadBrowserCoreRules(
         await glue.default()
         const kinds = new Set(glue.kinds())
         loaded = { runJson: (request) => glue.runJson(request), answers: (kind) => kinds.has(kind) }
+        // Permission affordances ask core listAccess too (ADEV-90). Lazy, like the door itself,
+        // and never a reason for the load to fail: the TypeScript decides without it.
+        try {
+          const { installBrowserListPermissions } = await import('./browser-list-permissions')
+          installBrowserListPermissions(loaded)
+        } catch {
+          // keep the TypeScript rules
+        }
         return loaded
       })
       .catch(() => null)
@@ -83,4 +93,5 @@ export function scheduleBrowserCoreRules(enabled = BROWSER_CORE_RULES_ON): () =>
 export function resetBrowserCoreRulesForTests(door: BrowserCoreRules | null = null): void {
   loaded = door
   loading = null
+  setListPermissionsCore(null)
 }
