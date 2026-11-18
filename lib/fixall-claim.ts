@@ -65,7 +65,7 @@ function resolveBoardIds(): readonly string[] {
 }
 
 /**
- * Astrid's own web, iOS, Windows and Android to-do boards. A board missing here does not
+ * Astrid's own web, iOS, Windows, Android and Astrid Code to-do boards. A board missing here does not
  * fail loudly: its claims 409 exactly like a lost race, and the loop skips them
  * without comment (AWTD-1008).
  */
@@ -75,6 +75,9 @@ const DEFAULT_FIXALL_CLAIM_BOARD_IDS = [
   "abb4f961-55ee-499e-9c51-d4a2e31ee439",
   // Astrid Android To-do (AATD-22).
   "85eef4ce-3d4d-4072-9ca7-bd631ca815b1",
+  // Astrid Code To-do — the Code-OSS fork and astrid-vscode, worked by the iOS
+  // machine's Claude loop (ADEV-113).
+  "5975ee1d-dc76-44b8-b09d-75bd97c7e30b",
 ] as const
 
 export const FIXALL_CLAIM_BOARD_IDS: readonly string[] = resolveBoardIds()
