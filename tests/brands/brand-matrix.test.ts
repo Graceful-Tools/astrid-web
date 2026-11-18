@@ -934,6 +934,10 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
 
   it('defaults the MCP client’s API base to this profile’s origin', async () => {
     const { mcpDefaultBaseUrl } = await import('@/lib/brand/config')
+    // With neither override set (NEXTAUTH_URL wins over the brand, ADEV-99).
+    vi.stubEnv('ASTRID_API_BASE_URL', '')
+    vi.stubEnv('NEXTAUTH_URL', '')
+    onTestFinished(() => { vi.unstubAllEnvs() })
 
     expect(mcpDefaultBaseUrl()).toBe(`https://${profile.expect.domain}`)
   })
