@@ -12,11 +12,12 @@ using 'main.bicep'
 
 param name = 'wlp'
 
-// The brand is built into the image: --build-arg BRAND=whitelabel-partner,
-// pushed to your registry (AZURE.md, "Images"). This template does not yet
-// mount a profile at runtime (BRAND_PROFILE).
-param appImage = readEnvironmentVariable('APP_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.0.0-whitelabel-partner')
-param migratorImage = readEnvironmentVariable('MIGRATOR_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.0.0-migrator')
+// This template builds the brand in: set APP_IMAGE to an image built with
+// --build-arg BRAND=whitelabel-partner and pushed to your registry (AZURE.md,
+// "Images"). It does not yet mount a profile at runtime (BRAND_PROFILE), so the
+// published default below serves the default brand. Its tag tracks the release.
+param appImage = readEnvironmentVariable('APP_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.4.0')
+param migratorImage = readEnvironmentVariable('MIGRATOR_IMAGE', 'ghcr.io/graceful-tools/astrid-web:1.4.0-migrator')
 param registryServer = readEnvironmentVariable('REGISTRY_SERVER', '')
 param registryUsername = readEnvironmentVariable('REGISTRY_USERNAME', '')
 param registryPassword = readEnvironmentVariable('REGISTRY_PASSWORD', '')
