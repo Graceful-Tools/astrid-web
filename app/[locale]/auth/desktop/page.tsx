@@ -10,6 +10,8 @@
  * An optional `provider` (github | google | sso) says which button the user
  * already tapped in the app; a signed-out user goes straight to it instead of
  * choosing again. Clients: windows, ios, mac, android (lib/auth/desktop-handoff.ts).
+ * An optional `scheme` says where the app listens: the deployment's own scheme or
+ * the stock Astrid apps' (ADEV-124), nothing else.
  *
  * Nothing on this page decides who the user is. The grant route reads that from
  * the session cookie; these parameters only say which application is asking.
@@ -73,13 +75,15 @@ export default async function DesktopHandoffPage({ searchParams }: PageProps) {
     state: one(params.state),
     codeChallenge: one(params.code_challenge),
     codeChallengeMethod: one(params.code_challenge_method),
+    // The stock app on a partner's server names its own scheme (ADEV-124).
+    ...(one(params.scheme) !== undefined ? { scheme: one(params.scheme) } : {}),
   })
 
   if (!validation.ok) {
     return <InvalidLink reason={validation.error} />
   }
 
-  const { client, state, codeChallenge } = validation.value
+  const { client, state, codeChallenge, scheme } = validation.value
 
   const session = await getUnifiedSession()
   if (!session?.user?.id) {
@@ -90,6 +94,7 @@ export default async function DesktopHandoffPage({ searchParams }: PageProps) {
       state,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
+      ...(scheme ? { scheme } : {}),
     })
     const callbackUrl = `/auth/desktop?${query.toString()}`
     const signInUrl = `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
@@ -130,6 +135,7 @@ export default async function DesktopHandoffPage({ searchParams }: PageProps) {
             appName={client.name}
             state={state}
             codeChallenge={codeChallenge}
+            scheme={scheme}
           />
 
           <div className="flex items-start gap-2 text-xs theme-text-muted">
