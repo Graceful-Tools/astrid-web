@@ -88,6 +88,7 @@ For the operator's end-to-end launch sequence, see the
 | **Windows** | Partial | astrid-windows: `scripts/package.ps1 -Brand <profile>`; `ASTRID_SERVER_URL` overrides the server at runtime. A non-`astrid` scheme also needs the core pin bumped past AWTD2-95 | [AWTD2-96](https://astrid.cc/t/AWTD2-96) |
 | **Android** | Partial | astrid-android: `brands/<name>/brand.properties`, then `./gradlew assembleRelease -PastridBrand=<name>` (see its `brands/README.md`). Accent, hover, and on-accent colours are configurable there; Android resources and the web profile must be kept aligned manually. Verified app links (`astridLinkAutoVerify`) need `BRAND_ANDROID_APP_LINKS` set on the server, so it serves `assetlinks.json` (§2) | [AATD-72](https://astrid.cc/t/AATD-72) |
 | **Core** (Windows and Android) | Partial | `urlScheme` and `handoffClientId` in the config JSON a shell passes; blank means Astrid's defaults | [AWTD2-95](https://astrid.cc/t/AWTD2-95) |
+| **VS Code** (GitHub Copilot) | Supported, no build | Stock VS Code. Add the remote MCP server `<origin>/mcp` in `.vscode/mcp.json` (the snippet is in Settings → AI Agents → Copilot); it signs in through the browser. The recommended Copilot setup. Actions and the GitHub.com cloud agent: [deployment/COPILOT_SELF_HOSTED.md](./deployment/COPILOT_SELF_HOSTED.md) | [ADEV-101](https://astrid.cc/t/ADEV-101) |
 
 The Apple apps read the same `brands/*.brand.json` you wrote in step 2. Windows can too.
 Android uses its own `brand.properties`, because the web profile describes the server's
