@@ -134,6 +134,8 @@ The full registry, with a description of every variable: `npm run check:env`, or
 | Variable | |
 |---|---|
 | `NEXTAUTH_URL` | The public origin, `https://…`. Sign-in callbacks and every absolute link derive from it, including stored upload URLs |
+
+> **Serving host vs brand domain (ADEV-96).** Session cookies are scoped to `.<NEXT_PUBLIC_BRAND_DOMAIN>` only when the `NEXTAUTH_URL` host is that domain or a subdomain of it. On any other host (for example Azure's generated `*.azurecontainerapps.io`) they are host-only, so sign-in works. Set `NEXT_PUBLIC_BRAND_DOMAIN` to your real domain before sharing sessions across subdomains.
 | `NEXTAUTH_SECRET` | Signs sessions and upload grants. Rotating it signs everyone out |
 | `ENCRYPTION_KEY` | Encrypts stored credentials. Exactly 64 hex characters (`openssl rand -hex 32`). **Back it up with the database**: without it, those rows cannot be read |
 | `CRON_SECRET` | The cron service sends it. Every cron route refuses requests without it |
