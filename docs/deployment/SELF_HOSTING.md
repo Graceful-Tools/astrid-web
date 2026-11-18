@@ -184,6 +184,13 @@ on hosted Astrid.
 (1 with `--profile tls`). Rate limits are keyed on the client address the proxy forwards.
 With the wrong depth, a caller chooses their own key.
 
+**The app port is loopback-only by default** (ADEV-105). Compose publishes the app on
+`127.0.0.1:3000`, so with `--profile tls` the only way in is through Caddy, and nobody can
+reach port 3000 directly to forge `X-Forwarded-For`. Without `--profile tls`, or with your
+own proxy on another machine, set `APP_BIND=0.0.0.0` in `.env` to publish it on every
+interface (`APP_PORT` picks the host port). Then make sure only your proxy can reach that
+port, and set `TRUSTED_PROXY_DEPTH` to match.
+
 ## How uploads work off Vercel
 
 The clients did not change. When a native app uploads a large file, it asks
@@ -332,3 +339,15 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
   run from a checkout and reached as `localhost` was seen to 307-loop on `/terms` and
   `/en/terms`. The container does not (AWTD-1606): `/terms` answers 200, and `/en/terms`
   redirects once to `/terms`. The smoke test follows both, hop by hop, on every image change.
+- **What the image's CI proves, and what it does not** (`.github/workflows/self-host.yml`,
+  updated by ADEV-105). On every image change the composed stack is smoke-tested for:
+  boot and migration, health and capabilities, pages and the mounted brand, cron
+  authentication (both ways) and the cron service's calls, an upload round-trip on local
+  and Azure Blob (Azurite) storage, one email through SMTP, the `/mcp` endpoint and its
+  OAuth discovery documents (a 401 challenge and two documents with MCP on, three 404s
+  with MCP off), a job-queue drain, the worker's drains being accepted, and the SSE stream
+  refusing an unauthenticated caller. **Not exercised anywhere, so check them on your
+  own deployment:** passkey or SSO sign-in end to end, secure cookies over HTTPS on a
+  real host, an authenticated SSE stream delivering an event, the worker running a real
+  job, the Caddy (`--profile tls`) path and its certificate, S3 storage, and the agent
+  queue and token mint over `/mcp` with real credentials.
