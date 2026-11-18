@@ -182,6 +182,20 @@ async function main() {
     return `brand ${body.brand?.appName}, sign-in ${JSON.stringify(body.auth?.providers?.map((p: { id: string }) => p.id) ?? body.auth)}`
   })
 
+  // ADEV-99: the hosted MCP and the agent queue are served by this instance, and an
+  // unauthenticated call must be refused by it (401), not 404 or answered by another host.
+  await check('/mcp challenges for a bearer token', async () => {
+    const response = await fetch(`${base}/mcp`, { method: 'POST', redirect: 'manual' })
+    expectStatus(response, 401)
+    const challenge = response.headers.get('www-authenticate') ?? ''
+    if (!challenge.includes('resource_metadata=')) throw new Error(`no OAuth challenge: "${challenge}"`)
+    return challenge
+  })
+
+  await check('/api/v1/agent-queue refuses without a token', async () => {
+    expectStatus(await fetch(`${base}/api/v1/agent-queue`, { redirect: 'manual' }), 401)
+  })
+
   await check('sign-in page renders', async () => {
     const { response } = await getPage('/auth/signin')
     expectStatus(response, 200)

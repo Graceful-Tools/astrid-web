@@ -61,8 +61,10 @@ beforeEach(() => {
     user: { id: 'fixture-user', email: 'fixture@example.test', name: null, isAIAgent: false },
   })
   vi.stubGlobal('fetch', vi.fn())
+  // These tests derive the challenge from the Host header; a configured origin wins (ADEV-99).
+  vi.stubEnv('NEXTAUTH_URL', '')
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs() })
 
 function request(method: string, authorization?: string, rpcMethod = 'tools/list') {
   return Object.assign(Readable.from([Buffer.from(JSON.stringify({
