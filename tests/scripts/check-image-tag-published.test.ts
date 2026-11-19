@@ -45,6 +45,10 @@ describe('ADEV-126 workflows', () => {
 
   it('release-image.yml runs the check as a final job on tags', () => {
     const wf = read('.github/workflows/release-image.yml')
-    expect(wf).toMatch(/published:[\s\S]*needs: \[publish, smoke\][\s\S]*check-image-tag-published\.ts/)
+    expect(wf).toMatch(/published:[\s\S]*needs: \[merge, smoke\][\s\S]*check-image-tag-published\.ts/)
+    // The version comes from a job the final job actually needs; a rename of
+    // `merge` left `needs.publish.outputs.version` empty once already.
+    const job = wf.slice(wf.indexOf('\n  published:'))
+    expect(job).toContain('${{ needs.merge.outputs.version }}')
   })
 })
