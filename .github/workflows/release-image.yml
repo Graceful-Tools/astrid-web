@@ -307,3 +307,31 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose -f deploy/self-host/docker-compose.yml --env-file deploy/self-host/.env down -v
+
+  # ADEV-126: ask the registry anonymously, as a partner would, whether the
+  # released tag exists. Tags only; :edge is not documented.
+  published:
+    name: 'Released tag is on GHCR'
+    needs: [merge, smoke]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check the released tag on GHCR
+        env:
+          VERSION: ${{ needs.merge.outputs.version }}
+        run: npx tsx scripts/check-image-tag-published.ts "$VERSION"
