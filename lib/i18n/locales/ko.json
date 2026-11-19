@@ -2718,7 +2718,7 @@
       "menuTitle": "완료 표시 기간"
     },
     "status": {
-      "inbox": "아이디어",
+      "inbox": "아이디어/받은 편지함",
       "ready": "준비됨",
       "doing": "진행 중",
       "waiting": "대기 중",

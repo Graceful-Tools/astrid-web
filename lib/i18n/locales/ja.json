@@ -2718,7 +2718,7 @@
       "menuTitle": "完了の表示期間"
     },
     "status": {
-      "inbox": "アイデア",
+      "inbox": "アイデア/受信箱",
       "ready": "準備完了",
       "doing": "作業中",
       "waiting": "待機中",

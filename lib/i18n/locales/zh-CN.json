@@ -2718,7 +2718,7 @@
       "menuTitle": "显示已完成自"
     },
     "status": {
-      "inbox": "创意",
+      "inbox": "创意/收件箱",
       "ready": "就绪",
       "doing": "进行中",
       "waiting": "等待中",

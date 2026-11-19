@@ -46,7 +46,7 @@
   "auth_sign_in_short": "サインイン",
   "board_status_doing": "作業中",
   "board_status_done": "完了",
-  "board_status_inbox": "アイデア",
+  "board_status_inbox": "アイデア/受信箱",
   "board_status_ready": "準備完了",
   "board_status_waiting": "待機中",
   "cancel": "キャンセル",

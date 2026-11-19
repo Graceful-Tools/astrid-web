@@ -2718,7 +2718,7 @@
       "menuTitle": "Show Done since"
     },
     "status": {
-      "inbox": "Ideas",
+      "inbox": "Ideas/Inbox",
       "ready": "Ready",
       "doing": "Doing",
       "waiting": "Waiting",

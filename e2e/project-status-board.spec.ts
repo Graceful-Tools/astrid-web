@@ -46,7 +46,7 @@ test.describe('Project status board', () => {
     await expect(board).toBeVisible()
     for (const [column, label] of [
       // The Inbox column reads "Ideas" (ADEV-132); its id and kind stay `inbox`.
-      ['waiting', 'Waiting'], ['inbox', 'Ideas'], ['ready', 'Ready'], ['doing', 'Doing'], ['done', 'Done'],
+      ['waiting', 'Waiting'], ['inbox', 'Ideas/Inbox'], ['ready', 'Ready'], ['doing', 'Doing'], ['done', 'Done'],
     ]) {
       await expect(board.getByTestId(`status-column-${column}`)).toContainText(label)
     }

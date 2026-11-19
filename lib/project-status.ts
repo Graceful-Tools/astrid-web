@@ -1,7 +1,7 @@
 /**
  * Project status board model.
  *
- * A board renders: Waiting, a virtual Inbox (shown as "Ideas"), Ready, Doing,
+ * A board renders: Waiting, a virtual Inbox (shown as "Ideas/Inbox"), Ready, Doing,
  * the board's own custom columns, and a virtual Done. See
  * docs/product/project-status-board.md for the full spec.
  *
@@ -75,7 +75,7 @@ export interface ProjectBoardColumn {
 
 const VIRTUAL_INBOX_COLUMN: Omit<ProjectBoardColumn, 'id'> & { id: typeof VIRTUAL_INBOX_COLUMN_ID } = {
   id: VIRTUAL_INBOX_COLUMN_ID,
-  name: 'Ideas',
+  name: 'Ideas/Inbox',
   description: 'Move them to "Ready" when they are... ready!',
   kind: 'inbox',
 }
@@ -100,7 +100,7 @@ export function isProjectStatusList(list: Pick<TaskList, 'listType'> | null | un
 }
 
 /**
- * Build the ordered board columns: [Waiting, virtual Inbox (shown as "Ideas"), Ready, Doing, ...customs, virtual Done].
+ * Build the ordered board columns: [Waiting, virtual Inbox (shown as "Ideas/Inbox"), Ready, Doing, ...customs, virtual Done].
  * The board renders this output 1:1.
  *
  * Takes only the board's `Project.customStates` (task b346e377). It used to

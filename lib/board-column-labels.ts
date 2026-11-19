@@ -20,7 +20,7 @@ type Translate = (key: string) => string
 
 type BuiltIn = 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'testing'
 
-const INBOX_TEXT = { name: 'Ideas', description: 'Move them to "Ready" when they are... ready!' }
+const INBOX_TEXT = { name: 'Ideas/Inbox', description: 'Move them to "Ready" when they are... ready!' }
 const DONE_TEXT = { name: 'Done', description: 'Complete — congrats!' }
 
 const BUILT_IN_TEXT: Record<string, { role: BuiltIn; name: string; description: string }> = {
