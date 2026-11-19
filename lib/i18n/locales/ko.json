@@ -2709,6 +2709,14 @@
     "loadFailed": "파일을 불러오지 못했습니다"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "올해",
+      "allTime": "전체 기간",
+      "sinceDate": "{date} 이후",
+      "accessibility": "완료 {count}, {period}. 기간 변경",
+      "pickDate": "날짜 선택…",
+      "menuTitle": "완료 표시 기간"
+    },
     "status": {
       "inbox": "아이디어",
       "ready": "준비됨",

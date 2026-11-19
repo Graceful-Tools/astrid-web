@@ -2709,6 +2709,14 @@
     "loadFailed": "Datei konnte nicht geladen werden"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "Dieses Jahr",
+      "allTime": "Gesamte Zeit",
+      "sinceDate": "seit {date}",
+      "accessibility": "Erledigt {count}, {period}. Zeitraum ändern",
+      "pickDate": "Datum wählen …",
+      "menuTitle": "Erledigt anzeigen seit"
+    },
     "status": {
       "inbox": "Ideen",
       "ready": "Bereit",
