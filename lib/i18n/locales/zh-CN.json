@@ -2709,6 +2709,14 @@
     "loadFailed": "文件加载失败"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "今年",
+      "allTime": "全部时间",
+      "sinceDate": "自 {date} 起",
+      "accessibility": "已完成 {count}，{period}。更改时间段",
+      "pickDate": "选择日期…",
+      "menuTitle": "显示已完成自"
+    },
     "status": {
       "inbox": "创意",
       "ready": "就绪",

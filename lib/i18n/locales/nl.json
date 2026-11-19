@@ -2709,6 +2709,14 @@
     "loadFailed": "Bestand laden mislukt"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "Dit jaar",
+      "allTime": "Altijd",
+      "sinceDate": "sinds {date}",
+      "accessibility": "Klaar {count}, {period}. Periode wijzigen",
+      "pickDate": "Kies een datum…",
+      "menuTitle": "Klaar tonen sinds"
+    },
     "status": {
       "inbox": "Ideeën",
       "ready": "Klaar",

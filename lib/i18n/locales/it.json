@@ -2709,6 +2709,14 @@
     "loadFailed": "Impossibile caricare il file"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "Quest’anno",
+      "allTime": "Sempre",
+      "sinceDate": "dal {date}",
+      "accessibility": "Fatto {count}, {period}. Cambia il periodo",
+      "pickDate": "Scegli una data…",
+      "menuTitle": "Mostra Fatto da"
+    },
     "status": {
       "inbox": "Idee",
       "ready": "Pronto",
