@@ -118,7 +118,7 @@ describe('the task action menu can reach Ready', () => {
   it('offers Ideas (the Inbox column) so a task can be taken back out of the queue', async () => {
     const { onStatusSelect, user } = await renderMenu({ task: makeTask({ statusRole: 'ready' }) })
 
-    await choose(user, 'Ideas')
+    await choose(user, 'Ideas/Inbox')
 
     expect(onStatusSelect).toHaveBeenCalledWith(INBOX_COLUMN_ID)
   })
@@ -132,7 +132,7 @@ describe('the task action menu can reach Ready', () => {
   it('marks Ideas (the Inbox column) when the task has no status role', async () => {
     await renderMenu()
 
-    expect(await screen.findByRole('menuitemradio', { name: 'Ideas' })).toBeChecked()
+    expect(await screen.findByRole('menuitemradio', { name: 'Ideas/Inbox' })).toBeChecked()
   })
 
   it('leaves the menu unchanged for callers that do not handle status', async () => {

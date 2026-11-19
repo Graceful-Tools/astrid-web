@@ -46,7 +46,7 @@
   "auth_sign_in_short": "Iniciar sesión",
   "board_status_doing": "En curso",
   "board_status_done": "Hecho",
-  "board_status_inbox": "Ideas",
+  "board_status_inbox": "Ideas/Bandeja de entrada",
   "board_status_ready": "Listo",
   "board_status_waiting": "En espera",
   "cancel": "Cancelar",
