@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "Aufgabe zu {name} hinzufügen",
       "addTaskPlaceholder": "Aufgabe hinzufügen",
-      "completedOn": "Erledigt am {date}"
+      "completedOn": "Erledigt am {date}",
+      "completedPill": "✓ am {date}"
     },
     "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"
   },

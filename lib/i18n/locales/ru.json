@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "Добавить задачу в «{name}»",
       "addTaskPlaceholder": "Добавить задачу",
-      "completedOn": "Выполнено {date}"
+      "completedOn": "Выполнено {date}",
+      "completedPill": "✓ {date}"
     },
     "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу"
   },
