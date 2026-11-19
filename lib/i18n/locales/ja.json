@@ -2709,6 +2709,14 @@
     "loadFailed": "ファイルを読み込めませんでした"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "今年",
+      "allTime": "すべての期間",
+      "sinceDate": "{date}以降",
+      "accessibility": "完了 {count}、{period}。期間を変更",
+      "pickDate": "日付を選択…",
+      "menuTitle": "完了の表示期間"
+    },
     "status": {
       "inbox": "アイデア",
       "ready": "準備完了",

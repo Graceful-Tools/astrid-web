@@ -2709,6 +2709,14 @@
     "loadFailed": "Не удалось загрузить файл"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "В этом году",
+      "allTime": "За всё время",
+      "sinceDate": "с {date}",
+      "accessibility": "Готово {count}, {period}. Изменить период",
+      "pickDate": "Выбрать дату…",
+      "menuTitle": "Показывать готовое с"
+    },
     "status": {
       "inbox": "Идеи",
       "ready": "Готово к работе",
