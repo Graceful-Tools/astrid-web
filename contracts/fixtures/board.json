@@ -57,7 +57,7 @@
         },
         {
           "id": "__virtual_inbox__",
-          "name": "Ideas",
+          "name": "Ideas/Inbox",
           "description": "Move them to \"Ready\" when they are... ready!",
           "kind": "inbox"
         },
@@ -643,7 +643,7 @@
         },
         {
           "id": "__virtual_inbox__",
-          "name": "Ideas",
+          "name": "Ideas/Inbox",
           "description": "Move them to \"Ready\" when they are... ready!",
           "kind": "inbox"
         },
@@ -1333,7 +1333,7 @@
         },
         {
           "id": "__virtual_inbox__",
-          "name": "Ideas",
+          "name": "Ideas/Inbox",
           "description": "Move them to \"Ready\" when they are... ready!",
           "kind": "inbox"
         },

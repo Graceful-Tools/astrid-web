@@ -46,7 +46,7 @@
   "auth_sign_in_short": "登录",
   "board_status_doing": "进行中",
   "board_status_done": "已完成",
-  "board_status_inbox": "创意",
+  "board_status_inbox": "创意/收件箱",
   "board_status_ready": "就绪",
   "board_status_waiting": "等待中",
   "cancel": "取消",

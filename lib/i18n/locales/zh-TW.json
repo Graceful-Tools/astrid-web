@@ -2710,7 +2710,7 @@
   },
   "board": {
     "status": {
-      "inbox": "點子",
+      "inbox": "點子/收件匣",
       "ready": "就緒",
       "doing": "進行中",
       "waiting": "等待中",

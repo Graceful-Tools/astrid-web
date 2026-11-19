@@ -193,7 +193,7 @@ function typescriptBoardColumnsFor(project: ProjectLike | null | undefined): Boa
       description: state.description ?? '',
       kind: 'status',
     })),
-    { id: INBOX_COLUMN_ID, name: 'Ideas', description: 'Move them to "Ready" when they are... ready!', kind: 'inbox' },
+    { id: INBOX_COLUMN_ID, name: 'Ideas/Inbox', description: 'Move them to "Ready" when they are... ready!', kind: 'inbox' },
     ...[...DEFAULT_STATES.filter(state => state.role !== WAITING_STATUS_ROLE), ...customs].map<BoardColumn>(state => ({
       id: state.role,
       name: defaultOverrides.get(state.role)?.name ?? state.name,
