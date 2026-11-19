@@ -187,8 +187,14 @@ function typescriptBoardColumnsFor(project: ProjectLike | null | undefined): Boa
   const customs = allCustomStates.filter(s => !DEFAULT_ROLES.has(s.role))
 
   return [
-    { id: INBOX_COLUMN_ID, name: 'Inbox', description: 'Move them to "Ready" when they are... ready!', kind: 'inbox' },
-    ...[...DEFAULT_STATES, ...customs].map<BoardColumn>(state => ({
+    ...DEFAULT_STATES.filter(state => state.role === WAITING_STATUS_ROLE).map<BoardColumn>(state => ({
+      id: state.role,
+      name: defaultOverrides.get(state.role)?.name ?? state.name,
+      description: state.description ?? '',
+      kind: 'status',
+    })),
+    { id: INBOX_COLUMN_ID, name: 'Ideas', description: 'Move them to "Ready" when they are... ready!', kind: 'inbox' },
+    ...[...DEFAULT_STATES.filter(state => state.role !== WAITING_STATUS_ROLE), ...customs].map<BoardColumn>(state => ({
       id: state.role,
       name: defaultOverrides.get(state.role)?.name ?? state.name,
       description: state.description ?? '',

@@ -30,7 +30,7 @@ describe('board columns come from config (task a1722040)', () => {
   it('renders the three default columns with no lists at all', () => {
     const columns = getProjectBoardColumns()
 
-    expect(columns.map(c => c.name)).toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'])
+    expect(columns.map(c => c.name)).toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Done'])
   })
 
   it('places a card by its role alone', () => {
@@ -61,6 +61,6 @@ describe('board columns come from config (task a1722040)', () => {
       { role: 'custom-blocked', name: 'Blocked', description: '', order: 0 },
     ])
 
-    expect(columns.map(c => c.name)).toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Blocked', 'Done'])
+    expect(columns.map(c => c.name)).toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Blocked', 'Done'])
   })
 })

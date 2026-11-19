@@ -157,6 +157,21 @@ export function ProjectStatusBoard({
     }
   }, [])
 
+  // Phone width opens on Inbox, not on Waiting at the leading edge (ADEV-132):
+  // Waiting is what you scroll left to. Wide layouts start at the leading edge.
+  // Once per board, so a later column change never yanks the carousel back.
+  const openedOnInboxRef = React.useRef<string | null>(null)
+  const hasColumns = columns.length > 0
+  React.useLayoutEffect(() => {
+    if (!isOneColumn || !projectId || !hasColumns) return
+    if (openedOnInboxRef.current === projectId) return
+    const container = scrollRef.current
+    const inbox = container?.querySelector<HTMLElement>('[data-column-kind="inbox"]')
+    if (!container || !inbox) return
+    openedOnInboxRef.current = projectId
+    inbox.scrollIntoView?.({ behavior: "auto", block: "nearest", inline: "start" })
+  }, [isOneColumn, projectId, hasColumns])
+
   const boardTasks = React.useMemo(() => {
     if (!projectId) return []
     const projectTasks = getProjectDomainTasks(allTasks, lists, projectId)
@@ -352,6 +367,7 @@ export function ProjectStatusBoard({
               key={column.id}
               data-testid={columnTestId(column)}
               data-column-index={columnIndex}
+              data-column-kind={column.kind}
               className={`board-column flex h-full snap-start flex-col border theme-border theme-bg-secondary ${
                 isOneColumn
                   ? "w-full shrink-0"

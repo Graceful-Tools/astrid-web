@@ -72,13 +72,13 @@ describe('project status', () => {
     expect(doneColumn.description).toBe('Complete — congrats!')
   })
 
-  it('builds board columns with virtual Inbox first and virtual Done last', () => {
+  it('builds board columns with Waiting first, then virtual Inbox, and virtual Done last (ADEV-132)', () => {
     const columns = getProjectBoardColumns()
     expect(columns.map(column => column.id)).toEqual([
+      'waiting',
       VIRTUAL_INBOX_COLUMN_ID,
       'ready',
       'doing',
-      'waiting',
       VIRTUAL_DONE_COLUMN_ID,
     ])
   })
@@ -88,10 +88,10 @@ describe('project status', () => {
     // members of a shared board to resolve differently — which is the whole
     // reason status stopped being a list (AWTD-562, Stage D task b7b0c2f5).
     expect(getProjectBoardColumns().map(column => column.id)).toEqual([
+      'waiting',
       VIRTUAL_INBOX_COLUMN_ID,
       'ready',
       'doing',
-      'waiting',
       VIRTUAL_DONE_COLUMN_ID,
     ])
   })

@@ -32,7 +32,7 @@ const domainList = {
 const CUSTOM_STATES = [{ role: 'custom-blocked', name: 'Blocked', order: 0 }]
 
 const customNames = (columns: { name: string }[]) =>
-  columns.map(c => c.name).filter(n => !['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'].includes(n))
+  columns.map(c => c.name).filter(n => !['Ideas', 'Ready', 'Doing', 'Waiting', 'Done'].includes(n))
 
 describe('getBoardRowContext custom columns (task 9ddf4a6f)', () => {
   it('offers a custom state that has no backing row', () => {
@@ -53,7 +53,7 @@ describe('getBoardRowContext custom columns (task 9ddf4a6f)', () => {
     const context = getBoardRowContext([domainList], 'domain-1', CUSTOM_STATES)
 
     expect(context!.columns.map(c => c.name))
-      .toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Blocked', 'Done'])
+      .toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Blocked', 'Done'])
   })
 
   it('offers the three defaults while the states request is still in flight', () => {
@@ -63,7 +63,7 @@ describe('getBoardRowContext custom columns (task 9ddf4a6f)', () => {
     const context = getBoardRowContext([domainList], 'domain-1', undefined)
 
     expect(context!.columns.map(c => c.name))
-      .toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'])
+      .toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Done'])
   })
 
   it('is null for a list with no board at all', () => {

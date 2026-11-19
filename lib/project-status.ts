@@ -1,8 +1,8 @@
 /**
  * Project status board model.
  *
- * A board renders: a virtual Inbox, the three default status columns, the
- * board's own custom columns, and a virtual Done. See
+ * A board renders: Waiting, a virtual Inbox (shown as "Ideas"), Ready, Doing,
+ * the board's own custom columns, and a virtual Done. See
  * docs/product/project-status-board.md for the full spec.
  *
  * **No column is a row.** Status began as membership in a `listType: 'status'`
@@ -23,7 +23,7 @@
  *   Done        =  completed = true
  */
 import type { Task, TaskList } from '@/types/task'
-import { DEFAULT_STATES, parseCustomStates, isDefaultStatusRole } from '@/lib/task-status'
+import { DEFAULT_STATES, WAITING_STATUS_ROLE, parseCustomStates, isDefaultStatusRole } from '@/lib/task-status'
 import {
   VIRTUAL_DONE_COLUMN_ID,
   VIRTUAL_INBOX_COLUMN_ID,
@@ -75,7 +75,7 @@ export interface ProjectBoardColumn {
 
 const VIRTUAL_INBOX_COLUMN: Omit<ProjectBoardColumn, 'id'> & { id: typeof VIRTUAL_INBOX_COLUMN_ID } = {
   id: VIRTUAL_INBOX_COLUMN_ID,
-  name: 'Inbox',
+  name: 'Ideas',
   description: 'Move them to "Ready" when they are... ready!',
   kind: 'inbox',
 }
@@ -100,7 +100,7 @@ export function isProjectStatusList(list: Pick<TaskList, 'listType'> | null | un
 }
 
 /**
- * Build the ordered board columns: [virtual Inbox, ...statuses, virtual Done].
+ * Build the ordered board columns: [Waiting, virtual Inbox (shown as "Ideas"), Ready, Doing, ...customs, virtual Done].
  * The board renders this output 1:1.
  *
  * Takes only the board's `Project.customStates` (task b346e377). It used to
@@ -138,8 +138,9 @@ function typescriptBoardColumns(customStates: unknown): ProjectBoardColumn[] {
   }))
 
   return [
+    ...defaults.filter(column => column.id === WAITING_STATUS_ROLE),
     { ...VIRTUAL_INBOX_COLUMN },
-    ...defaults,
+    ...defaults.filter(column => column.id !== WAITING_STATUS_ROLE),
     ...customCols,
     { ...VIRTUAL_DONE_COLUMN },
   ]
