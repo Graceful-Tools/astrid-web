@@ -36,6 +36,10 @@ export interface TaskRowContentProps {
    *  LIST rows only (AWTD-1582). A board card never passes one: its column
    *  header already says it. */
   boardStatus?: TaskBoardStatus | null
+  /** Drawn directly under the title. Board Done cards pass their completed-on
+   *  pill (components/board-completed-on-pill.tsx). A slot, not a date, so the
+   *  pill's code stays in the lazily loaded board chunks (initial-JS budget). */
+  belowTitle?: React.ReactNode
 }
 
 export function TaskRowContent({
@@ -50,6 +54,7 @@ export function TaskRowContent({
   identifier,
   currentListId,
   boardStatus,
+  belowTitle,
 }: TaskRowContentProps) {
   const { t, locale } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
@@ -97,6 +102,8 @@ export function TaskRowContent({
             </span>
           )}
         </div>
+
+        {belowTitle}
 
         {(identifier || (task.dueDateTime && !shouldHideTaskWhen(task)) || boardStatusName || domainLists.length > 0 || labels.length > 0) && (
           <div className="flex items-center mt-1 gap-2">

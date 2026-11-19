@@ -23,6 +23,7 @@ import {
 import { contrast } from '@/lib/design/contrast'
 import type { Rgb } from '@/lib/design/tokens'
 import { sortTasksForList } from '@/lib/task-sort'
+import { sortDoneColumnTasks } from '@/lib/board-done-column'
 
 export { PROJECT_BOARD_LIST_DRAG_TYPE, readDraggedListId } from '@/lib/project-board-list-drag'
 
@@ -78,7 +79,7 @@ export function boardRowCandidates(lists: TaskList[], rowIds: string[]): TaskLis
 
 export interface BoardSwimlane {
   list: TaskList
-  /** Column id → the row's cards in that column, sorted the list's way. */
+  /** Column id → the row's cards in that column, sorted the list's way (Done: newest completed first). */
   cells: Record<string, Task[]>
   total: number
 }
@@ -108,6 +109,10 @@ export function buildSwimlanes(
 
     const cells: Record<string, Task[]> = Object.fromEntries(columns.map(column => [column.id, [] as Task[]]))
     for (const task of sorted) cells[getTaskProjectColumnId(task, columns)]?.push(task)
+    // Done is newest-completed first whatever the list's sort (lib/board-done-column.ts).
+    for (const column of columns) {
+      if (column.kind === 'done') cells[column.id] = sortDoneColumnTasks(cells[column.id])
+    }
     return { list, cells, total: sorted.length }
   })
 }

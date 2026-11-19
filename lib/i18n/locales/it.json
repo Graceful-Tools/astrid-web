@@ -244,7 +244,8 @@
     "assigneeYou": "Tu",
     "board": {
       "addTaskTo": "Aggiungi attività a {name}",
-      "addTaskPlaceholder": "Aggiungi un'attività"
+      "addTaskPlaceholder": "Aggiungi un'attività",
+      "completedOn": "Completata il {date}"
     },
     "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"
   },
