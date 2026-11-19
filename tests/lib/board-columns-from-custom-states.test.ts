@@ -19,7 +19,7 @@ import { getProjectBoardColumns } from '@/lib/project-status'
 
 const names = (columns: { name: string }[]) => columns.map(c => c.name)
 const customNames = (columns: { name: string }[]) =>
-  names(columns).filter(n => !['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'].includes(n))
+  names(columns).filter(n => !['Waiting', 'Ideas', 'Ready', 'Doing', 'Done'].includes(n))
 
 describe('custom columns from Project.customStates (task b346e377)', () => {
   it('renders a custom state', () => {
@@ -54,14 +54,14 @@ describe('custom columns from Project.customStates (task b346e377)', () => {
       { role: 'custom-blocked', name: 'Blocked', order: 0 },
     ])
 
-    expect(names(columns)).toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Blocked', 'Done'])
+    expect(names(columns)).toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Blocked', 'Done'])
   })
 
   it('ignores a stored state that shadows a default role', () => {
     // Two columns called Ready is the duplication this model exists to remove.
     const columns = getProjectBoardColumns([{ role: 'ready', name: 'Ready', order: 0 }])
 
-    expect(names(columns)).toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'])
+    expect(names(columns)).toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Done'])
   })
 
   it('ignores a duplicate role rather than rendering it twice', () => {
@@ -82,6 +82,6 @@ describe('custom columns from Project.customStates (task b346e377)', () => {
   it('renders the three defaults when no states are passed', () => {
     // The argument is optional and every caller that has no board must still
     // get a board.
-    expect(names(getProjectBoardColumns())).toEqual(['Inbox', 'Ready', 'Doing', 'Waiting', 'Done'])
+    expect(names(getProjectBoardColumns())).toEqual(['Waiting', 'Ideas', 'Ready', 'Doing', 'Done'])
   })
 })

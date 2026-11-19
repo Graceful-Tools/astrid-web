@@ -50,8 +50,14 @@
       "customStates": null,
       "columns": [
         {
+          "id": "waiting",
+          "name": "Waiting",
+          "description": "Paused until the circumstances are right.",
+          "kind": "status"
+        },
+        {
           "id": "__virtual_inbox__",
-          "name": "Inbox",
+          "name": "Ideas",
           "description": "Move them to \"Ready\" when they are... ready!",
           "kind": "inbox"
         },
@@ -65,12 +71,6 @@
           "id": "doing",
           "name": "Doing",
           "description": "Active work in progress!",
-          "kind": "status"
-        },
-        {
-          "id": "waiting",
-          "name": "Waiting",
-          "description": "Paused until the circumstances are right.",
           "kind": "status"
         },
         {
@@ -90,6 +90,16 @@
           ],
           "columnId": "__virtual_inbox__",
           "moves": [
+            {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
             {
               "columnId": "__virtual_inbox__",
               "result": {
@@ -118,16 +128,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -152,6 +152,16 @@
           "columnId": "ready",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -179,16 +189,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -213,6 +213,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -240,16 +250,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -274,6 +274,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -301,16 +311,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -335,6 +335,16 @@
           "columnId": "__virtual_done__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -362,16 +372,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -397,6 +397,16 @@
           "columnId": "ready",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -424,16 +434,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -458,6 +458,14 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [],
@@ -479,14 +487,6 @@
                 "listIds": [],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -509,6 +509,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "elsewhere"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -539,16 +549,6 @@
               }
             },
             {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "elsewhere"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
-              }
-            },
-            {
               "columnId": "__virtual_done__",
               "result": {
                 "listIds": [
@@ -562,6 +562,18 @@
         }
       ],
       "creates": [
+        {
+          "columnId": "waiting",
+          "withDomainList": {
+            "listIds": [
+              "domain-1"
+            ],
+            "statusRole": "waiting"
+          },
+          "withoutDomainList": {
+            "statusRole": "waiting"
+          }
+        },
         {
           "columnId": "__virtual_inbox__",
           "withDomainList": {
@@ -596,18 +608,6 @@
           }
         },
         {
-          "columnId": "waiting",
-          "withDomainList": {
-            "listIds": [
-              "domain-1"
-            ],
-            "statusRole": "waiting"
-          },
-          "withoutDomainList": {
-            "statusRole": "waiting"
-          }
-        },
-        {
           "columnId": "__virtual_done__",
           "withDomainList": {
             "listIds": [
@@ -636,8 +636,14 @@
       ],
       "columns": [
         {
+          "id": "waiting",
+          "name": "Waiting",
+          "description": "Paused until the circumstances are right.",
+          "kind": "status"
+        },
+        {
           "id": "__virtual_inbox__",
-          "name": "Inbox",
+          "name": "Ideas",
           "description": "Move them to \"Ready\" when they are... ready!",
           "kind": "inbox"
         },
@@ -651,12 +657,6 @@
           "id": "doing",
           "name": "In progress",
           "description": "Active work in progress!",
-          "kind": "status"
-        },
-        {
-          "id": "waiting",
-          "name": "Waiting",
-          "description": "Paused until the circumstances are right.",
           "kind": "status"
         },
         {
@@ -682,6 +682,16 @@
           ],
           "columnId": "__virtual_inbox__",
           "moves": [
+            {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
             {
               "columnId": "__virtual_inbox__",
               "result": {
@@ -710,16 +720,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -754,6 +754,16 @@
           "columnId": "ready",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -781,16 +791,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -825,6 +825,16 @@
           "columnId": "review",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -852,16 +862,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -896,6 +896,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -923,16 +933,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -967,6 +967,16 @@
           "columnId": "__virtual_done__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -994,16 +1004,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1039,6 +1039,16 @@
           "columnId": "ready",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1066,16 +1076,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1110,6 +1110,14 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [],
@@ -1131,14 +1139,6 @@
                 "listIds": [],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1169,6 +1169,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "elsewhere"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1199,16 +1209,6 @@
               }
             },
             {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "elsewhere"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
-              }
-            },
-            {
               "columnId": "review",
               "result": {
                 "listIds": [
@@ -1232,6 +1232,18 @@
         }
       ],
       "creates": [
+        {
+          "columnId": "waiting",
+          "withDomainList": {
+            "listIds": [
+              "domain-1"
+            ],
+            "statusRole": "waiting"
+          },
+          "withoutDomainList": {
+            "statusRole": "waiting"
+          }
+        },
         {
           "columnId": "__virtual_inbox__",
           "withDomainList": {
@@ -1263,18 +1275,6 @@
           },
           "withoutDomainList": {
             "statusRole": "doing"
-          }
-        },
-        {
-          "columnId": "waiting",
-          "withDomainList": {
-            "listIds": [
-              "domain-1"
-            ],
-            "statusRole": "waiting"
-          },
-          "withoutDomainList": {
-            "statusRole": "waiting"
           }
         },
         {
@@ -1326,8 +1326,14 @@
       ],
       "columns": [
         {
+          "id": "waiting",
+          "name": "Waiting",
+          "description": "Paused until the circumstances are right.",
+          "kind": "status"
+        },
+        {
           "id": "__virtual_inbox__",
-          "name": "Inbox",
+          "name": "Ideas",
           "description": "Move them to \"Ready\" when they are... ready!",
           "kind": "inbox"
         },
@@ -1341,12 +1347,6 @@
           "id": "doing",
           "name": "Doing",
           "description": "Active work in progress!",
-          "kind": "status"
-        },
-        {
-          "id": "waiting",
-          "name": "Waiting",
-          "description": "Paused until the circumstances are right.",
           "kind": "status"
         },
         {
@@ -1372,6 +1372,16 @@
           ],
           "columnId": "__virtual_inbox__",
           "moves": [
+            {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
             {
               "columnId": "__virtual_inbox__",
               "result": {
@@ -1400,16 +1410,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1444,6 +1444,16 @@
           "columnId": "ready",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1471,16 +1481,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1515,6 +1515,16 @@
           "columnId": "review",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1542,16 +1552,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1586,6 +1586,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1613,16 +1623,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1657,6 +1657,16 @@
           "columnId": "__virtual_done__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1684,16 +1694,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1729,6 +1729,16 @@
           "columnId": "ready",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "domain-1"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1756,16 +1766,6 @@
                 ],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "domain-1"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1800,6 +1800,14 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [],
@@ -1821,14 +1829,6 @@
                 "listIds": [],
                 "completed": false,
                 "statusRole": "doing"
-              }
-            },
-            {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [],
-                "completed": false,
-                "statusRole": "waiting"
               }
             },
             {
@@ -1859,6 +1859,16 @@
           "columnId": "__virtual_inbox__",
           "moves": [
             {
+              "columnId": "waiting",
+              "result": {
+                "listIds": [
+                  "elsewhere"
+                ],
+                "completed": false,
+                "statusRole": "waiting"
+              }
+            },
+            {
               "columnId": "__virtual_inbox__",
               "result": {
                 "listIds": [
@@ -1889,16 +1899,6 @@
               }
             },
             {
-              "columnId": "waiting",
-              "result": {
-                "listIds": [
-                  "elsewhere"
-                ],
-                "completed": false,
-                "statusRole": "waiting"
-              }
-            },
-            {
               "columnId": "review",
               "result": {
                 "listIds": [
@@ -1922,6 +1922,18 @@
         }
       ],
       "creates": [
+        {
+          "columnId": "waiting",
+          "withDomainList": {
+            "listIds": [
+              "domain-1"
+            ],
+            "statusRole": "waiting"
+          },
+          "withoutDomainList": {
+            "statusRole": "waiting"
+          }
+        },
         {
           "columnId": "__virtual_inbox__",
           "withDomainList": {
@@ -1953,18 +1965,6 @@
           },
           "withoutDomainList": {
             "statusRole": "doing"
-          }
-        },
-        {
-          "columnId": "waiting",
-          "withDomainList": {
-            "listIds": [
-              "domain-1"
-            ],
-            "statusRole": "waiting"
-          },
-          "withoutDomainList": {
-            "statusRole": "waiting"
           }
         },
         {

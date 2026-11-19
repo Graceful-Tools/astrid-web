@@ -146,7 +146,7 @@ describe('a board list in list view (task 036ef139)', () => {
     tapTheLeadingControl(container)
 
     const group = screen.getByRole('group', { name: 'tasks.boardState' })
-    for (const name of ['Inbox', 'Ready', 'Doing', 'Waiting', 'Blocked', 'Done']) {
+    for (const name of ['Waiting', 'Ideas', 'Ready', 'Doing', 'Blocked', 'Done']) {
       expect(within(group).getByRole('button', { name }), `missing the ${name} button`).toBeInTheDocument()
     }
   })

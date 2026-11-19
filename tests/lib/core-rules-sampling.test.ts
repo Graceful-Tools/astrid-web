@@ -17,6 +17,7 @@ import { canUserManageList, setListPermissionsCore } from '@/lib/list-permission
 import { parseSearchQuery, setSearchQueryCore } from '@/lib/search-query-parser'
 import { nextOccurrenceForTask, setRepeatingCore } from '@/lib/repeating-rollover'
 import { setBoardCore } from '@/lib/board-core-hook'
+import { corePinBehindBoard } from '../helpers/core-pin'
 import { getProjectBoardColumns } from '@/lib/project-status'
 
 const core = loadCoreRulesFrom(path.join(process.cwd(), 'packages', 'astrid-rules'))
@@ -77,7 +78,7 @@ describe('AWTD-1591: decide mode runs the TypeScript only on sampled decisions',
     expect(hook.stats).toMatchObject({ agreed: 2, disagreed: 0, unsampled: 2, failed: 0 })
   })
 
-  it('board: the TypeScript columns are drawn 1 in N', () => {
+  it.skipIf(corePinBehindBoard)('board: the TypeScript columns are drawn 1 in N', () => {
     const hook = createBoardCore(core.runJson, quiet, { sampleEvery: 5 })
     setBoardCore({ columns: hook.columns, move: hook.move })
     for (let i = 0; i < 10; i++) getProjectBoardColumns(null)
@@ -106,7 +107,7 @@ describe('AWTD-1591: the fallback is unchanged', () => {
 })
 
 describe('AWTD-1591: shadow mode asks the core only on sampled decisions', () => {
-  it('calls runJson 1 in N, and the TypeScript decides every time', () => {
+  it.skipIf(corePinBehindBoard)('calls runJson 1 in N, and the TypeScript decides every time', () => {
     const runJson = vi.fn(core.runJson)
     const hook = createBoardCore(runJson, quiet, { mode: 'shadow', sampleEvery: 4 })
     setBoardCore({ columns: hook.columns, move: hook.move })

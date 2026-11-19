@@ -2710,7 +2710,7 @@
   },
   "board": {
     "status": {
-      "inbox": "受信箱",
+      "inbox": "アイデア",
       "ready": "準備完了",
       "doing": "作業中",
       "waiting": "待機中",

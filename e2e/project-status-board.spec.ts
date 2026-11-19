@@ -25,7 +25,7 @@ async function readTask(request: APIRequestContext, id: string): Promise<ApiTask
 }
 
 test.describe('Project status board', () => {
-  test('shows Inbox/Ready/Doing/Waiting/Done and dragging walks the task through every lane on the server', async ({ page, request }) => {
+  test('shows Waiting/Ideas/Ready/Doing/Done and dragging walks the task through every lane on the server', async ({ page, request }) => {
     const suffix = Date.now()
     const { list } = await postJson<{ list: { id: string } }>(request, '/api/v1/lists', {
       name: `Status board ${suffix}`,
@@ -45,7 +45,8 @@ test.describe('Project status board', () => {
     const board = page.getByTestId('project-status-board')
     await expect(board).toBeVisible()
     for (const [column, label] of [
-      ['inbox', 'Inbox'], ['ready', 'Ready'], ['doing', 'Doing'], ['waiting', 'Waiting'], ['done', 'Done'],
+      // The Inbox column reads "Ideas" (ADEV-132); its id and kind stay `inbox`.
+      ['waiting', 'Waiting'], ['inbox', 'Ideas'], ['ready', 'Ready'], ['doing', 'Doing'], ['done', 'Done'],
     ]) {
       await expect(board.getByTestId(`status-column-${column}`)).toContainText(label)
     }
@@ -56,15 +57,20 @@ test.describe('Project status board', () => {
 
     // About two lanes fit beside the sidebar and chat panel at this width, and
     // a lane half under the chat panel takes the drop on the panel instead. So
-    // walk the card one lane at a time, with its lane scrolled to the left edge.
+    // walk the card between NEIGHBOURING lanes, the left one scrolled to the left
+    // edge. Waiting is the leftmost lane (ADEV-132), beside Ideas, so it is
+    // visited first and left again before the walk goes right.
+    const order = ['waiting', 'inbox', 'ready', 'doing', 'done']
     const steps: Array<[string, string, Pick<ApiTask, 'completed' | 'statusRole'>]> = [
+      ['inbox', 'waiting', { completed: false, statusRole: 'waiting' }],
+      ['waiting', 'inbox', { completed: false, statusRole: null }],
       ['inbox', 'ready', { completed: false, statusRole: 'ready' }],
       ['ready', 'doing', { completed: false, statusRole: 'doing' }],
-      ['doing', 'waiting', { completed: false, statusRole: 'waiting' }],
-      ['waiting', 'done', { completed: true, statusRole: null }],
+      ['doing', 'done', { completed: true, statusRole: null }],
     ]
     for (const [from, to, saved] of steps) {
-      await column(from).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
+      const left = order.indexOf(from) < order.indexOf(to) ? from : to
+      await column(left).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
       await card.dragTo(column(to))
       if (to === 'waiting') {
         // A move into Waiting asks what it waits for (Jon, 2026-11-12). Cancel leaves the card…
@@ -128,12 +134,18 @@ test.describe('Project status board', () => {
     await expect(callout).toContainText(task.title)
     // Nothing opened inside the column.
     await expect(card.locator('[data-task-detail-panel]')).toHaveCount(0)
-    // Beside the card, on the roomier side (Inbox is the leftmost lane), with its arrow.
-    await expect(callout).toHaveAttribute('data-callout-side', 'right')
+    // Beside the card, on whichever side the board found roomier, with its arrow on that side.
+    // Inbox is no longer the leftmost lane (Waiting is, ADEV-132), so the side depends on how
+    // much of the board fits beside the sidebar at this width.
+    const side = await callout.getAttribute('data-callout-side')
+    expect(['left', 'right']).toContain(side)
     const cardBox = (await card.boundingBox())!
     const calloutBox = (await callout.boundingBox())!
-    expect(calloutBox.x).toBeGreaterThanOrEqual(cardBox.x + cardBox.width)
-    await expect(callout.locator('[data-callout-arrow="right"]')).toHaveCount(1)
+    // Its arrow may reach over the card's edge, never over the card's middle.
+    const cardMid = cardBox.x + cardBox.width / 2
+    if (side === 'right') expect(calloutBox.x).toBeGreaterThan(cardMid)
+    else expect(calloutBox.x + calloutBox.width).toBeLessThan(cardMid)
+    await expect(callout.locator(`[data-callout-arrow="${side}"]`)).toHaveCount(1)
 
     // Tapping the open card again closes it, as a row does.
     await card.click()
