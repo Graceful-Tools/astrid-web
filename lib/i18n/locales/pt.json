@@ -2710,7 +2710,7 @@
   },
   "board": {
     "status": {
-      "inbox": "Caixa de entrada",
+      "inbox": "Ideias",
       "ready": "Pronto",
       "doing": "Fazendo",
       "waiting": "Aguardando",

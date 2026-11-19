@@ -125,6 +125,24 @@ describe('a board card opens task details like a list row (AWTD-1653, core DS30,
     expect(document.querySelector('[data-task-detail-panel]')).toBeNull()
   })
 
+  it('ADEV-132: a phone board opens on Inbox (Waiting is to its left); a wide board does not scroll', () => {
+    const scrollIntoView = vi.fn()
+    ;(Element.prototype as unknown as { scrollIntoView: unknown }).scrollIntoView = scrollIntoView
+    try {
+      renderBoard({ isOneColumn: true })
+      expect(scrollIntoView).toHaveBeenCalledTimes(1)
+      const [column] = scrollIntoView.mock.contexts as HTMLElement[]
+      expect(column.getAttribute('data-column-kind')).toBe('inbox')
+      expect(scrollIntoView.mock.calls[0][0]).toMatchObject({ inline: 'start' })
+
+      scrollIntoView.mockClear()
+      renderBoard({ isOneColumn: false })
+      expect(scrollIntoView).not.toHaveBeenCalled()
+    } finally {
+      delete (Element.prototype as unknown as { scrollIntoView?: unknown }).scrollIntoView
+    }
+  })
+
   it('opens it from the keyboard the same way', async () => {
     const u = userEvent.setup()
     const onOpenTask = vi.fn()

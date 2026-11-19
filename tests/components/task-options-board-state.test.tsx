@@ -78,7 +78,7 @@ describe('board state selector (task ffa5bbb5)', () => {
         onStatusSelect={vi.fn()}
       />,
     )
-    for (const name of ['Inbox', 'Ready', 'Doing', 'Waiting', 'Done']) {
+    for (const name of ['Waiting', 'Ideas', 'Ready', 'Doing', 'Done']) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument()
     }
   })
