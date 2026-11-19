@@ -27,6 +27,7 @@ const OWNER_ONLY = [
   'copilot-setup-steps.yml',
   'fixall.yml',
   'fixstuff.yml',
+  'image-tag-published.yml',
   'monitor-deployments.yml',
   'native-copilot-bridge.yml',
   'publish-astrid-sdk.yml',
