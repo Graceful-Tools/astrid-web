@@ -2709,6 +2709,14 @@
     "loadFailed": "Failed to load file"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "This year",
+      "allTime": "All time",
+      "sinceDate": "since {date}",
+      "accessibility": "Done {count}, {period}. Change the period",
+      "pickDate": "Pick a date…",
+      "menuTitle": "Show Done since"
+    },
     "status": {
       "inbox": "Ideas/Inbox",
       "ready": "Ready",

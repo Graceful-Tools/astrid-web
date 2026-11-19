@@ -3,6 +3,7 @@ import { buildTask, buildTaskList } from '../fixtures/domain'
 import { render } from '@testing-library/react'
 import { ProjectStatusBoard } from '@/components/project-status-board'
 import { VIRTUAL_DONE_COLUMN_ID } from '@/lib/project-status'
+import { doneSinceStorageKey } from '@/lib/board-done-since'
 import type { Task, TaskList } from '@/types/task'
 
 const owner = {
@@ -77,6 +78,10 @@ describe("ProjectStatusBoard's Done column honors the list's Recently Completed 
       makeTask({ ...recentCompleted, lists: [domain] }),
     ]
 
+    // The Done period (ADEV-133) defaults to This week; this test is about the
+    // list's window, so it asks for All time.
+    window.localStorage.setItem(doneSinceStorageKey(null, domain.id), JSON.stringify({ kind: 'all_time' }))
+
     const { getByTestId } = render(
       <ProjectStatusBoard
         allTasks={tasks}
@@ -91,5 +96,6 @@ describe("ProjectStatusBoard's Done column honors the list's Recently Completed 
     const doneColumn = getByTestId('status-column-done')
     expect(doneColumn.textContent).toContain('recent-done')
     expect(doneColumn.textContent).toContain('old-done')
+    window.localStorage.removeItem(doneSinceStorageKey(null, domain.id))
   })
 })

@@ -2709,6 +2709,14 @@
     "loadFailed": "檔案載入失敗"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "今年",
+      "allTime": "全部時間",
+      "sinceDate": "自 {date} 起",
+      "accessibility": "已完成 {count}，{period}。變更時段",
+      "pickDate": "選擇日期…",
+      "menuTitle": "顯示已完成自"
+    },
     "status": {
       "inbox": "點子/收件匣",
       "ready": "就緒",

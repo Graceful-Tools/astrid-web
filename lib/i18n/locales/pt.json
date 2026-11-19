@@ -2709,6 +2709,14 @@
     "loadFailed": "Falha ao carregar o arquivo"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "Este ano",
+      "allTime": "Todo o período",
+      "sinceDate": "desde {date}",
+      "accessibility": "Concluído {count}, {period}. Alterar o período",
+      "pickDate": "Escolher uma data…",
+      "menuTitle": "Mostrar Concluído desde"
+    },
     "status": {
       "inbox": "Ideias/Caixa de entrada",
       "ready": "Pronto",
