@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "Adicionar tarefa a {name}",
       "addTaskPlaceholder": "Adicionar uma tarefa",
-      "completedOn": "Concluída em {date}"
+      "completedOn": "Concluída em {date}",
+      "completedPill": "✓ em {date}"
     },
     "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"
   },

@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "{name}에 작업 추가",
       "addTaskPlaceholder": "작업 추가",
-      "completedOn": "{date}에 완료"
+      "completedOn": "{date}에 완료",
+      "completedPill": "✓ {date}"
     },
     "dropToPlaceFirst": "여기에 놓아 첫 번째 작업 배치"
   },

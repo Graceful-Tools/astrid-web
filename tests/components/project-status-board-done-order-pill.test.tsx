@@ -68,7 +68,13 @@ describe("ProjectStatusBoard's Done column", () => {
     const { getByTestId } = renderBoard(domain, [done, open])
 
     const pill = within(getByTestId('status-card-done-task')).getByTestId('board-card-completed-on')
-    expect(pill.textContent).toBe(formatCompletedOnLabel(completedAt, 'en', new Date()))
+    const date = formatCompletedOnLabel(completedAt, 'en', new Date())
+    // A plain U+2713 check, part of the translated text, says the date is the
+    // completion date (Jon, 2026-11-19 follow-up; identical on every client).
+    expect(pill.textContent).toBe(`\u2713 on ${date}`)
+    // Screen readers and the tooltip get the words, not "check mark".
+    expect(pill.getAttribute('aria-label')).toBe(`Completed ${date}`)
+    expect(pill.getAttribute('title')).toBe(`Completed ${date}`)
     // Directly under the title: the title's next sibling.
     expect(pill.previousElementSibling?.className).toContain('task-title')
     expect(within(getByTestId('status-card-open-task')).queryByTestId('board-card-completed-on')).toBeNull()
