@@ -244,7 +244,8 @@
     "assigneeYou": "你",
     "board": {
       "addTaskTo": "向 {name} 添加任务",
-      "addTaskPlaceholder": "添加任务"
+      "addTaskPlaceholder": "添加任务",
+      "completedOn": "完成于 {date}"
     },
     "dropToPlaceFirst": "拖放到此处以放置第一个任务"
   },

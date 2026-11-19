@@ -244,7 +244,8 @@
     "assigneeYou": "Você",
     "board": {
       "addTaskTo": "Adicionar tarefa a {name}",
-      "addTaskPlaceholder": "Adicionar uma tarefa"
+      "addTaskPlaceholder": "Adicionar uma tarefa",
+      "completedOn": "Concluída em {date}"
     },
     "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"
   },
