@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "Aggiungi attività a {name}",
       "addTaskPlaceholder": "Aggiungi un'attività",
-      "completedOn": "Completata il {date}"
+      "completedOn": "Completata il {date}",
+      "completedPill": "✓ il {date}"
     },
     "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"
   },

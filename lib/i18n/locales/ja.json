@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "{name}にタスクを追加",
       "addTaskPlaceholder": "タスクを追加",
-      "completedOn": "{date}に完了"
+      "completedOn": "{date}に完了",
+      "completedPill": "✓ {date}"
     },
     "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
   },

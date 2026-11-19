@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "Taak toevoegen aan {name}",
       "addTaskPlaceholder": "Taak toevoegen",
-      "completedOn": "Voltooid op {date}"
+      "completedOn": "Voltooid op {date}",
+      "completedPill": "✓ op {date}"
     },
     "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
   },
