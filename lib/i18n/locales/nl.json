@@ -244,7 +244,8 @@
     "assigneeYou": "Jij",
     "board": {
       "addTaskTo": "Taak toevoegen aan {name}",
-      "addTaskPlaceholder": "Taak toevoegen"
+      "addTaskPlaceholder": "Taak toevoegen",
+      "completedOn": "Voltooid op {date}"
     },
     "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
   },
