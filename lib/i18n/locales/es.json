@@ -245,7 +245,8 @@
     "board": {
       "addTaskTo": "Añadir tarea a {name}",
       "addTaskPlaceholder": "Añadir una tarea",
-      "completedOn": "Completada el {date}"
+      "completedOn": "Completada el {date}",
+      "completedPill": "✓ el {date}"
     },
     "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea"
   },
