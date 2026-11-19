@@ -859,7 +859,8 @@ own team (AWTD-1280):
    on `github.repository_owner == 'Graceful-Tools'`, so a fork's schedules and events
    skip them and nothing needs deleting (ADEV-103). Delete them anyway if you prefer a
    tidy Actions tab: `agent-run.yml`, `agent-ship.yml`, `astrid-coding-agent.yml`,
-   `copilot-setup-steps.yml`, `fixall.yml`, `fixstuff.yml`, `monitor-deployments.yml`,
+   `copilot-setup-steps.yml`, `fixall.yml`, `fixstuff.yml`, `image-tag-published.yml`,
+   `monitor-deployments.yml`,
    `native-copilot-bridge.yml`, `publish-astrid-sdk.yml` and
    `publish-openclaw-astrid-channel.yml`. To run Astrid's loop on your own boards
    instead, change the owner in those gates and set the repository variable
