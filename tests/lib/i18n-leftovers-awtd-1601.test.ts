@@ -113,7 +113,7 @@ describe('AWTD-1601 dates and times follow the active locale', () => {
 describe('AWTD-1601 board column names and blurbs', () => {
   it('AWTD-1601: built-in columns are translated, in both column builders', () => {
     for (const columns of [getProjectBoardColumns([]), boardColumnsFor(null)]) {
-      expect(columns.map(column => boardColumnLabel(column, tDe))).toEqual(['Wartet', 'Ideen', 'Bereit', 'In Arbeit', 'Erledigt'])
+      expect(columns.map(column => boardColumnLabel(column, tDe))).toEqual(['Wartet', 'Ideen/Posteingang', 'Bereit', 'In Arbeit', 'Erledigt'])
       for (const column of columns) {
         expect(boardColumnBlurb(column, tDe)).not.toBe(column.description)
       }
