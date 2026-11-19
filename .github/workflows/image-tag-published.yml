@@ -1,0 +1,56 @@
+name: 'Image Tag Published'
+
+# ADEV-126: the image tag the docs tell a partner to pull exists on GHCR.
+#
+# Decided (agent, 2026-11-19): run on a schedule and by hand, never on pull
+# requests or pushes to main. A docs PR that bumps the tag lands BEFORE the tag
+# is cut, so a PR or main check would block that merge. The schedule fails until
+# the release is published, which is the alert: it opens (or comments on) an
+# issue. release-image.yml runs the same check as its last job.
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: 'Documented tag exists on GHCR'
+    if: github.repository_owner == 'Graceful-Tools'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check GHCR for the documented tag
+        run: npx tsx scripts/check-image-tag-published.ts
+
+      - name: Open or update an alert issue
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="Documented image tag is not on GHCR"
+          body="The image tag documented in docs/deployment/SELF_HOSTING.md is missing from GHCR. Run: $RUN_URL. Cut the release tag, or fix the docs."
+          existing=$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
