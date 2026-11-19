@@ -9,6 +9,9 @@ import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
 import { sortDoneColumnTasks } from "@/lib/board-done-column"
 import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
+import { BoardDoneSincePicker } from "@/components/board-done-since-picker"
+import { useDoneSince } from "@/hooks/use-done-since"
+import { filterDoneSince } from "@/lib/board-done-since"
 import {
   isTaskRecentlyCompleted,
   type RecentlyCompletedWindow,
@@ -133,6 +136,7 @@ export function ProjectStatusBoard({
     [projectId, customStates],
   )
   const selectedList = lists.find(list => list.id === selectedListId)
+  const [doneSince, setDoneSince] = useDoneSince(currentUser?.id, selectedListId)
 
   // The caller's project-field filter (AWTD-1259). Only a GitHub board has
   // fields, and a stale value resolves to null, so it can never blank a board.
@@ -360,7 +364,8 @@ export function ProjectStatusBoard({
           )
           // Done is newest-completed first whatever the list's sort — the
           // same on every client (lib/board-done-column.ts).
-          const tasksForColumn = isDoneColumn ? sortDoneColumnTasks(inColumn) : inColumn
+          // The period filters the cards as well as the count (ADEV-133).
+          const tasksForColumn = isDoneColumn ? sortDoneColumnTasks(filterDoneSince(inColumn, doneSince)) : inColumn
 
           return (
             <div
@@ -385,9 +390,13 @@ export function ProjectStatusBoard({
                     <p className="mt-1 line-clamp-2 text-xs theme-text-secondary">{boardColumnBlurb(column, t)}</p>
                   ) : null}
                 </div>
-                <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
-                  {tasksForColumn.length}
-                </span>
+                {isDoneColumn ? (
+                  <BoardDoneSincePicker count={tasksForColumn.length} since={doneSince} onChange={setDoneSince} />
+                ) : (
+                  <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
+                    {tasksForColumn.length}
+                  </span>
+                )}
               </div>
 
               <BoardColumnBody

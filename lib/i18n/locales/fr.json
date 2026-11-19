@@ -2709,6 +2709,14 @@
     "loadFailed": "Échec du chargement du fichier"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "Cette année",
+      "allTime": "Depuis toujours",
+      "sinceDate": "depuis le {date}",
+      "accessibility": "Terminé {count}, {period}. Changer la période",
+      "pickDate": "Choisir une date…",
+      "menuTitle": "Afficher Terminé depuis"
+    },
     "status": {
       "inbox": "Idées/Boîte de réception",
       "ready": "Prêt",

@@ -2709,6 +2709,14 @@
     "loadFailed": "No se pudo cargar el archivo"
   },
   "board": {
+    "doneSince": {
+      "thisYear": "Este año",
+      "allTime": "Todo el tiempo",
+      "sinceDate": "desde {date}",
+      "accessibility": "Hecho {count}, {period}. Cambiar el período",
+      "pickDate": "Elegir una fecha…",
+      "menuTitle": "Mostrar Hecho desde"
+    },
     "status": {
       "inbox": "Ideas/Bandeja de entrada",
       "ready": "Listo",
