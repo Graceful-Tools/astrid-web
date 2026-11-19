@@ -2710,7 +2710,7 @@
   },
   "board": {
     "status": {
-      "inbox": "받은 편지함",
+      "inbox": "아이디어",
       "ready": "준비됨",
       "doing": "진행 중",
       "waiting": "대기 중",

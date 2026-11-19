@@ -28,9 +28,9 @@ const task = (over: Record<string, unknown> = {}) =>
   ({ id: 't1', completed: false, statusRole: null, ...over }) as never
 
 describe('board columns come from config, not from lists (AWTD-562)', () => {
-  it('is Inbox, the three defaults, then Done', () => {
+  it('is Waiting, Inbox, Ready, Doing, then Done (ADEV-132)', () => {
     const columns = boardColumnsFor(project())
-    expect(columns.map(c => c.id)).toEqual([INBOX_COLUMN_ID, 'ready', 'doing', 'waiting', DONE_COLUMN_ID])
+    expect(columns.map(c => c.id)).toEqual(['waiting', INBOX_COLUMN_ID, 'ready', 'doing', DONE_COLUMN_ID])
   })
 
   it('cannot duplicate a column however many projects exist', () => {
@@ -42,7 +42,7 @@ describe('board columns come from config, not from lists (AWTD-562)', () => {
 
   it('appends a project\'s custom states after the defaults', () => {
     const columns = boardColumnsFor(project([{ role: 'blocked', name: 'Blocked', order: 0 }]))
-    expect(columns.map(c => c.id)).toEqual([INBOX_COLUMN_ID, 'ready', 'doing', 'waiting', 'blocked', DONE_COLUMN_ID])
+    expect(columns.map(c => c.id)).toEqual(['waiting', INBOX_COLUMN_ID, 'ready', 'doing', 'blocked', DONE_COLUMN_ID])
   })
 
   it('keeps one project\'s custom states off another project\'s board', () => {

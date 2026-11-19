@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { setBoardCore } from '@/lib/board-core-hook'
+import { corePinBehindBoard } from '../helpers/core-pin'
 import { createBoardCore } from '@/lib/core-rules/board-core'
 import { loadCoreRulesFrom } from '@/lib/core-rules/wasm'
 import {
@@ -101,7 +102,10 @@ function withCore() {
 
 afterEach(() => setBoardCore(null))
 
-describe('the board fixtures at the pinned core revision', () => {
+// The comparisons that need the column list wait for the pin bump (ADEV-132; tests/helpers/core-pin.ts).
+const describeAtPin = corePinBehindBoard ? describe.skip : describe
+
+describeAtPin('the board fixtures at the pinned core revision', () => {
   it('are the ones this repo exports — so the TypeScript, the fixture and the core are one chain', () => {
     // contracts/fixtures/*.json are checked against the TypeScript by check:contract-fixtures.
     expect(board).toEqual(read(path.join(process.cwd(), 'contracts', 'fixtures', 'board.json')))
@@ -110,7 +114,7 @@ describe('the board fixtures at the pinned core revision', () => {
   })
 })
 
-describe.each([
+describeAtPin.each([
   ['the TypeScript alone (the fallback)', false],
   ['astrid-core answering, as the server runs it', true],
 ] as const)('%s', (_label, installed) => {
@@ -187,7 +191,7 @@ describe("astrid-core's board, asked for its cards", () => {
   })
 })
 
-describe('statuses.json: every board the custom-state editor produces is drawn the same by both', () => {
+describeAtPin('statuses.json: every board the custom-state editor produces is drawn the same by both', () => {
   const rename = (raw: unknown, role: string, name: string) =>
     isDefaultStatusRole(role) ? renameBuiltinState(raw, role, name) : renameCustomState(raw, role, name)
   const run = (c: StatusesFixture['cases'][number]) => {

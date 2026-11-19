@@ -98,7 +98,7 @@ describe('GET /api/v1/lists/:id/insights (AWTD-1329)', () => {
     })
     const { insights } = await (await get()).json()
     expect(insights.lanes.map((lane: { role: string }) => lane.role)).toEqual([
-      'inbox', 'ready', 'doing', 'waiting', 'review',
+      'waiting', 'inbox', 'ready', 'doing', 'review',
     ])
   })
 
