@@ -57,9 +57,19 @@ describe('release-image.yml (AWTD-1464)', () => {
 
   it('AWTD-1464 keeps the default token read-only and grants packages: write to the publish job alone', () => {
     expect(topLevelBlock(workflow, 'permissions').trim()).toMatch(/^permissions:\n\s+contents: read$/)
-    expect(workflow.match(/packages: write/g)).toHaveLength(1)
-    const publish = workflow.slice(workflow.indexOf('  publish:'), workflow.indexOf('  smoke:'))
-    expect(publish).toMatch(/packages: write/)
+    // ADEV-125: the build (per platform) and merge (manifest list) jobs push; smoke only reads.
+    expect(workflow.match(/packages: write/g)).toHaveLength(2)
+    const publish = workflow.slice(workflow.indexOf('  build:'), workflow.indexOf('  smoke:'))
+    expect(publish.match(/packages: write/g)).toHaveLength(2)
+  })
+
+  it('ADEV-125 publishes amd64 and arm64 as one manifest, and the smoke job checks both', () => {
+    expect(workflow).toMatch(/linux\/amd64/)
+    expect(workflow).toMatch(/linux\/arm64/)
+    expect(workflow).toMatch(/ubuntu-26\.04-arm/)
+    expect(workflow).toMatch(/imagetools create/)
+    const smoke = workflow.slice(workflow.indexOf('  smoke:'))
+    expect(smoke).toMatch(/linux\/arm64/)
   })
 
   it('AWTD-1464 pushes the app and the migrator to GHCR, each with an SBOM', () => {
@@ -77,7 +87,7 @@ describe('release-image.yml (AWTD-1464)', () => {
 
   it('AWTD-1464 smoke-tests the pulled image without building anything', () => {
     const smoke = workflow.slice(workflow.indexOf('  smoke:'))
-    expect(smoke).toMatch(/needs: publish/)
+    expect(smoke).toMatch(/needs: merge/)
     expect(smoke).toMatch(/pull migrate app/)
     expect(smoke).toMatch(/up -d --no-build/)
     expect(smoke).not.toMatch(/--build\b(?!-)/)
