@@ -25,7 +25,7 @@ async function readTask(request: APIRequestContext, id: string): Promise<ApiTask
 }
 
 test.describe('Project status board', () => {
-  test('shows Inbox/Ready/Doing/Waiting/Done and dragging walks the task through every lane on the server', async ({ page, request }) => {
+  test('shows Waiting/Ideas/Ready/Doing/Done and dragging walks the task through every lane on the server', async ({ page, request }) => {
     const suffix = Date.now()
     const { list } = await postJson<{ list: { id: string } }>(request, '/api/v1/lists', {
       name: `Status board ${suffix}`,
@@ -45,7 +45,8 @@ test.describe('Project status board', () => {
     const board = page.getByTestId('project-status-board')
     await expect(board).toBeVisible()
     for (const [column, label] of [
-      ['inbox', 'Inbox'], ['ready', 'Ready'], ['doing', 'Doing'], ['waiting', 'Waiting'], ['done', 'Done'],
+      // The Inbox column reads "Ideas" (ADEV-132); its id and kind stay `inbox`.
+      ['waiting', 'Waiting'], ['inbox', 'Ideas'], ['ready', 'Ready'], ['doing', 'Doing'], ['done', 'Done'],
     ]) {
       await expect(board.getByTestId(`status-column-${column}`)).toContainText(label)
     }
@@ -128,12 +129,16 @@ test.describe('Project status board', () => {
     await expect(callout).toContainText(task.title)
     // Nothing opened inside the column.
     await expect(card.locator('[data-task-detail-panel]')).toHaveCount(0)
-    // Beside the card, on the roomier side (Inbox is the leftmost lane), with its arrow.
-    await expect(callout).toHaveAttribute('data-callout-side', 'right')
+    // Beside the card, on whichever side the board found roomier, with its arrow on that side.
+    // Inbox is no longer the leftmost lane (Waiting is, ADEV-132), so the side depends on how
+    // much of the board fits beside the sidebar at this width.
+    const side = await callout.getAttribute('data-callout-side')
+    expect(['left', 'right']).toContain(side)
     const cardBox = (await card.boundingBox())!
     const calloutBox = (await callout.boundingBox())!
-    expect(calloutBox.x).toBeGreaterThanOrEqual(cardBox.x + cardBox.width)
-    await expect(callout.locator('[data-callout-arrow="right"]')).toHaveCount(1)
+    if (side === 'right') expect(calloutBox.x).toBeGreaterThanOrEqual(cardBox.x + cardBox.width - 1)
+    else expect(calloutBox.x + calloutBox.width).toBeLessThanOrEqual(cardBox.x + 1)
+    await expect(callout.locator(`[data-callout-arrow="${side}"]`)).toHaveCount(1)
 
     // Tapping the open card again closes it, as a row does.
     await card.click()
