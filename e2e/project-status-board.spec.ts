@@ -57,15 +57,20 @@ test.describe('Project status board', () => {
 
     // About two lanes fit beside the sidebar and chat panel at this width, and
     // a lane half under the chat panel takes the drop on the panel instead. So
-    // walk the card one lane at a time, with its lane scrolled to the left edge.
+    // walk the card between NEIGHBOURING lanes, the left one scrolled to the left
+    // edge. Waiting is the leftmost lane (ADEV-132), beside Ideas, so it is
+    // visited first and left again before the walk goes right.
+    const order = ['waiting', 'inbox', 'ready', 'doing', 'done']
     const steps: Array<[string, string, Pick<ApiTask, 'completed' | 'statusRole'>]> = [
+      ['inbox', 'waiting', { completed: false, statusRole: 'waiting' }],
+      ['waiting', 'inbox', { completed: false, statusRole: null }],
       ['inbox', 'ready', { completed: false, statusRole: 'ready' }],
       ['ready', 'doing', { completed: false, statusRole: 'doing' }],
-      ['doing', 'waiting', { completed: false, statusRole: 'waiting' }],
-      ['waiting', 'done', { completed: true, statusRole: null }],
+      ['doing', 'done', { completed: true, statusRole: null }],
     ]
     for (const [from, to, saved] of steps) {
-      await column(from).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
+      const left = order.indexOf(from) < order.indexOf(to) ? from : to
+      await column(left).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
       await card.dragTo(column(to))
       if (to === 'waiting') {
         // A move into Waiting asks what it waits for (Jon, 2026-11-12). Cancel leaves the card…
@@ -136,8 +141,10 @@ test.describe('Project status board', () => {
     expect(['left', 'right']).toContain(side)
     const cardBox = (await card.boundingBox())!
     const calloutBox = (await callout.boundingBox())!
-    if (side === 'right') expect(calloutBox.x).toBeGreaterThanOrEqual(cardBox.x + cardBox.width - 1)
-    else expect(calloutBox.x + calloutBox.width).toBeLessThanOrEqual(cardBox.x + 1)
+    // Its arrow may reach over the card's edge, never over the card's middle.
+    const cardMid = cardBox.x + cardBox.width / 2
+    if (side === 'right') expect(calloutBox.x).toBeGreaterThan(cardMid)
+    else expect(calloutBox.x + calloutBox.width).toBeLessThan(cardMid)
     await expect(callout.locator(`[data-callout-arrow="${side}"]`)).toHaveCount(1)
 
     // Tapping the open card again closes it, as a row does.
