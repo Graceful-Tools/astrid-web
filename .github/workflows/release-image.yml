@@ -312,7 +312,7 @@ jobs:
   # released tag exists. Tags only; :edge is not documented.
   published:
     name: 'Released tag is on GHCR'
-    needs: [publish, smoke]
+    needs: [merge, smoke]
     if: github.ref_type == 'tag'
     runs-on: ubuntu-26.04
     timeout-minutes: 10
@@ -333,5 +333,5 @@ jobs:
 
       - name: Check the released tag on GHCR
         env:
-          VERSION: ${{ needs.publish.outputs.version }}
+          VERSION: ${{ needs.merge.outputs.version }}
         run: npx tsx scripts/check-image-tag-published.ts "$VERSION"
