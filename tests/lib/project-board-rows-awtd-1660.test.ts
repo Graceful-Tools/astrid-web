@@ -153,4 +153,20 @@ describe('grouping cards into swimlanes (AWTD-1660)', () => {
     ], columns, { now })
     expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id)).toEqual(['new'])
   })
+
+  it('orders Done newest-completed first, whatever the row list\'s manual order (2026-11-19)', () => {
+    const rows = [list('web', {
+      projectId: 'p1',
+      sortBy: 'manual',
+      manualSortOrder: ['oldest', 'newest', 'middle'],
+      recentlyCompletedWindow: { kind: 'duration', amount: 30, unit: 'day' },
+    } as unknown as Partial<TaskList>)]
+    const now = new Date('2026-06-10T12:00:00Z')
+    const lanes = buildSwimlanes(rows, [
+      task('oldest', ['web'], { completed: true, completedAt: new Date('2026-06-01T00:00:00Z') } as Partial<Task>),
+      task('newest', ['web'], { completed: true, completedAt: new Date('2026-06-10T11:00:00Z') } as Partial<Task>),
+      task('middle', ['web'], { completed: true, completedAt: new Date('2026-06-05T00:00:00Z') } as Partial<Task>),
+    ], columns, { now })
+    expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id)).toEqual(['newest', 'middle', 'oldest'])
+  })
 })

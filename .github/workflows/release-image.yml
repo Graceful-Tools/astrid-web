@@ -7,8 +7,9 @@ name: 'Release Image'
 #   ghcr.io/graceful-tools/astrid-web:<version>            the app (target runner)
 #   ghcr.io/graceful-tools/astrid-web:<version>-migrator   `prisma migrate deploy`, run first
 #
-# <version> is the git tag without its `v` (v1.4.0 → 1.4.0). Each image carries
-# an SBOM and a provenance attestation in the registry.
+# <version> is the git tag without its `v` (v1.4.0 → 1.4.0). Each tag is a
+# multi-arch manifest, linux/amd64 and linux/arm64 (ADEV-125), and each platform's
+# image carries its own SBOM and provenance attestation in the registry.
 #
 # One image, many brands (AWTD-1587, AWTD-1606): the image reads its brand when it
 # starts, so the bare tag is the ONLY image a partner needs. They mount their profile
@@ -20,15 +21,15 @@ name: 'Release Image'
 # - A `v*` tag. Tags are cut from main by hand, with CHANGELOG.md as the notes
 #   (SELF_HOSTING.md, "Releases"). Cutting one is a release decision.
 # - Run workflow from main publishes `:edge`. Deliberately NOT on every push to
-#   main: each run builds a Next.js image (~15 min of runner time),
-#   and nobody should run `:edge` in production. Dispatched from any other ref,
-#   it refuses rather than publishing a branch as edge.
+#   main: each run builds a Next.js image per platform (~15 min of runner time
+#   each), and nobody should run `:edge` in production. Dispatched from any other
+#   ref, it refuses rather than publishing a branch as edge.
 on:
   push:
     tags: ['v*']
   workflow_dispatch:
 
-# Least privilege at the top; only the publish job may write packages.
+# Least privilege at the top; only the publish jobs may write packages.
 permissions:
   contents: read
 
@@ -40,9 +41,13 @@ env:
   IMAGE: ghcr.io/graceful-tools/astrid-web
 
 jobs:
-  publish:
-    name: 'Build and push (${{ matrix.brand }})'
-    runs-on: ubuntu-26.04
+  # One build per platform, each on a runner of its own architecture: a Next.js
+  # build under QEMU would be far too slow. Every platform image is pushed by
+  # digest (no tag) with its own SBOM and provenance, and `merge` then stitches
+  # the digests into the one multi-arch tag a partner pulls (ADEV-125).
+  build:
+    name: 'Build (${{ matrix.brand }}, ${{ matrix.platform }})'
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -56,8 +61,10 @@ jobs:
         # brand built in as its default. Nothing needs one; the path stays only
         # for a partner who must run with no mount at all.
         brand: [astrid]
-    outputs:
-      version: ${{ steps.version.outputs.version }}
+        platform: [linux/amd64, linux/arm64]
+        include:
+          - { platform: linux/amd64, runner: ubuntu-26.04 }
+          - { platform: linux/arm64, runner: ubuntu-26.04-arm }
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -68,6 +75,7 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
           BRAND: ${{ matrix.brand }}
+          PLATFORM: ${{ matrix.platform }}
         run: |
           if [ "$REF_TYPE" = tag ]; then
             version="${REF_NAME#v}"
@@ -77,14 +85,12 @@ jobs:
             echo "::error::Run this from main (publishes :edge) or push a v* tag. Not publishing '$REF_NAME'."
             exit 1
           fi
-          suffix=""
           build_brand=""
-          if [ "$BRAND" != astrid ]; then suffix="-$BRAND"; build_brand="$BRAND"; fi
+          if [ "$BRAND" != astrid ]; then build_brand="$BRAND"; fi
           {
             echo "version=$version"
-            echo "app=${IMAGE}:${version}${suffix}"
-            echo "migrator=${IMAGE}:${version}${suffix}-migrator"
             echo "build_brand=$build_brand"
+            echo "pair=${BRAND}-${PLATFORM#linux/}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Set up Buildx
@@ -100,29 +106,29 @@ jobs:
       # The migrator is the deps stage plus prisma: brand-independent, but
       # published beside each app tag so an upgrade pulls one matching pair.
       - name: Migrator image
+        id: migrator
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           target: migrator
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.version.outputs.migrator }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           sbom: true
           provenance: mode=max
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-          cache-from: type=gha,scope=release-${{ matrix.brand }}
-          cache-to: type=gha,mode=max,scope=release-${{ matrix.brand }}
+          cache-from: type=gha,scope=release-${{ steps.version.outputs.pair }}
+          cache-to: type=gha,mode=max,scope=release-${{ steps.version.outputs.pair }}
 
       - name: App image
+        id: app
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.version.outputs.app }}
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
           build-args: |
             BRAND=${{ steps.version.outputs.build_brand }}
             GIT_COMMIT_SHA=${{ github.sha }}
@@ -132,14 +138,101 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.version=${{ steps.version.outputs.version }}
-          cache-from: type=gha,scope=release-${{ matrix.brand }}
-          cache-to: type=gha,mode=max,scope=release-${{ matrix.brand }}
+          cache-from: type=gha,scope=release-${{ steps.version.outputs.pair }}
+          cache-to: type=gha,mode=max,scope=release-${{ steps.version.outputs.pair }}
+
+      - name: Record the digests
+        env:
+          MIGRATOR_DIGEST: ${{ steps.migrator.outputs.digest }}
+          APP_DIGEST: ${{ steps.app.outputs.digest }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/digests"
+          touch "${RUNNER_TEMP}/digests/app-${APP_DIGEST#sha256:}" "${RUNNER_TEMP}/digests/migrator-${MIGRATOR_DIGEST#sha256:}"
+
+      - name: Upload the digests
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: digests-${{ steps.version.outputs.pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    name: 'Publish multi-arch tags (${{ matrix.brand }})'
+    needs: build
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        brand: [astrid]
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Work out the tags
+        id: version
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          BRAND: ${{ matrix.brand }}
+        run: |
+          if [ "$REF_TYPE" = tag ]; then version="${REF_NAME#v}"; else version=edge; fi
+          suffix=""
+          if [ "$BRAND" != astrid ]; then suffix="-$BRAND"; fi
+          {
+            echo "version=$version"
+            echo "app=${IMAGE}:${version}${suffix}"
+            echo "migrator=${IMAGE}:${version}${suffix}-migrator"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Download the digests
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-${{ matrix.brand }}-*
+          merge-multiple: true
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Each platform's SBOM and provenance ride along inside its own digest.
+      - name: Create the manifest lists
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          APP_TAG: ${{ steps.version.outputs.app }}
+          MIGRATOR_TAG: ${{ steps.version.outputs.migrator }}
+        run: |
+          for kind in app migrator; do
+            tag="$APP_TAG"; [ "$kind" = migrator ] && tag="$MIGRATOR_TAG"
+            sources=$(for f in "$kind"-*; do echo "${IMAGE}@sha256:${f#"$kind"-}"; done)
+            [ "$(echo "$sources" | wc -l)" -eq 2 ] || { echo "::error::Expected 2 platform digests for $kind"; exit 1; }
+            # shellcheck disable=SC2086
+            docker buildx imagetools create --tag "$tag" $sources
+          done
+
+      - name: Show the result
+        env:
+          APP_TAG: ${{ steps.version.outputs.app }}
+          MIGRATOR_TAG: ${{ steps.version.outputs.migrator }}
+        run: |
+          docker buildx imagetools inspect "$APP_TAG"
+          docker buildx imagetools inspect "$MIGRATOR_TAG"
 
   # The acceptance test for a release: the compose stack runs the PUBLISHED pair,
   # pulled from GHCR, with nothing built locally — what a partner does.
   smoke:
     name: 'Pull and smoke-test the published image'
-    needs: publish
+    needs: merge
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
@@ -165,9 +258,26 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Both platforms must be in the published manifests (ADEV-125). The stack
+      # below runs the runner's own (amd64) image; arm64 is proven by presence.
+      - name: Check the manifests list amd64 and arm64
+        env:
+          VERSION: ${{ needs.merge.outputs.version }}
+        run: |
+          for image in "${IMAGE}:${VERSION}" "${IMAGE}:${VERSION}-migrator"; do
+            platforms=$(docker buildx imagetools inspect "$image" --format '{{range .Manifest.Manifests}}{{.Platform.OS}}/{{.Platform.Architecture}} {{end}}')
+            echo "$image: $platforms"
+            for want in linux/amd64 linux/arm64; do
+              case " $platforms " in
+                *" $want "*) ;;
+                *) echo "::error::$image has no $want manifest"; exit 1 ;;
+              esac
+            done
+          done
+
       - name: Write the stack's settings
         env:
-          VERSION: ${{ needs.publish.outputs.version }}
+          VERSION: ${{ needs.merge.outputs.version }}
         run: |
           {
             echo "IMAGE=${IMAGE}"

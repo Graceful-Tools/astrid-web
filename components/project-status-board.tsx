@@ -7,6 +7,8 @@ import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
+import { sortDoneColumnTasks } from "@/lib/board-done-column"
+import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
 import {
   isTaskRecentlyCompleted,
   type RecentlyCompletedWindow,
@@ -337,10 +339,13 @@ export function ProjectStatusBoard({
         */}
         <div className={`flex h-full gap-3 ${isOneColumn ? "" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
-          const tasksForColumn = boardTasks.filter(task =>
+          const isDoneColumn = column.kind === 'done'
+          const inColumn = boardTasks.filter(task =>
             getTaskProjectColumnId(task, columns) === column.id
           )
-          const isDoneColumn = column.kind === 'done'
+          // Done is newest-completed first whatever the list's sort — the
+          // same on every client (lib/board-done-column.ts).
+          const tasksForColumn = isDoneColumn ? sortDoneColumnTasks(inColumn) : inColumn
 
           return (
             <div
@@ -436,6 +441,7 @@ export function ProjectStatusBoard({
                         onCopyPublic={handleCopyPublic}
                         identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
                         currentListId={selectedListId}
+                        belowTitle={isDoneColumn ? <BoardCompletedOnPill task={task} /> : null}
                         /* Someone else's card opens the sheet (AWTD-877) —
                            it is the only route to reassign, reprioritise or
                            move it, and to a completion that asks first. An

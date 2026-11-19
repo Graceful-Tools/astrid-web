@@ -244,7 +244,9 @@
     "assigneeYou": "You",
     "board": {
       "addTaskTo": "Add task to {name}",
-      "addTaskPlaceholder": "Add a task"
+      "addTaskPlaceholder": "Add a task",
+      "completedOn": "Completed {date}",
+      "completedPill": "✓ on {date}"
     },
     "dropToPlaceFirst": "Drop here to place the first task"
   },

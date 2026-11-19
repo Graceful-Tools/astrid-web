@@ -83,6 +83,33 @@ describe('CommentSection', () => {
     }))
   })
 
+  describe('Completion history (ADEV-129)', () => {
+    const completionComment = {
+      id: 'comment-done',
+      content: 'Test User marked this as complete',
+      type: 'TEXT' as const,
+      author: null,
+      authorId: null,
+      systemEventType: 'COMPLETED',
+      taskId: 'task-1',
+      createdAt: new Date('2025-01-02T10:00:00Z'),
+      updatedAt: new Date('2025-01-02T10:00:00Z'),
+      replies: [],
+    }
+
+    it('ADEV-129: shows the completion comment by default on a completed task', () => {
+      const task = { ...mockTask, completed: true, comments: [...mockTask.comments!, completionComment] } as Task
+      render(<CommentSection {...defaultProps} task={task} />)
+      expect(screen.getByText(/Test User marked this as complete/)).toBeInTheDocument()
+    })
+
+    it('keeps system comments hidden by default on an open task', () => {
+      const task = { ...mockTask, completed: false, comments: [...mockTask.comments!, completionComment] } as Task
+      render(<CommentSection {...defaultProps} task={task} />)
+      expect(screen.queryByText(/Test User marked this as complete/)).not.toBeInTheDocument()
+    })
+  })
+
   describe('Rendering', () => {
     it('should render comments section with comment count', () => {
       render(<CommentSection {...defaultProps} />)

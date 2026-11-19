@@ -116,7 +116,10 @@ export function CommentSection({
   agentTyping,
 }: CommentSectionProps) {
   const { t } = useTranslations()
-  const [showSystemComments, setShowSystemComments] = useState(false)
+  // A completed task opens with its system comments showing: "marked this as
+  // complete" is the completion history, and hiding it left a done task's
+  // thread looking like nothing had happened (ADEV-129). Open tasks stay quiet.
+  const [showSystemComments, setShowSystemComments] = useState(Boolean(task.completed))
   // Task ids in comments autolink; #N means this task's project (AWTD-1017).
   const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
   // The comment editor holds a pending buffer, so it registers a hand-off
