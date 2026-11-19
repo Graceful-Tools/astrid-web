@@ -45,6 +45,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TaskRowContent } from "@/components/task-row-content"
+import { doneCompletionDate } from "@/lib/board-done-column"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
@@ -366,6 +367,7 @@ export function ProjectBoard({
                               onCopyPublic={() => {}}
                               identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
                               currentListId={lane.list.id}
+                              completedOn={column.kind === "done" ? doneCompletionDate(task) : null}
                               onOpenOptions={
                                 isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
                                   ? () => setOptionsTaskId(task.id)
