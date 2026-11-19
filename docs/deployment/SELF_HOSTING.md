@@ -269,7 +269,7 @@ release is a pair of images:
 
 `<version>` is a semver release such as `1.4.0`. Each image carries an SBOM and a
 provenance attestation (`docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`).
-`:edge` is the latest build of `main`, published only when someone runs the workflow by
+Both images are multi-arch manifests for **linux/amd64 and linux/arm64** (Apple Silicon, Graviton and Ampere VMs, Raspberry Pi-class hosts), so `docker pull` picks the right one. Each platform carries its own SBOM and provenance. `:edge` is the latest build of `main`, published only when someone runs the workflow by
 hand. Do not run it in production.
 
 The published images are built with **Astrid's default brand**, and they take any brand at
@@ -362,7 +362,9 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
 
 - **Only one SSO provider (OIDC) per deployment.** Per-organisation SSO is a partner build:
   WHITELABELING §3.
-- **The image builds on linux/amd64 and linux/arm64.** CI exercises amd64.
+- **Images are published for linux/amd64 and linux/arm64.** CI (`self-host.yml`) boots and
+  smoke-tests amd64 only. A release checks that both platforms are in the manifest; arm64
+  is built natively but not booted.
 - **Default-locale paths do not redirect-loop in the image.** A standalone `next start`
   run from a checkout and reached as `localhost` was seen to 307-loop on `/terms` and
   `/en/terms`. The container does not (AWTD-1606): `/terms` answers 200, and `/en/terms`

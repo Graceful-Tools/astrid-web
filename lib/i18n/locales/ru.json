@@ -244,7 +244,9 @@
     "assigneeYou": "Вы",
     "board": {
       "addTaskTo": "Добавить задачу в «{name}»",
-      "addTaskPlaceholder": "Добавить задачу"
+      "addTaskPlaceholder": "Добавить задачу",
+      "completedOn": "Выполнено {date}",
+      "completedPill": "✓ {date}"
     },
     "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу"
   },
