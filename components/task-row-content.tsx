@@ -11,7 +11,6 @@ import { chipLabelText, listsShownOnRow, splitTaskLists } from "@/lib/list-flavo
 import { useTranslations } from "@/lib/i18n/client"
 import { boardStatusClass, boardStatusNameKey, type TaskBoardStatus } from "@/lib/task-board-status"
 import { formatClockTime } from "@/lib/i18n/date-format"
-import { completedOnDay, formatCompletedOnLabel } from "@/lib/board-done-column"
 import type { Task } from "@/types/task"
 
 export interface TaskRowContentProps {
@@ -37,9 +36,10 @@ export interface TaskRowContentProps {
    *  LIST rows only (AWTD-1582). A board card never passes one: its column
    *  header already says it. */
   boardStatus?: TaskBoardStatus | null
-  /** When the task was completed, drawn as a pill directly under the title —
-   *  board cards in the Done column only (Jon, 2026-11-19; every client). */
-  completedOn?: Date | null
+  /** Drawn directly under the title. Board Done cards pass their completed-on
+   *  pill (components/board-completed-on-pill.tsx). A slot, not a date, so the
+   *  pill's code stays in the lazily loaded board chunks (initial-JS budget). */
+  belowTitle?: React.ReactNode
 }
 
 export function TaskRowContent({
@@ -54,7 +54,7 @@ export function TaskRowContent({
   identifier,
   currentListId,
   boardStatus,
-  completedOn,
+  belowTitle,
 }: TaskRowContentProps) {
   const { t, locale } = useTranslations()
   // Split memberships once: lists are destinations, labels are tags
@@ -65,7 +65,6 @@ export function TaskRowContent({
   const boardStatusName = boardStatus
     ? boardStatus.boardName ?? t(boardStatusNameKey(boardStatus.kind) ?? "")
     : null
-  const completedOnLabel = completedOn ? formatCompletedOnLabel(completedOn, locale) : null
   return (
     <>
       {isPublicListTask(task) ? (
@@ -104,17 +103,7 @@ export function TaskRowContent({
           )}
         </div>
 
-        {completedOn && completedOnLabel && (
-          <time
-            dateTime={completedOnDay(completedOn)}
-            className="mt-1 inline-flex rounded-full theme-bg-hover px-2 py-0.5 text-xs theme-text-secondary"
-            data-testid="board-card-completed-on"
-            aria-label={t("tasks.board.completedOn", { date: completedOnLabel })}
-            title={t("tasks.board.completedOn", { date: completedOnLabel })}
-          >
-            {completedOnLabel}
-          </time>
-        )}
+        {belowTitle}
 
         {(identifier || (task.dueDateTime && !shouldHideTaskWhen(task)) || boardStatusName || domainLists.length > 0 || labels.length > 0) && (
           <div className="flex items-center mt-1 gap-2">

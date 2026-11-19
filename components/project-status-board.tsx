@@ -7,7 +7,8 @@ import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
-import { doneCompletionDate, sortDoneColumnTasks } from "@/lib/board-done-column"
+import { sortDoneColumnTasks } from "@/lib/board-done-column"
+import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
 import {
   isTaskRecentlyCompleted,
   type RecentlyCompletedWindow,
@@ -440,7 +441,7 @@ export function ProjectStatusBoard({
                         onCopyPublic={handleCopyPublic}
                         identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
                         currentListId={selectedListId}
-                        completedOn={isDoneColumn ? doneCompletionDate(task) : null}
+                        belowTitle={isDoneColumn ? <BoardCompletedOnPill task={task} /> : null}
                         /* Someone else's card opens the sheet (AWTD-877) —
                            it is the only route to reassign, reprioritise or
                            move it, and to a completion that asks first. An
