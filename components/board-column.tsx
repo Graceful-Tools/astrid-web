@@ -6,6 +6,7 @@
  * that windows its cards past the shared threshold, the quick-add bar and the
  * empty state. Sizing is the list board's, so both boards read the same.
  */
+import { Pill } from "@/components/ui/pill"
 import React from "react"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
@@ -149,9 +150,7 @@ export function BoardColumn({
         {isDoneColumn && doneSince && onDoneSinceChange ? (
           <BoardDoneSincePicker count={tasks.length} since={doneSince} onChange={onDoneSinceChange} />
         ) : (
-          <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
-            {tasks.length}
-          </span>
+          <Pill className="min-w-6 justify-center">{tasks.length}</Pill>
         )}
       </div>
 

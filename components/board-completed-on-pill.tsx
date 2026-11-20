@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { pillClassName } from "@/components/ui/pill"
 import { useTranslations } from "@/lib/i18n/client"
 import { completedOnDay, doneCompletionDate, formatCompletedOnLabel } from "@/lib/board-done-column"
 
@@ -20,7 +21,7 @@ export function BoardCompletedOnPill({ task }: {
   return (
     <time
       dateTime={completedOnDay(date)}
-      className="mt-1 inline-flex rounded-full theme-bg-hover px-2 py-0.5 text-xs theme-text-secondary"
+      className={pillClassName("done", "mt-1")}
       data-testid="board-card-completed-on"
       aria-label={description}
       title={description}
