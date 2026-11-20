@@ -89,11 +89,11 @@
      it is white. Primary is the text colour on its inverse, as shadcn drew it;
      the brand accent is `brand` in the Tailwind theme, not `primary`. */
   :root {
-    --background: var(--theme-surface);
+    --background: var(--astrid-surface);
     --foreground: var(--astrid-text-primary);
-    --card: var(--theme-surface);
+    --card: var(--astrid-surface);
     --card-foreground: var(--astrid-text-primary);
-    --popover: var(--theme-surface);
+    --popover: var(--astrid-surface);
     --popover-foreground: var(--astrid-text-primary);
     --primary: var(--astrid-text-primary);
     --primary-foreground: var(--astrid-text-inverted);
@@ -101,11 +101,11 @@
     --secondary-foreground: var(--astrid-text-primary);
     --muted: var(--astrid-bg-tertiary);
     --muted-foreground: var(--astrid-text-muted);
-    --accent: var(--theme-surface-hover);
+    --accent: var(--astrid-surface-hover);
     --accent-foreground: var(--astrid-text-primary);
     --destructive: var(--astrid-error);
     --destructive-foreground: var(--astrid-accent-text);
-    --border: var(--theme-surface-border);
+    --border: var(--astrid-surface-border);
     --input: var(--astrid-border-input);
     --ring: var(--astrid-border-focus);
     --chart-1: var(--astrid-palette-list-1);
@@ -114,11 +114,11 @@
     --chart-4: var(--astrid-palette-list-4);
     --chart-5: var(--astrid-palette-list-5);
     --radius: 0.625rem;
-    --sidebar-background: var(--theme-sidebar-bg);
+    --sidebar-background: var(--astrid-sidebar-bg);
     --sidebar-foreground: var(--astrid-text-secondary);
     --sidebar-primary: var(--astrid-text-primary);
     --sidebar-primary-foreground: var(--astrid-text-inverted);
-    --sidebar-accent: var(--theme-surface-hover);
+    --sidebar-accent: var(--astrid-surface-hover);
     --sidebar-accent-foreground: var(--astrid-text-primary);
     --sidebar-border: var(--theme-sidebar-border);
     --sidebar-ring: var(--astrid-border-focus);

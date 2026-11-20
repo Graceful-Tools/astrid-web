@@ -370,12 +370,12 @@ has a name below.
 | Text on the opposite surface; on a selected row | `text-theme-inverted`, `text-theme-selected` | `text-inverted`, `text-selected` |
 | Placeholder | `placeholder:text-theme-placeholder` | `input-placeholder` |
 | The page | `bg-theme-primary` | `bg-primary` |
-| A card, dialog or menu on the page | `bg-theme-surface` | web-only `--theme-surface` |
+| A card, dialog or menu on the page | `bg-theme-surface` | the `surface` token |
 | Secondary and tertiary surfaces | `bg-theme-secondary`, `bg-theme-tertiary` | `bg-secondary`, `bg-tertiary` |
-| Hover, pressed, selected | `hover:bg-theme-hover`, `active:bg-theme-active` or `bg-theme-active`, `bg-theme-selected` | web-only `--theme-surface-hover`, `bg-active`, `bg-selected` |
+| Hover, pressed, selected | `hover:bg-theme-hover`, `active:bg-theme-active` or `bg-theme-active`, `bg-theme-selected` | the `surface-hover` token, `bg-active`, `bg-selected` |
 | An input; a neutral button and its hover; the header | `bg-theme-input`, `bg-theme-button`, `hover:bg-theme-button-hover`, `bg-theme-header` | `input-bg`, `button-bg`, `button-hover`, `header-bg` |
 | Border: default, heavier | `border-theme`, `border-theme-strong` (also `divide-theme`, `divide-theme-strong`) | `border`, `border-hover` |
-| Border around a card, dialog or menu | `border-theme-surface` | web-only `--theme-surface-border` |
+| Border around a card, dialog or menu | `border-theme-surface` | the `surface-border` token |
 | Border: input, button, header, focus, selected | `border-theme-input`, `border-theme-button`, `border-theme-header`, `border-theme-focus`, `border-theme-selected` | `input-border`, `button-border`, `header-border`, `border-focus`, `bg-selected-border` |
 | Brand accent as text, a link or an icon | `text-brand` | `accent-ink` |
 | Brand accent: fill, text on the fill, border, a wash | `bg-brand`, `text-brand-foreground`, `border-brand`, `bg-brand-subtle` | `accent`, `accent-text` |
@@ -390,7 +390,7 @@ has a name below.
 | An agent's name, icon or badge; its dot or border | `text-agent`; `bg-agent`, `border-agent` | `agent-ink`; `agent` |
 | A category's icon or short label; the tile behind it; a dot, border or gradient stop | `text-category-red` … `text-category-pink`; `bg-category-red-subtle` … `bg-category-pink-subtle`; `bg-category-red` … `bg-category-pink`, `border-category-red` … `border-category-pink`, `from-category-blue`; a gradient stop under white text `to-category-purple-ink` | `category-<hue>-ink`; `category-<hue>` |
 | A surface dark in every theme (media viewer, code block, landing footer, a hint over the rows) | `dark bg-theme-inverse`: the `dark` class makes everything inside answer as Dark | `surface-inverse` |
-| The card's colour as a line: the ring that cuts one avatar out of the next | `border-theme-card` | web-only `--theme-surface` |
+| The card's colour as a line: the ring that cuts one avatar out of the next | `border-theme-card` | the `surface` token |
 | A list colour fixed in the markup | `bg-list-1` … `bg-list-8` | `palette.list` |
 | Disabled; a completed mark; a press | `disabled:opacity-disabled`, `opacity-completed`, `active:scale-press` | `state.disabled-opacity`, `state.completed-mark-opacity`, `state.press-scale` |
 | The leading control's size | `w-leading-control h-leading-control` | `size.leading-control` |
@@ -569,7 +569,7 @@ Leave these, or change them as said; do not pick the nearest name.
 | The vendored tokens | `packages/astrid-design/` (`astrid-tokens.css`, `tokens.resolved.json`, `REVISION`) |
 | The vendored shared art | `packages/astrid-design/assets/` (the checkbox SVGs, the agent marks, `manifest.json`) and `checkbox-art.json`, hash-checked by `tests/styles/design-assets.test.ts` |
 | Moving the pin | `scripts/sync-design-tokens.sh --rev <astrid-core sha>` |
-| Theme variables | `styles/themes/*.css`: every `--theme-*` is a token, directly or through another theme variable. The web-only surfaces are named there once (below) |
+| Theme variables | `styles/themes/*.css`: every `--theme-*` is a token, directly or through another theme variable. The surfaces are tokens and are not defined there (below) |
 | Classes | `lib/design/tailwind-theme.ts`, spread into `tailwind.config.ts`: the theme vocabulary, the inks for text and icons, shadcn's colours, the motion utilities and the leading control's size, each a token |
 | shadcn's variables | `app/globals.css`: `--background`, `--primary` and the rest are tokens, declared once for every theme |
 | Priority | `lib/design/priority.ts`, classes in `styles/components.css` |
@@ -577,28 +577,30 @@ Leave these, or change them as said; do not pick the nearest name.
 | Values as hex, for HTML that cannot read a custom property | `lib/design/email-palette.ts`: `EMAIL_PALETTE` (Light) for the reminder, digest, invitation, verification and feature-request emails, and the unsubscribe page; `DARK_PAGE_PALETTE` (Dark) for the bare 404. A wash is the colour at `--theme-wash-opacity` over the card, flattened (AWTD-1614). Server code only: it reads the whole token file, so the crash page, which is in every route's first load, keeps its three greys literal |
 | The gate | `tests/styles/design-tokens.test.ts`: the copy is unedited, CSS and data agree, no colour is written out in a theme stylesheet, and every class and shadcn variable compiles and resolves to a colour in each theme. `tests/styles/motion-tokens.test.ts` does the same for durations |
 
-### Web-only surfaces
+### Surfaces
 
-The tokens have no name for these yet (register DS9). Each is a `--theme-*` variable that
-reads a token, per theme, so none is a colour written out; the card glass rules take
-their colour from these and write only how much shows through.
+The surfaces are tokens (register DS9, ADEV-160): `surface` (a card, dialog or menu),
+`surface-hover`, `surface-border`, `sidebar-bg`, `panel-bg`, `comment-bg`, `pill-bg` and
+`count-bg`, each with a value per theme. Web reads them as `--astrid-<name>` and the
+theme stylesheets no longer define them (ADEV-168). `bg-theme-surface`, `theme-surface`
+and shadcn's `--card` all resolve to `--astrid-surface`. The card glass rules take their
+colour from the token and write only how much shows through.
 
-| Variable | Light | Dark | Ocean |
-|---|---|---|---|
-| `--theme-surface`: a card, dialog or menu | `bg-primary` | `bg-secondary` | `bg-hover` (the white; the page is cyan) |
-| `--theme-surface-hover` | `bg-tertiary` | `bg-tertiary` | `bg-tertiary` |
-| `--theme-surface-border`: the line around one | `border` | `border` | `bg-active` (the grey; the border is cyan) |
-| `--theme-sidebar-bg`, `--theme-sidebar-border` | `bg-secondary`, the surface border | same | same |
-| `--theme-panel-bg`, `--theme-panel-border`, `--theme-panel-arrow` | the surface, its border | same | `bg-secondary`, the surface border |
-| `--theme-comment-bg` | `bg-secondary` | `bg-tertiary` | `bg-secondary` |
-| `--theme-pill-bg`, `--theme-count-bg` | `bg-tertiary` | not drawn | not drawn |
-| `--theme-shadow-sm`, `--theme-shadow`, `--theme-shadow-lg` | `shadow.sm`, `shadow.md`, `shadow.lg` | same | same |
+The drawer's leftward shadow is `shadow.panel`. The chat input's upward hairline shadow
+is still written out in `styles/components.css`: the tokens name no upward shadow.
+
+What the theme stylesheets still name, because each reads another token and has no
+value of its own:
+
+| Variable | Reads |
+|---|---|
+| `--theme-sidebar-border`, `--theme-panel-border` | `surface-border` |
+| `--theme-panel-arrow` | `panel-bg` |
+| `--theme-shadow-sm`, `--theme-shadow`, `--theme-shadow-lg` | `shadow.sm`, `shadow.md`, `shadow.lg` |
 
 Two more are numbers rather than colours, in `styles/components.css`:
 `--theme-wash-opacity` (how strong `bg-danger-subtle` and the other washes are) and
-`--motion-spring-ease` (the curve that stands in for a spring). Ocean borrowing `bg-hover`
-and `bg-active` for a card and its border is the clearest case for a `surface` and a
-`surface-border` token in astrid-core.
+`--motion-spring-ease` (the curve that stands in for a spring).
 
 ### The ratchet
 

@@ -1,7 +1,7 @@
 {
   "rawPaletteClasses": 0,
   "hexColours": 39,
-  "rgbColours": 9,
+  "rgbColours": 8,
   "themeTriplets": 0,
   "inlineStyles": 0,
   "arbitrarySizes": 5,
@@ -13,5 +13,5 @@
   "rawFormControls": 13,
   "aliasedErrorInk": 1,
   "repeatedClassStrings": 214,
-  "cssPixelLiterals": 79
+  "cssPixelLiterals": 77
 }

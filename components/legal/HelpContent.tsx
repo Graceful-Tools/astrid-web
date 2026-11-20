@@ -102,11 +102,11 @@ export function HelpContent() {
 
       {/* Quick Navigation */}
       <div className="flex flex-wrap gap-3 mb-10">
-        <a href="#ios" className="flex items-center gap-2 px-4 py-2 theme-surface border theme-border hover:bg-[rgb(var(--theme-surface-hover))] rounded-lg text-sm font-medium transition-colors">
+        <a href="#ios" className="flex items-center gap-2 px-4 py-2 theme-surface border theme-border hover:bg-[rgb(var(--astrid-surface-hover))] rounded-lg text-sm font-medium transition-colors">
           <Smartphone className="w-4 h-4" />
           {t("iosApp")}
         </a>
-        <a href="#web" className="flex items-center gap-2 px-4 py-2 theme-surface border theme-border hover:bg-[rgb(var(--theme-surface-hover))] rounded-lg text-sm font-medium transition-colors">
+        <a href="#web" className="flex items-center gap-2 px-4 py-2 theme-surface border theme-border hover:bg-[rgb(var(--astrid-surface-hover))] rounded-lg text-sm font-medium transition-colors">
           <Globe className="w-4 h-4" />
           {t("webApp")}
         </a>

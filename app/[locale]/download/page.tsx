@@ -88,7 +88,7 @@ export default async function DownloadPage() {
             </div>
             <a
               href="https://testflight.apple.com/join/V11WpM3d"
-              className="inline-flex items-center rounded-lg border theme-border-input px-5 py-2.5 font-semibold theme-text-primary transition-colors hover:bg-[rgb(var(--theme-surface-hover))]"
+              className="inline-flex items-center rounded-lg border theme-border-input px-5 py-2.5 font-semibold theme-text-primary transition-colors hover:bg-[rgb(var(--astrid-surface-hover))]"
             >
               {t("joinBeta")}
             </a>
