@@ -16,7 +16,7 @@
 import { LayoutGrid } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { useTranslations } from "@/lib/i18n/client"
-import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
+import { BoardStatePicker } from "@/components/board-state-picker"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import {
   applyProjectColumnTo,
@@ -76,28 +76,13 @@ export function TaskDetailBoardStateRow({
 
   return (
     <TaskFieldRow label={t('tasks.boardState')} icon={<LayoutGrid className="w-4 h-4" />}>
-      <div className="flex flex-wrap gap-2" role="group" aria-label={t('tasks.boardState')}>
-        {projectStateChips(columns).map(column => {
-          const isSelected = currentColumnId === column.id
-          return (
-            <button
-              key={column.id}
-              type="button"
-              data-testid={`task-detail-board-state-${column.id}`}
-              onClick={() => moveTo(column.id)}
-              aria-pressed={isSelected}
-              title={boardColumnBlurb(column, t) || undefined}
-              className={`h-8 px-3 rounded-lg text-sm font-medium transition-all duration-fast active:scale-95 ${
-                isSelected
-                  ? 'bg-brand text-brand-foreground'
-                  : 'bg-transparent border-2 border-theme-button text-theme-secondary'
-              }`}
-            >
-              {boardColumnLabel(column, t)}
-            </button>
-          )
-        })}
-      </div>
+      <BoardStatePicker
+        columns={projectStateChips(columns)}
+        selectedColumnId={currentColumnId}
+        onSelect={moveTo}
+        ariaLabel={t('tasks.boardState')}
+        testIdPrefix="task-detail-board-state"
+      />
     </TaskFieldRow>
   )
 }

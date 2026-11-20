@@ -20,7 +20,7 @@ import { listProjectMoves } from "@/lib/list-project-moves"
 import { sidebarProjectName } from "@/lib/sidebar-projects"
 import { PROJECT_BOARD_LIST_DRAG_TYPE } from "@/lib/project-board-list-drag"
 import type { TaskList } from "@/types/task"
-import { SidebarConfirmDialog } from "./SidebarConfirmDialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SidebarContextMenu } from "./SidebarContextMenu"
 
 interface ListProjectMenuProps {
@@ -81,7 +81,7 @@ export function ListProjectMenu({ list, currentUserId, onMoveListToProject, chil
         {children}
       </SidebarContextMenu>
       {moves.canLeave && (
-        <SidebarConfirmDialog
+        <ConfirmDialog
           open={leaving}
           title={t("projectMode.projectLeaveConfirm", { list: list.name, project: current ? sidebarProjectName(current) : "" })}
           detail={t("projectMode.projectLeaveDetail")}

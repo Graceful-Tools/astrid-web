@@ -2,15 +2,12 @@
 
 import { scrollBehavior } from "@/lib/design/reduced-motion"
 import React from "react"
-import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
-import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
-import { TaskRowContent } from "@/components/task-row-content"
+import { BoardCard } from "@/components/board-card"
+import { BoardColumn } from "@/components/board-column"
 import { sortTasksForList } from "@/lib/task-sort"
 import { applyBoardLiveFilters, type BoardLiveFilters } from "@/lib/board-live-filters"
 import { sortDoneColumnTasks } from "@/lib/board-done-column"
-import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
-import { BoardDoneSincePicker } from "@/components/board-done-since-picker"
 import { useDoneSince } from "@/hooks/use-done-since"
 import { filterDoneSince } from "@/lib/board-done-since"
 import {
@@ -29,16 +26,9 @@ import {
   resolveProjectColumnMove,
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
-import { Pill } from "@/components/ui/pill"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
-import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/VirtualizedTaskList"
-import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
-import { useTranslations } from "@/lib/i18n/client"
-import { boardColumnBlurb, boardColumnEmptyKey, boardColumnLabel } from "@/lib/board-column-labels"
-import { empathyFrameSrc } from "@/lib/empathy-art/board"
-import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import { useProjectFields } from "@/hooks/use-project-fields"
 import { useProjectFieldValues } from "@/hooks/use-project-field-values"
 import {
@@ -73,51 +63,6 @@ interface ProjectStatusBoardProps {
   liveFilters?: BoardLiveFilters & { sortBy?: string }
 }
 
-/**
- * Scrollable body for a single board column (task a48b2d24). Each column owns
- * its own vertical scroll container, so virtualization is wired per-column here
- * (a hook can't live in the parent's `columns.map`). Above the shared threshold
- * the column windows its cards via the same primitive the list view uses; below
- * it — i.e. every normal board — the plain full render is kept, so there is zero
- * regression risk for the common case. Board DnD is column-level (drop changes
- * status; there is no within-column manual reorder), so windowing the cards is
- * safe — the drop target is the always-mounted column, not a specific row.
- */
-function BoardColumnBody({
-  tasks,
-  renderCard,
-  emptyState,
-}: {
-  tasks: Task[]
-  renderCard: (task: Task) => React.ReactNode
-  emptyState: React.ReactNode
-}) {
-  const scrollRef = React.useRef<HTMLDivElement | null>(null)
-  const virtualize = shouldVirtualizeTaskList(tasks.length, false)
-
-  return (
-    <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-hide p-2">
-      {virtualize ? (
-        <VirtualizedTaskList
-          tasks={tasks}
-          scrollElementRef={scrollRef}
-          renderRow={renderCard}
-          estimateSize={64}
-          gap={8}
-          testId="virtualized-board-column"
-        />
-      ) : (
-        <div className="space-y-2">
-          {tasks.map(task => (
-            <React.Fragment key={task.id}>{renderCard(task)}</React.Fragment>
-          ))}
-          {tasks.length === 0 ? emptyState : null}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function ProjectStatusBoard({
   allTasks,
   lists,
@@ -131,7 +76,6 @@ export function ProjectStatusBoard({
   selectedTaskId = null,
   liveFilters,
 }:ProjectStatusBoardProps) {
-  const { t } = useTranslations()
   const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
   const completion = useCompletionConfirmation(currentUser?.id)
 
@@ -377,134 +321,63 @@ export function ProjectStatusBoard({
           const tasksForColumn = isDoneColumn ? sortDoneColumnTasks(filterDoneSince(inColumn, doneSince)) : inColumn
 
           return (
-            <div
+            <BoardColumn
               key={column.id}
-              data-testid={columnTestId(column)}
-              data-column-index={columnIndex}
-              data-column-kind={column.kind}
-              className={`board-column flex h-full snap-start flex-col border theme-border theme-bg-secondary ${
-                isOneColumn
-                  ? "w-full shrink-0"
-                  : "min-w-72 max-w-md flex-1"
-              }`}
-              onDragOver={(event) => event.preventDefault()}
+              column={column}
+              columnIndex={columnIndex}
+              testId={columnTestId(column)}
+              isOneColumn={isOneColumn}
+              tasks={tasksForColumn}
+              list={selectedList}
+              doneSince={doneSince}
+              onDoneSinceChange={setDoneSince}
               onDrop={(event) => handleDrop(event, column)}
-            >
-              <div className="flex min-h-[4.5rem] items-start justify-between gap-2 border-b theme-border px-3 py-2">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
-                  </div>
-                  {boardColumnBlurb(column, t) ? (
-                    <p className="mt-1 line-clamp-2 text-xs theme-text-secondary">{boardColumnBlurb(column, t)}</p>
-                  ) : null}
-                </div>
-                {isDoneColumn ? (
-                  <BoardDoneSincePicker count={tasksForColumn.length} since={doneSince} onChange={setDoneSince} />
-                ) : (
-                  <Pill className="min-w-6 justify-center">{tasksForColumn.length}</Pill>
-                )}
-              </div>
-
-              <BoardColumnBody
-                tasks={tasksForColumn}
-                emptyState={(
-                  <AstridEmptyState
-                    listType="default"
-                    listName={selectedList?.name}
-                    message={t(boardColumnEmptyKey(column))}
-                    characterSrc={empathyFrameSrc(selectedList?.id, column, new Date())}
-                    className="py-4"
-                  />
-                )}
-                renderCard={(task) => {
-                  const handleToggleComplete = () => {
-                    onUpdateTask({ ...task, completed: !task.completed })
-                  }
-                  const handleCopyPublic = async () => {
-                    if (onCopyTask) await onCopyTask(task.id)
-                  }
-
-                  return (
-                    <div
-                      data-testid={`status-card-${task.id}`}
-                      /* data-task-id, as on a list row: the details' click-outside
-                       *  close leaves a tap on another card to open that card, and
-                       *  the callout finds its anchor by it (AITD-679). */
-                      data-task-id={task.id}
-                      className={`task-row task-card board-card transition-theme relative theme-surface theme-border cursor-grab ${
-                        task.completed
-                          ? "task-row-completed theme-bg-hover"
-                          : selectedTaskId === task.id
-                            ? "task-row-selected theme-bg-selected"
-                            : "theme-surface-hover"
-                      }`}
-                      draggable
-                      onDragStart={(event) => {
-                        event.dataTransfer.effectAllowed = "move"
-                        event.dataTransfer.setData("text/plain", task.id)
-                      }}
-                      onPointerDown={(event) => handlePointerDown(event, task.id, columnIndex)}
-                      onPointerMove={handlePointerMove}
-                      onPointerUp={handlePointerEnd}
-                      onPointerCancel={handlePointerEnd}
-                      onClick={(event) => {
-                        if (suppressClickTaskIdRef.current === task.id) {
-                          suppressClickTaskIdRef.current = null
-                          return
-                        }
-                        activateCard(task.id, event.currentTarget)
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault()
-                          activateCard(task.id, event.currentTarget)
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      aria-haspopup="dialog"
-                    >
-                      <TaskRowContent
-                        task={task}
-                        currentUserId={currentUser?.id}
-                        isSelected={selectedTaskId === task.id}
-                        isMobile={isOneColumn}
-                        onToggleComplete={handleToggleComplete}
-                        onCopyPublic={handleCopyPublic}
-                        identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
-                        currentListId={selectedListId}
-                        belowTitle={isDoneColumn ? <BoardCompletedOnPill task={task} /> : null}
-                        /* Someone else's card opens the sheet (AWTD-877) —
-                           it is the only route to reassign, reprioritise or
-                           move it, and to a completion that asks first. An
-                           unassigned card's "U" asks before completing in the
-                           control itself (ADEV-56). */
-                        onOpenOptions={
-                          isSomeoneElsesTask({
-                            assigneeId: task.assigneeId,
-                            currentUserId: currentUser?.id,
-                          })
-                            ? () => setOptionsTaskId(task.id)
-                            : undefined
-                        }
-                      />
-                    </div>
-                  )
-                }}
-              />
-
-              {isDoneColumn ? null : (
-                <BoardColumnQuickAdd
-                  listId={defaultDomainList?.id}
+              quickAdd={{
+                listId: defaultDomainList?.id,
+                lists,
+                currentUser,
+                onCreateTask,
+                testId: `status-add-${column.id}`,
+              }}
+              renderCard={(task) => (
+                <BoardCard
+                  task={task}
                   lists={lists}
-                  column={column}
-                  currentUser={currentUser}
-                  onCreateTask={onCreateTask}
-                  testId={`status-add-${column.id}`}
+                  testId={`status-card-${task.id}`}
+                  currentUserId={currentUser?.id}
+                  currentListId={selectedListId}
+                  isSelected={selectedTaskId === task.id}
+                  isMobile={isOneColumn}
+                  isDone={isDoneColumn}
+                  onActivate={activateCard}
+                  onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
+                  onCopyPublic={async () => {
+                    if (onCopyTask) await onCopyTask(task.id)
+                  }}
+                  onPointerDown={(event) => handlePointerDown(event, task.id, columnIndex)}
+                  onPointerMove={handlePointerMove}
+                  onPointerEnd={handlePointerEnd}
+                  consumeSuppressedClick={(taskId) => {
+                    if (suppressClickTaskIdRef.current !== taskId) return false
+                    suppressClickTaskIdRef.current = null
+                    return true
+                  }}
+                  /* Someone else's card opens the sheet (AWTD-877) —
+                     it is the only route to reassign, reprioritise or
+                     move it, and to a completion that asks first. An
+                     unassigned card's "U" asks before completing in the
+                     control itself (ADEV-56). */
+                  onOpenOptions={
+                    isSomeoneElsesTask({
+                      assigneeId: task.assigneeId,
+                      currentUserId: currentUser?.id,
+                    })
+                      ? () => setOptionsTaskId(task.id)
+                      : undefined
+                  }
                 />
               )}
-            </div>
+            />
           )
         })}
         </div>

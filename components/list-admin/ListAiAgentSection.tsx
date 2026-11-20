@@ -175,7 +175,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary">
               <SelectValue placeholder={t("listSettings.admin.useAccountDefault")} />
             </SelectTrigger>
-            <SelectContent className="theme-bg-primary theme-border z-[10100]">
+            <SelectContent className="theme-bg-primary theme-border z-above-modal">
               <SelectItem value="_account_default" className="theme-text-primary">
                 {t("listSettings.admin.useAccountDefault")}
               </SelectItem>
@@ -229,7 +229,7 @@ export function ListAiAgentSection({ list, canEditSettings, onUpdate }: ListAiAg
             <SelectTrigger className="w-full">
               <SelectValue placeholder={loadingRepositories ? t("listSettings.admin.loading") : t("listSettings.admin.selectRepo")} />
             </SelectTrigger>
-            <SelectContent className="z-[10100] max-w-72">
+            <SelectContent className="z-above-modal max-w-72">
               <SelectItem value="none">{t("common.none")}</SelectItem>
               {availableRepositories.map((repo) => (
                 <SelectItem key={repo.fullName} value={repo.fullName}>

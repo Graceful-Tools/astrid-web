@@ -53,9 +53,14 @@ function boardSource(): string {
   return readFileSync(BOARD, 'utf8')
 }
 
+/** The column markup is shared by both boards (ADEV-156). */
+function columnSource(): string {
+  return readFileSync(join(process.cwd(), 'components/board-column.tsx'), 'utf8')
+}
+
 /** The className expression for one board column. */
 function columnClasses(source: string): string {
-  const marker = 'className={`board-column flex h-full snap-start flex-col'
+  const marker = 'className={`board-column flex h-full snap-start'
   const start = source.indexOf(marker)
   expect(start, 'the snap-start column className moved — update this test').toBeGreaterThan(-1)
   return source.slice(start, source.indexOf('}`}', start))
@@ -70,7 +75,7 @@ describe('a snap carousel item is sized by its scroller (AWTD-1305)', () => {
   })
 
   it('AWTD-1305: the board column is not sized from the viewport', () => {
-    const classes = columnClasses(boardSource())
+    const classes = columnClasses(columnSource())
 
     expect(
       VIEWPORT_WIDTH_UNIT.test(classes),
@@ -84,7 +89,7 @@ describe('a snap carousel item is sized by its scroller (AWTD-1305)', () => {
     // The other half of the contract. Not sized from the viewport is easy to
     // satisfy by accident — by sizing it from nothing — and then the carousel
     // shows three half columns instead of one.
-    const classes = columnClasses(boardSource())
+    const classes = columnClasses(columnSource())
 
     expect(classes).toMatch(/\bw-full\b/)
     expect(classes, 'a carousel item must not shrink, or several share one screen').toMatch(/\bshrink-0\b/)

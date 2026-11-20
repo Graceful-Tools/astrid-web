@@ -172,7 +172,12 @@ The ratchet can't see these rows: they're differences in layout, not hand-writte
    took the count to 39; what is left is art (placeholder and default-list images), Google's
    logo, the crash page (in every first load), stored list colours and a few non-colours (`#123` in prose).*
 4. **[design] The 96 arbitrary sizes** (AWTD-1615): move them onto the type, spacing and radius
-   scales.
+   scales. *Done: the count is 5, the budget's.*
 5. **[design] Inline styles, the last durations and rgb literals** (AWTD-1616): turn the fixed
-   styles into classes and stop counting computed ones.
-6. **[design] Web's open register rows** (AWTD-1617): DS11–DS14, DS17–DS20, DS23, DS24.
+   styles into classes and stop counting computed ones. *Done: inline styles 0, durations 0,
+   rgb literals 9.*
+6. **[design] Web's open register rows** (AWTD-1617): DS11–DS14, DS17–DS20, DS23, DS24. *Done:
+   each is closed on web in astrid-core's register (DS24 with AWTD-1625).*
+
+What came after this list — the components that have no spec, and what the ratchet cannot
+see — is the 2026-11-20 audit's, filed as ADEV-153 to ADEV-167 on the web and iOS boards.

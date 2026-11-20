@@ -29,13 +29,14 @@
  */
 import React from "react"
 import { Plus, Settings, X } from "lucide-react"
-import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
-import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
-import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
+import { BoardCard } from "@/components/board-card"
+import { BoardColumn } from "@/components/board-column"
+import { useDoneSince } from "@/hooks/use-done-since"
+import { filterDoneSince } from "@/lib/board-done-since"
+import type { BoardLiveFilters } from "@/lib/board-live-filters"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Pill } from "@/components/ui/pill"
 import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
@@ -45,13 +46,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { TaskRowContent } from "@/components/task-row-content"
-import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
 import { useProjectBoardRows } from "@/hooks/use-project-board-rows"
-import { boardColumnLabel } from "@/lib/board-column-labels"
 import {
   applyProjectColumnTo,
   getProjectBoardColumns,
@@ -88,6 +86,8 @@ export interface ProjectBoardProps {
   selectedTaskId?: string | null
   /** Phone width: the columns become a snap carousel, one at a time (ADEV-4). */
   isOneColumn?: boolean
+  /** The Sort & Filters set on the view, applied to every row (ADEV-145, ADEV-156). */
+  liveFilters?: BoardLiveFilters & { sortBy?: string }
 }
 
 export function ProjectBoard({
@@ -103,8 +103,10 @@ export function ProjectBoard({
   onOpenTask,
   selectedTaskId = null,
   isOneColumn = false,
+  liveFilters,
 }: ProjectBoardProps) {
   const { t } = useTranslations()
+  const [doneSince, setDoneSince] = useDoneSince(currentUser?.id, projectId)
   const customStates = useProjectCustomStates(projectId)
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
@@ -115,7 +117,7 @@ export function ProjectBoard({
 
   const rows = React.useMemo(() => resolveBoardRows(listIds, projectId, lists), [listIds, projectId, lists])
   const rowIds = React.useMemo(() => rows.map(row => row.id), [rows])
-  const lanes = React.useMemo(() => buildSwimlanes(rows, allTasks, columns), [rows, allTasks, columns])
+  const lanes = React.useMemo(() => buildSwimlanes(rows, allTasks, columns, { liveFilters }), [rows, allTasks, columns, liveFilters])
   const candidates = React.useMemo(() => boardRowCandidates(lists, rowIds), [lists, rowIds])
 
   const addRow = (listId: string) => {
@@ -136,9 +138,6 @@ export function ProjectBoard({
 
   const isListDrag = (event: React.DragEvent) => Array.from(event.dataTransfer.types).includes(PROJECT_BOARD_LIST_DRAG_TYPE)
 
-  // Desktop columns share the width; on a phone each one is the scroller's
-  // width and snaps, sized from the scroller, never the viewport (AWTD-1305).
-  const columnWidth = isOneColumn ? "w-full shrink-0 snap-start" : "min-w-64 flex-1"
   // Overflow from a row inside the scroller does not count the scroller's end
   // padding, so without this the last column stops a padding short of its snap
   // point. The row's gap plus this quarter-rem is the scroller's 1rem padding.
@@ -301,94 +300,65 @@ export function ProjectBoard({
                   </div>
                 )}
                 <div className="flex gap-3" role="row">
-                {columns.map(column => (
-                  <div
-                    key={column.id}
-                    className={`board-column flex min-h-0 ${columnWidth} flex-col rounded-md border theme-border theme-bg-secondary`}
-                    data-testid={`project-board-cell-${lane.list.id}-${column.id}`}
-                    onDragOver={(event) => {
-                      if (!isListDrag(event)) event.preventDefault()
-                    }}
-                    onDrop={(event) => {
-                      if (isListDrag(event)) return
-                      event.preventDefault()
-                      event.stopPropagation()
-                      moveTask(event.dataTransfer.getData("text/plain"), column)
-                    }}
-                  >
-                    {isOneColumn && (
-                      <div className="mb-2 flex shrink-0 items-start justify-between gap-2 rounded-md border theme-border px-2 py-1" style={rowHeaderStyle(lane)}>
-                        {rowLabel(lane)}
-                      </div>
-                    )}
-                    <div className="flex shrink-0 items-center justify-between gap-2 border-b theme-border px-3 py-2" data-testid={`project-board-cell-header-${lane.list.id}-${column.id}`}>
-                      <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
-                      <Pill className="min-w-6 justify-center">{lane.cells[column.id]?.length ?? 0}</Pill>
-                    </div>
-                    {/* Fixed height, about 3–4 cards: the cards scroll inside it (ADEV-63). */}
-                    <div className="h-64 shrink-0 space-y-2 overflow-y-auto p-2" data-testid={`project-board-cell-body-${lane.list.id}-${column.id}`}>
-                      {(lane.cells[column.id]?.length ?? 0) === 0 && (
-                        <AstridEmptyState listType="default" listName={lane.list.name} className="py-4" />
+                {columns.map(column => {
+                  const cell = lane.cells[column.id] ?? []
+                  // The period filters the cards as well as the count (ADEV-133).
+                  const tasksForColumn = column.kind === "done" ? filterDoneSince(cell, doneSince) : cell
+                  return (
+                    <BoardColumn
+                      key={column.id}
+                      column={column}
+                      tasks={tasksForColumn}
+                      list={lane.list}
+                      isOneColumn={isOneColumn}
+                      testId={`project-board-cell-${lane.list.id}-${column.id}`}
+                      headerTestId={`project-board-cell-header-${lane.list.id}-${column.id}`}
+                      /* Fixed height, about 3–4 cards: the cards scroll inside it (ADEV-63). */
+                      bodyClassName="h-64 shrink-0 overflow-y-auto scrollbar-hide p-2"
+                      bodyTestId={`project-board-cell-body-${lane.list.id}-${column.id}`}
+                      doneSince={doneSince}
+                      onDoneSinceChange={setDoneSince}
+                      lead={isOneColumn ? (
+                        <div className="mb-2 flex shrink-0 items-start justify-between gap-2 rounded-md border theme-border px-2 py-1" style={rowHeaderStyle(lane)}>
+                          {rowLabel(lane)}
+                        </div>
+                      ) : null}
+                      onDragOver={(event) => {
+                        if (!isListDrag(event)) event.preventDefault()
+                      }}
+                      onDrop={(event) => {
+                        if (isListDrag(event)) return
+                        event.preventDefault()
+                        event.stopPropagation()
+                        moveTask(event.dataTransfer.getData("text/plain"), column)
+                      }}
+                      quickAdd={{
+                        listId: lane.list.id,
+                        lists,
+                        currentUser,
+                        onCreateTask,
+                        testId: `project-board-add-${lane.list.id}-${column.id}`,
+                      }}
+                      renderCard={(task) => (
+                        <BoardCard
+                          task={task}
+                          lists={lists}
+                          currentUserId={currentUser?.id}
+                          currentListId={lane.list.id}
+                          isSelected={selectedTaskId === task.id}
+                          isDone={column.kind === "done"}
+                          onActivate={(taskId, card) => onOpenTask?.(taskId, card)}
+                          onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
+                          onOpenOptions={
+                            isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
+                              ? () => setOptionsTaskId(task.id)
+                              : undefined
+                          }
+                        />
                       )}
-                      {lane.cells[column.id]?.map(task => {
-                        return (
-                          <div
-                            key={task.id}
-                            data-task-id={task.id}
-                            className={`task-row task-card board-card transition-theme relative theme-surface theme-border cursor-grab ${
-                              task.completed
-                                ? "task-row-completed theme-bg-hover"
-                                : selectedTaskId === task.id
-                                  ? "task-row-selected theme-bg-selected"
-                                  : "theme-surface-hover"
-                            }`}
-                            draggable
-                            role="button"
-                            tabIndex={0}
-                            aria-haspopup="dialog"
-                            onDragStart={(event) => {
-                              event.dataTransfer.effectAllowed = "move"
-                              event.dataTransfer.setData("text/plain", task.id)
-                            }}
-                            onClick={(event) => onOpenTask?.(task.id, event.currentTarget)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault()
-                                onOpenTask?.(task.id, event.currentTarget)
-                              }
-                            }}
-                          >
-                            <TaskRowContent
-                              task={task}
-                              currentUserId={currentUser?.id}
-                              isSelected={selectedTaskId === task.id}
-                              onToggleComplete={() => onUpdateTask({ ...task, completed: !task.completed })}
-                              onCopyPublic={() => {}}
-                              identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
-                              currentListId={lane.list.id}
-                              belowTitle={column.kind === "done" ? <BoardCompletedOnPill task={task} /> : null}
-                              onOpenOptions={
-                                isSomeoneElsesTask({ assigneeId: task.assigneeId, currentUserId: currentUser?.id })
-                                  ? () => setOptionsTaskId(task.id)
-                                  : undefined
-                              }
-                            />
-                          </div>
-                        )
-                      })}
-                    </div>
-                    {column.kind !== "done" && (
-                      <BoardColumnQuickAdd
-                        listId={lane.list.id}
-                        lists={lists}
-                        column={column}
-                        currentUser={currentUser}
-                        onCreateTask={onCreateTask}
-                        testId={`project-board-add-${lane.list.id}-${column.id}`}
-                      />
-                    )}
-                  </div>
-                ))}
+                    />
+                  )
+                })}
                 {snapTail}
                 </div>
               </div>

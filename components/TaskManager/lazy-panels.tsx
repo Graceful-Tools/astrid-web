@@ -10,7 +10,7 @@ function PanelLoadingFallback({ modal = false }: { modal?: boolean }) {
       data-lazy-panel-loading
       className={
         modal
-          ? "fixed inset-0 z-[9999] bg-black/50"
+          ? "fixed inset-0 z-modal bg-black/50"
           : "flex h-full min-h-24 w-full items-center justify-center"
       }
     >

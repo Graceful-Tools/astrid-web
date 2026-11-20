@@ -608,6 +608,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          # ADEV-115: the built-in GITHUB_TOKEN can never update workflow files,
+          # so a deploy that includes a change under .github/workflows/ cannot
+          # move `prod`. PROD_POINTER_TOKEN (fine-grained PAT or App token with
+          # Contents + Workflows write) lifts that; without it this behaves as before.
+          token: ${{ secrets.PROD_POINTER_TOKEN || github.token }}
 
       - name: Point prod at the deployed commit
         run: bash scripts/advance-prod-branch.sh "$GITHUB_SHA"

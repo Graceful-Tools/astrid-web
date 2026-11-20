@@ -71,7 +71,7 @@ function FilterRow({
         <SelectTrigger className={FILTER_TRIGGER_CLASS} aria-label={label}>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="z-[10100]">{children}</SelectContent>
+        <SelectContent className="z-above-modal">{children}</SelectContent>
       </Select>
     </div>
   )

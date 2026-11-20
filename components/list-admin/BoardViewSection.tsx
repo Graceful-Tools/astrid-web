@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import {
@@ -410,67 +411,28 @@ export function BoardViewSection({
         />
       )}
 
-      {showLeaveConfirmation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isMoving && setShowLeaveConfirmation(false)}>
-          <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <p className="theme-text-primary mb-4">
-              {t("projectMode.projectLeaveConfirm", { list: list.name, project: currentProject ? projectName(currentProject) : "" })}
-            </p>
-            <div className="flex space-x-3 justify-end">
-              <Button variant="outline" size="sm" disabled={isMoving} onClick={() => setShowLeaveConfirmation(false)}>
-                {t("actions.cancel")}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={isMoving}
-                onClick={async () => {
-                  await handleMoveToProject("")
-                  setShowLeaveConfirmation(false)
-                }}
-              >
-                {t("actions.confirm")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showLeaveConfirmation}
+        detail={t("projectMode.projectLeaveConfirm", { list: list.name, project: currentProject ? projectName(currentProject) : "" })}
+        confirmLabel={t("actions.confirm")}
+        busy={isMoving}
+        onCancel={() => setShowLeaveConfirmation(false)}
+        onConfirm={async () => {
+          await handleMoveToProject("")
+          setShowLeaveConfirmation(false)
+        }}
+      />
 
-      {showDisableBoardConfirmation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => !isRemovingProjectBoard && setShowDisableBoardConfirmation(false)}>
-          <div className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold theme-text-primary mb-2">{t("projectMode.disableBoardTitle")}</h3>
-              <p className="theme-text-secondary mb-2">
-                {t("projectMode.disableBoardBody")}
-              </p>
-              <p className="text-sm theme-text-muted">
-                {t("projectMode.disableBoardNote")}
-              </p>
-            </div>
-            <div className="flex space-x-3 justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isRemovingProjectBoard}
-                onClick={() => setShowDisableBoardConfirmation(false)}
-                className="theme-border theme-text-secondary hover:theme-bg-hover"
-              >
-                {t("actions.cancel")}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={isRemovingProjectBoard}
-                onClick={handleRemoveProjectBoard}
-                className="bg-danger hover:bg-danger/90 text-danger-foreground"
-              >
-                {isRemovingProjectBoard ? t("projectMode.disablingBoard") : t("projectMode.disableBoard")}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showDisableBoardConfirmation}
+        title={t("projectMode.disableBoardTitle")}
+        detail={t("projectMode.disableBoardBody")}
+        note={t("projectMode.disableBoardNote")}
+        confirmLabel={isRemovingProjectBoard ? t("projectMode.disablingBoard") : t("projectMode.disableBoard")}
+        busy={isRemovingProjectBoard}
+        onCancel={() => setShowDisableBoardConfirmation(false)}
+        onConfirm={handleRemoveProjectBoard}
+      />
     </>
   )
 }
