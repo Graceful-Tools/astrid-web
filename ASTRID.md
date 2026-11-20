@@ -116,6 +116,7 @@ the fixture is regenerated in the same PR:
 | `agent-modes.json` | `app/api/v1/users/me/agent-modes/route.ts` (AWTD-1566) |
 | `fixall-claim.json` | `app/api/v1/tasks/[id]/claim-fixall/route.ts` (AWTD-1566) |
 | `agent-registry.json` | `lib/brand/agent-emails.ts`, `lib/ai/harness-agents.ts` (AWTD-1566) |
+| `empathy-art.json` | `lib/empathy-art/rules.ts` (ADEV-142) |
 
 The registry is `EXPORTS` in `scripts/export-contract-fixtures.ts`. Each fixture's consumer
 is listed in astrid-core's
