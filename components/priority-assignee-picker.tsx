@@ -9,6 +9,7 @@ import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { completionAssigneeLabel } from "@/components/completion-confirmation"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
+import { CheckboxArt } from "@/components/task-checkbox-art"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { UnassignButton } from "@/components/unassign-button"
@@ -58,6 +59,11 @@ interface PriorityAssigneePickerProps {
   statusColumns?: readonly { id: string; name: string }[]
   /** The task's current column, from `taskColumnId(task)`. */
   selectedColumnId?: string
+  /**
+   * Whether the task repeats, so the "Mark as done" row's checkbox is the one
+   * the task row draws (ADEV-148): the repeat arrows, not the square.
+   */
+  repeating?: boolean
   /** Receives a column id suitable for `resolveColumnMove`. */
   onStatusSelect?: (columnId: string) => void
   /** Present with onToggleComplete to offer completion. */
@@ -103,6 +109,7 @@ export function PriorityAssigneePicker({
   completed,
   onToggleComplete,
   unassign,
+  repeating = false,
 }: PriorityAssigneePickerProps) {
   const { t } = useTranslations()
   const [tempPriority, setTempPriority] = useState(selectedPriority)
@@ -422,12 +429,20 @@ export function PriorityAssigneePicker({
                       t('common.complete')
                     ) : (
                       <>
-                        {/* iOS's quick set: a check mark on the left, the action beside it. */}
-                        <Check
-                          aria-hidden="true"
-                          data-testid="task-options-complete-icon"
-                          className={`w-5 h-5 shrink-0 ${completed ? 'text-theme-muted' : 'text-brand'}`}
-                        />
+                        {/*
+                          * iOS's quick set: the task row's own checkbox on the left —
+                          * unchecked beside "Mark as done", checked beside "Mark as
+                          * to-do", in the task's priority colour (ADEV-148) — and the
+                          * action beside it.
+                          */}
+                        <span data-testid="task-options-complete-icon" className="w-6 h-6 shrink-0 inline-flex">
+                          <CheckboxArt
+                            priority={tempPriority}
+                            checked={Boolean(completed)}
+                            repeating={repeating}
+                            className="w-6 h-6"
+                          />
+                        </span>
                         {completed ? t('tasks.markAsTodo') : t('tasks.markAsDone')}
                       </>
                     )}

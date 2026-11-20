@@ -461,6 +461,7 @@ function TaskRowImpl({
             selectedColumnId={selectedColumnId}
             onStatusSelect={applyColumn}
             completed={Boolean(task.completed)}
+            repeating={task.repeating !== 'never'}
             onToggleComplete={() => {
               onToggleComplete(task.id)
               setOptionsOpen(false)
