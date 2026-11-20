@@ -35,6 +35,7 @@ import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Pill } from "@/components/ui/pill"
 import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
@@ -322,9 +323,7 @@ export function ProjectBoard({
                     )}
                     <div className="flex shrink-0 items-center justify-between gap-2 border-b theme-border px-3 py-2" data-testid={`project-board-cell-header-${lane.list.id}-${column.id}`}>
                       <span className="truncate text-sm font-semibold theme-text-primary">{boardColumnLabel(column, t)}</span>
-                      <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
-                        {lane.cells[column.id]?.length ?? 0}
-                      </span>
+                      <Pill className="min-w-6 justify-center">{lane.cells[column.id]?.length ?? 0}</Pill>
                     </div>
                     {/* Fixed height, about 3–4 cards: the cards scroll inside it (ADEV-63). */}
                     <div className="h-64 shrink-0 space-y-2 overflow-y-auto p-2" data-testid={`project-board-cell-body-${lane.list.id}-${column.id}`}>

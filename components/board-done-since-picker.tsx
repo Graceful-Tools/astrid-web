@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { pillClassName } from "@/components/ui/pill"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { useTranslations } from "@/lib/i18n/client"
 import { formatCompletedOnLabel } from "@/lib/board-done-column"
@@ -47,7 +48,7 @@ export function BoardDoneSincePicker({ count, since, onChange }: {
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="inline-flex shrink-0 items-center gap-1 rounded-full theme-bg-hover px-2 py-0.5 text-xs theme-text-secondary"
+              className={pillClassName("neutral", "gap-1")}
               aria-label={t("board.doneSince.accessibility", { count: String(count), period })}
               data-testid="board-done-since-trigger"
             >

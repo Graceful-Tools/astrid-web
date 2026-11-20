@@ -29,6 +29,7 @@ import {
   resolveProjectColumnMove,
 } from "@/lib/project-status"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
+import { Pill } from "@/components/ui/pill"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import { isSomeoneElsesTask } from "@/lib/task-leading-control"
 import { useProjectCustomStates } from "@/hooks/useProjectCustomStates"
@@ -401,9 +402,7 @@ export function ProjectStatusBoard({
                 {isDoneColumn ? (
                   <BoardDoneSincePicker count={tasksForColumn.length} since={doneSince} onChange={setDoneSince} />
                 ) : (
-                  <span className="min-w-6 rounded-full theme-bg-hover px-2 py-0.5 text-center text-xs theme-text-secondary">
-                    {tasksForColumn.length}
-                  </span>
+                  <Pill className="min-w-6 justify-center">{tasksForColumn.length}</Pill>
                 )}
               </div>
 
