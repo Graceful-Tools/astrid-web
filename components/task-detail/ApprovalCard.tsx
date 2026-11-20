@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { renderMarkdownWithLinks } from '@/lib/markdown'
 import { useTranslations } from '@/lib/i18n/client'
 import { apiPost, refusalReason } from '@/lib/api'
@@ -113,11 +114,11 @@ export function ApprovalCard({ taskId, commentId, summary, outcome, canDecide, o
       ) : canDecide ? (
         <div className="flex flex-col gap-2">
           {declining && (
-            <textarea
+            <Textarea
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder={t('tasks.commentsSection.approval.declineReasonPlaceholder')}
-              className="w-full min-h-16 p-2 text-sm rounded-md border theme-border theme-bg-secondary theme-text-primary resize-y focus:outline-none focus:ring-1 focus:ring-brand"
+              className="min-h-16 p-2 text-sm theme-border theme-bg-secondary theme-text-primary resize-y focus-visible:ring-1 focus-visible:ring-brand focus-visible:ring-offset-0"
             />
           )}
           <div className="flex items-center gap-2">
