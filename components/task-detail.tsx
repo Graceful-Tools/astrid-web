@@ -1263,8 +1263,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             applyStatusColumn(columnId)
             setOptionsOpen(false)
           }}
-          completed={Boolean(task.completed)}
-          repeating={task.repeating !== 'never'}
+          completed={Boolean(task.completed)} repeating={task.repeating !== 'never'}
           onToggleComplete={() => {
             handleToggleComplete()
             setOptionsOpen(false)
