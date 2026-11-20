@@ -524,7 +524,7 @@ export function TaskManager({
 
       {/* Image Picker Modal */}
       {controller.showImagePicker && controller.selectedListForImagePicker && typeof window !== 'undefined' && createPortal((
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal">
           <LazyImagePicker
             currentImageUrl={controller.selectedListForImagePicker.imageUrl || undefined}
             onSelectImage={controller.handleImagePickerSelect}

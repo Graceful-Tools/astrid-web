@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { ABOVE_MODAL_LAYER, ABOVE_MODAL_SCRIM } from "@/components/ui/confirm-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useTranslations } from "@/lib/i18n/client"
@@ -48,49 +50,43 @@ export function RequestBoardAccessDialog({ onClose, onRequested }: RequestBoardA
   }, [onClose, onRequested, submitting, t, useCase])
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      onClick={() => !submitting && onClose()}
-    >
-      <div
-        className="bg-theme-surface rounded-lg p-6 max-w-sm mx-4 shadow-xl w-full"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("projectMode.requestDialogTitle")}
+    <Dialog open onOpenChange={next => { if (!next && !submitting) onClose() }}>
+      <DialogContent
+        className={`max-w-sm ${ABOVE_MODAL_LAYER}`}
+        overlayClassName={ABOVE_MODAL_SCRIM}
+        onKeyDown={event => { if (event.key === "Escape") event.stopPropagation() }}
+        onClick={event => event.stopPropagation()}
       >
-        <h3 className="text-lg font-semibold theme-text-primary mb-2">
-          {t("projectMode.requestDialogTitle")}
-        </h3>
-        <p className="text-sm theme-text-secondary mb-4">
-          {t("projectMode.requestDialogBody")}
-        </p>
+        <DialogTitle>{t("projectMode.requestDialogTitle")}</DialogTitle>
+        <DialogDescription>{t("projectMode.requestDialogBody")}</DialogDescription>
 
-        <Label htmlFor="board-access-use-case" className="text-sm theme-text-secondary">
-          {t("projectMode.requestDialogUseCaseLabel")}
-        </Label>
-        <Textarea
-          id="board-access-use-case"
-          value={useCase}
-          onChange={(event) => setUseCase(event.target.value)}
-          placeholder={t("projectMode.requestDialogUseCasePlaceholder")}
-          rows={3}
-          maxLength={1000}
-          className="mt-1 mb-4"
-          disabled={submitting}
-        />
+        <div>
+          <Label htmlFor="board-access-use-case" className="text-sm theme-text-secondary">
+            {t("projectMode.requestDialogUseCaseLabel")}
+          </Label>
+          <Textarea
+            id="board-access-use-case"
+            value={useCase}
+            onChange={(event) => setUseCase(event.target.value)}
+            placeholder={t("projectMode.requestDialogUseCasePlaceholder")}
+            rows={3}
+            maxLength={1000}
+            className="mt-1"
+            disabled={submitting}
+          />
+        </div>
 
-        {error ? <p className="text-xs text-danger mb-3">{error}</p> : null}
+        {error ? <p className="text-xs text-danger">{error}</p> : null}
 
-        <div className="flex space-x-3 justify-end">
+        <DialogFooter className="gap-2">
           <Button variant="outline" size="sm" disabled={submitting} onClick={onClose}>
             {t("projectMode.requestDialogCancel")}
           </Button>
           <Button size="sm" disabled={submitting} onClick={submit}>
             {t("projectMode.requestDialogSubmit")}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

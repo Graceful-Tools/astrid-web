@@ -265,6 +265,29 @@ The speech bubble's tail is one shape (`.speech-bubble-tail`, drawn by
 88 (the logo it stands in for is 88), the calendar's 3 px focus ring (an outline width) and
 the board column header's 4.5 rem (board layout, register DS14).
 
+## Layers and scrims
+
+What is in front of what is a shared value like any other, and web had fifteen different ones
+(ADEV-161). Two rules:
+
+| Use | Class |
+|---|---|
+| Stacking inside one component: a sticky header over its rows, a badge over its icon | Tailwind's own `z-0`, `z-10` … `z-50` |
+| A full-screen modal's scrim (List Settings, a lazy panel) | `z-modal` |
+| The card on that scrim | `z-modal-card` |
+| Anything that opens over a modal: its menus, selects, popovers, a confirm | `z-above-modal` |
+| The dimming behind a modal | `bg-black/50`, one strength, so two stacked scrims are predictable. The dialog primitive's own is `bg-black/80`, alone on the page. The tokens have no scrim colour yet |
+
+The names are `tokenLayers` in `lib/design/tailwind-theme.ts`, and the class
+merger (`lib/utils.ts`) knows them, so `z-above-modal` overrides a primitive's `z-50`. A value
+written out (`z-[9999]`) is counted by the ratchet. A layer that has no name yet gets one there
+first.
+
+A scrim is not drawn by hand. A confirm is `ConfirmDialog` (`components/ui/confirm-dialog.tsx`)
+and a dialog with fields is `components/ui/dialog.tsx`: they bring the focus trap, Escape and the
+return of focus that a `fixed inset-0` div does not. These are web's names for now; the other
+clients' toolkits layer natively, so nothing here is in `tokens.json`.
+
 ## States
 
 | State | Rule |
@@ -560,7 +583,11 @@ and `bg-active` for a card and its border is the clearest case for a `surface` a
 
 `npm run check:design` counts the places where a value with a shared home was typed out
 instead: palette classes, hex and rgb colours, theme triplets, inline styles, arbitrary
-sizes, durations, and sentences in JSX (total and distinct). A count may not rise above
+sizes, durations, and sentences in JSX (total and distinct). Since ADEV-161 it also counts
+what a count of literals cannot see, the same thing built twice: layers written out, scrims
+drawn by hand, raw `<select>` and `<textarea>` beside the primitives, a second name for error
+text, copies of a long `className` written three or more times, and pixel values in the
+stylesheets. A count may not rise above
 `tests/rules/design-metrics.budget.json`, and Vitest runs the same check, so `predeploy`,
 CI and every agent workflow fail on a regression (predeploy and CI also run
 `check:design` as its own named step). Budgets only go down: after a
@@ -578,6 +605,17 @@ reduction, `npm run design:metrics -- --update` in the same change.
 | Sentences in JSX | 999 | 0* |
 | Distinct sentences in JSX | 802 | 0* |
 
+The counts added on 2026-11-20 (ADEV-161) start where the code was that day:
+
+| Count | 2026-11-20 |
+|---|---|
+| Layers written out (`z-[…]`) | 8 (30 before the three named layers) |
+| Scrims drawn by hand | 13 |
+| Raw `<select>` and `<textarea>` | 13 |
+| `text-destructive` for error text | 1 |
+| Copies of a repeated `className` (5+ classes, 3+ copies) | 214 |
+| Pixel values in the stylesheets | 81 |
+
 \* Since AWTD-1613 the copy count leaves out Privacy and Terms, the developer docs and internal
 tools, which keep their English on purpose; each is an `exempt` pattern with its reason in
 `scripts/report-design-metrics.ts`. Help is translated and counted.
@@ -590,8 +628,11 @@ pinned revision, in its CI.
 
 ## Not built yet
 
-- **Literal ratchet on the other clients.** Web has one (below). iOS has
-  `check-brand.sh` and Windows a radius test to grow from; Android has none.
+- **Literal ratchet on the other clients.** Web has one (above). iOS and Mac have one too
+  (`scripts/report-design-metrics.mjs` with `scripts/design-metrics.budget.json`, run by its
+  predeploy since AITD-608); it does not run in CI yet and misses shorthand system colours, Mac
+  font sizes, opacity and stack spacing (astrid-ios ADEV-167). Windows has a radius test to grow
+  from; Android has none.
 - **Reference screenshots.** A fixed set of screens in each theme, captured per client
   and set side by side.
 - **Shared assets on the native clients.** astrid-core generates the checkbox for Apple,

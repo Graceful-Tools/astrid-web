@@ -80,7 +80,7 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
             />
           </label>
           {failed && (
-            <p role="alert" className="text-xs text-destructive">{t("projectMode.settingsSaveFailed")}</p>
+            <p role="alert" className="text-xs text-danger">{t("projectMode.settingsSaveFailed")}</p>
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

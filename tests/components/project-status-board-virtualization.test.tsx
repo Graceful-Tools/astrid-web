@@ -55,9 +55,9 @@ describe('ProjectStatusBoard virtualizes very long columns (task a48b2d24)', () 
     expect(queryByTestId('virtualized-board-column')).toBeNull()
   })
 
-  it('virtualizes a column above the threshold', () => {
-    const { getAllByTestId } = renderBoard(VIRTUALIZE_TASK_THRESHOLD + 50)
-    // The windowed container is mounted for the oversized column.
-    expect(getAllByTestId('virtualized-board-column').length).toBeGreaterThan(0)
+  it('virtualizes a column above the threshold', async () => {
+    const { findAllByTestId } = renderBoard(VIRTUALIZE_TASK_THRESHOLD + 50)
+    // The windowed container is mounted for the oversized column (it loads on demand, ADEV-156).
+    expect((await findAllByTestId('virtualized-board-column')).length).toBeGreaterThan(0)
   })
 })

@@ -29,7 +29,7 @@ import { sidebarProjects } from "@/lib/sidebar-projects"
 import type { TaskList } from "@/types/task"
 import { ListItem } from "./ListItem"
 import { ListProjectMenu } from "./ListProjectMenu"
-import { SidebarConfirmDialog } from "./SidebarConfirmDialog"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { SidebarContextMenu } from "./SidebarContextMenu"
 
 interface ProjectsSectionProps {
@@ -279,7 +279,7 @@ function ProjectSection({
         </div>
       )}
       {mayDelete && (
-        <SidebarConfirmDialog
+        <ConfirmDialog
           open={deleting}
           title={t("projectMode.deleteProjectConfirm", { name })}
           detail={t("projectMode.deleteProjectDetail")}

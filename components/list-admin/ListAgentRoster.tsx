@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { Bot } from "lucide-react"
+import { Avatar, AvatarImage } from "@/components/ui/avatar"
 import { Label } from "@/components/ui/label"
 import { apiGet } from "@/lib/api"
 import { useTranslations } from "@/lib/i18n/client"
@@ -40,7 +41,7 @@ export function ListAgentRoster({ listId }: { listId: string }) {
           {roster.agents.map(entry => (
             <li key={entry.agent.id} className="flex items-start gap-2 text-sm" data-testid="agent-roster-row">
               {entry.agent.image ? (
-                <img src={entry.agent.image} alt="" className="w-4 h-4 mt-0.5 rounded-full" />
+                <Avatar className="w-4 h-4 mt-0.5"><AvatarImage src={entry.agent.image} alt="" /></Avatar>
               ) : (
                 <Bot className="w-4 h-4 mt-0.5 text-agent" />
               )}
