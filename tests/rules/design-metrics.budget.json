@@ -7,5 +7,11 @@
   "arbitrarySizes": 5,
   "motionLiterals": 0,
   "hardcodedCopy": 0,
-  "uniqueHardcodedStrings": 0
+  "uniqueHardcodedStrings": 0,
+  "arbitraryLayers": 8,
+  "handRolledOverlays": 13,
+  "rawFormControls": 13,
+  "aliasedErrorInk": 1,
+  "repeatedClassStrings": 214,
+  "cssPixelLiterals": 81
 }

@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { extendTailwindMerge } from "tailwind-merge"
-import { MOTION_NAMES, tokenEasings, tokenFontSizes, tokenOpacity, tokenScale, tokenSpacing } from "@/lib/design/tailwind-theme"
+import { MOTION_NAMES, tokenEasings, tokenFontSizes, tokenLayers, tokenOpacity, tokenScale, tokenSpacing } from "@/lib/design/tailwind-theme"
 
 /**
  * tailwind-merge only knows Tailwind's own scales. The design-token utilities
@@ -23,6 +23,8 @@ const twMerge = extendTailwindMerge({
       // Without this `text-caption2` reads as a colour, and merging it with
       // `text-theme-muted` dropped one of the two (AWTD-1615).
       'font-size': [{ text: Object.keys(tokenFontSizes) }],
+      // `z-above-modal` over a primitive's `z-50` (ADEV-161).
+      z: [{ z: Object.keys(tokenLayers) }],
     },
   },
 })
