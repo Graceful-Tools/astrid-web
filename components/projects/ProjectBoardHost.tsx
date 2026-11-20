@@ -29,9 +29,11 @@ interface ProjectBoardHostProps {
   onCreateListInProject?: ProjectBoardProps["onCreateListInProject"]
   selectedTaskId?: string | null
   isOneColumn?: boolean
+  /** The view's Sort & Filters state; the board applies its `filters` to every row (ADEV-156). */
+  filterState?: { filters: Omit<NonNullable<ProjectBoardProps["liveFilters"]>, "dueDate"> & { dueDate: string } }
 }
 
-export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, onCreateListInProject, selectedTaskId, isOneColumn }: ProjectBoardHostProps) {
+export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCreateTask, onOpenTask, onCreateListInProject, selectedTaskId, isOneColumn, filterState }: ProjectBoardHostProps) {
   const projectId = useSelectedProjectId()
   const enabled = useProjectMode()
   const projects = useLoadedProjects()
@@ -59,6 +61,8 @@ export function ProjectBoardHost({ lists, tasks, currentUser, onUpdateTask, onCr
       onCreateListInProject={mayCreateList ? onCreateListInProject : undefined}
       selectedTaskId={selectedTaskId}
       isOneColumn={isOneColumn}
+      // The saved due-date window is validated where the filter state is built (savedDueDateFilter).
+      liveFilters={filterState?.filters as ProjectBoardProps["liveFilters"]}
     />
   )
 }
