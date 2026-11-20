@@ -412,11 +412,25 @@ export function PriorityAssigneePicker({
                     type="button"
                     data-testid="task-options-complete"
                     onClick={onToggleComplete}
-                    className="flex-1 h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
+                    className={
+                      asksBeforeCompleting
+                        ? "flex-1 h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
+                        : "flex-1 h-11 rounded-lg px-1 flex items-center gap-3 text-left text-sm font-medium text-theme-primary transition-all duration-fast active:scale-95"
+                    }
                   >
-                    {asksBeforeCompleting
-                      ? t('common.complete')
-                      : completed ? t('tasks.markIncomplete') : t('tasks.markComplete')}
+                    {asksBeforeCompleting ? (
+                      t('common.complete')
+                    ) : (
+                      <>
+                        {/* iOS's quick set: a check mark on the left, the action beside it. */}
+                        <Check
+                          aria-hidden="true"
+                          data-testid="task-options-complete-icon"
+                          className={`w-5 h-5 shrink-0 ${completed ? 'text-theme-muted' : 'text-brand'}`}
+                        />
+                        {completed ? t('tasks.markAsTodo') : t('tasks.markAsDone')}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
