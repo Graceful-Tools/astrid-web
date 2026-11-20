@@ -167,6 +167,65 @@ describe('what the copy count leaves out', () => {
   })
 })
 
+// ADEV-161. The counts above are of literals; 83 UI files changed in a week without moving one,
+// while a second board, four copies of a pill and a second confirm modal were written.
+describe('what a count of literals could not see (ADEV-161)', () => {
+  it('a layer written out, but not a named one or a step inside a component', () => {
+    const text = '<div className="z-[9999] md:z-[60] -z-[1] z-50 z-10 z-modal z-above-modal" />'
+    expect(count(metric('arbitraryLayers'), source(text))).toBe(3)
+  })
+
+  it('the named layers compile to the values they replaced, and the class merger knows them', async () => {
+    const { tokenLayers } = await import('@/lib/design/tailwind-theme')
+    expect(tokenLayers).toEqual({ modal: '9999', 'modal-card': '10000', 'above-modal': '10100' })
+    const { cn } = await import('@/lib/utils')
+    expect(cn('z-50', 'z-above-modal')).toBe('z-above-modal')
+    expect(cn('z-above-modal', 'z-50')).toBe('z-50')
+  })
+
+  it('a scrim drawn by hand, outside the primitives', () => {
+    const overlay = '<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" />'
+    expect(count(metric('handRolledOverlays'), source(overlay))).toBe(1)
+    expect(count(metric('handRolledOverlays'), source('<div className="fixed inset-0 z-modal bg-black bg-opacity-50" />'))).toBe(1)
+    expect(count(metric('handRolledOverlays'), source(overlay, 'components/ui/dialog.tsx'))).toBe(0)
+    // A full-screen page background is not a scrim.
+    expect(count(metric('handRolledOverlays'), source('<div className="fixed inset-0 bg-theme-primary" />'))).toBe(0)
+  })
+
+  it('a raw select or textarea, outside the primitives', () => {
+    const text = '<select value={v}><option /></select><textarea rows={3} /><Select /><Textarea />'
+    expect(count(metric('rawFormControls'), source(text))).toBe(2)
+    expect(count(metric('rawFormControls'), source('<textarea />', 'components/ui/textarea.tsx'))).toBe(0)
+  })
+
+  it('the second name for error text, but not the button fill that shares its stem', () => {
+    const text = '<p className="text-xs text-destructive" /><p className="hover:text-destructive" /><b className="bg-destructive text-destructive-foreground" />'
+    expect(count(metric('aliasedErrorInk'), source(text))).toBe(2)
+  })
+
+  it('every copy of a long class string written three times, in any files', () => {
+    const pill = 'className="rounded-full theme-bg-hover px-2 py-0.5 text-xs theme-text-secondary"'
+    const once = [{ path: 'components/a.tsx', source: `<i ${pill} />` }]
+    const twice = [...once, { path: 'components/b.tsx', source: `<i ${pill} />` }]
+    const thrice = [...twice, { path: 'components/c.tsx', source: `<i ${pill} /><i className="flex gap-2" />` }]
+    const four = [...thrice, { path: 'components/d.tsx', source: `<i ${pill} />` }]
+    expect(count(metric('repeatedClassStrings'), twice)).toBe(0)
+    expect(count(metric('repeatedClassStrings'), thrice)).toBe(3)
+    // The fourth copy is the regression the budget catches.
+    expect(count(metric('repeatedClassStrings'), four)).toBe(4)
+  })
+
+  it('a short class string is not a component waiting to be extracted', () => {
+    const short = Array.from({ length: 5 }, (_, i) => ({ path: `components/${i}.tsx`, source: '<i className="flex items-center gap-2" />' }))
+    expect(count(metric('repeatedClassStrings'), short)).toBe(0)
+  })
+
+  it('a pixel value in a stylesheet, but not a token or a unitless number', () => {
+    const css = '.a { top: -11px; width: 10px; padding: var(--astrid-space-8); transform: scaleX(0.92); border: 1px solid; }'
+    expect(count(metric('cssPixelLiterals'), source(css, 'styles/components.css'))).toBe(3)
+  })
+})
+
 describe('the budgets', () => {
   it('a count above its budget is named, with what to use instead', () => {
     const problems = overBudget({ ...Object.fromEntries(METRICS.map((m) => [m.id, 0])), inlineStyles: 3 }, Object.fromEntries(METRICS.map((m) => [m.id, 1])))

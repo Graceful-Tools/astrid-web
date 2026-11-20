@@ -152,7 +152,7 @@ export function FixedListSettingsPopover({
               <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[10100]">
+              <SelectContent className="z-above-modal">
                 <FilterSelectItems options={sortOptions} />
               </SelectContent>
             </Select>
@@ -165,7 +165,7 @@ export function FixedListSettingsPopover({
               <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[10100]">
+              <SelectContent className="z-above-modal">
                 <FilterSelectItems options={COMPLETION_FILTER_OPTIONS} />
               </SelectContent>
             </Select>
@@ -187,7 +187,7 @@ export function FixedListSettingsPopover({
               <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="z-[10100]">
+              <SelectContent className="z-above-modal">
                 <FilterSelectItems options={PRIORITY_FILTER_OPTIONS} />
               </SelectContent>
             </Select>
@@ -234,7 +234,7 @@ export function FixedListSettingsPopover({
                 <SelectTrigger className={FILTER_TRIGGER_CLASS}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-[10100]">
+                <SelectContent className="z-above-modal">
                   <FilterSelectItems options={dueDateOptions} />
                 </SelectContent>
               </Select>

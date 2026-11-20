@@ -21,8 +21,8 @@ import {
 } from "@/components/ui/dialog"
 import { useTranslations } from "@/lib/i18n/client"
 
-/** Above the settings modal (`z-[9999]`) and its card (`z-[10000]`), with its menus. */
-export const ABOVE_MODAL_LAYER = "z-[10100]"
+/** Above the settings modal (`z-modal`) and its card (`z-modal-card`), with its menus: a named layer (lib/design/tailwind-theme.ts). */
+export const ABOVE_MODAL_LAYER = "z-above-modal"
 /**
  * The scrim on that layer. Lighter than the dialog primitive's own: it usually lands on top of
  * the settings modal's scrim, and two full-strength ones turn the page black.

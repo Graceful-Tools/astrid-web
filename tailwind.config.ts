@@ -13,6 +13,7 @@ import {
   tokenEasings,
   tokenOpacity,
   tokenFontSizes,
+  tokenLayers,
   tokenScale,
   tokenSpacing,
 } from "./lib/design/tailwind-theme";
@@ -45,6 +46,7 @@ const config: Config = {
   		// The accent as a ring is the focus border: lighter in Dark.
   		ringColor: ringColors,
   		backgroundColor: { theme: themeBackgroundColors },
+  		zIndex: tokenLayers,
   		borderColor: { theme: themeBorderColors },
   		opacity: tokenOpacity,
   		scale: tokenScale,

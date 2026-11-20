@@ -10,8 +10,10 @@ import { compileClasses, ruleFor } from './compile-tailwind'
 
 const SAME: Array<[string, string]> = [
   ['max-h-[85vh]', 'max-height: 85vh'],
-  ['z-[9999]', 'z-index: 9999'],
-  ['z-[10000]', 'z-index: 10000'],
+  // Named layers since ADEV-161 (lib/design/tailwind-theme.ts → tokenLayers).
+  ['z-modal', 'z-index: 9999'],
+  ['z-modal-card', 'z-index: 10000'],
+  ['z-above-modal', 'z-index: 10100'],
   ['z-0', 'z-index: 0'],
   ['leading-[1.4]', 'line-height: 1.4'],
   ['caret-current', 'caret-color: currentColor'],

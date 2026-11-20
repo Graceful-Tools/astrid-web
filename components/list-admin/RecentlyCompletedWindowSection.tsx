@@ -77,7 +77,7 @@ export function RecentlyCompletedWindowSection({
         <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid="recently-completed-preset-trigger">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="theme-bg-primary theme-border z-[10100]">
+        <SelectContent className="theme-bg-primary theme-border z-above-modal">
           {RECENTLY_COMPLETED_PRESETS.map(p => (
             <SelectItem key={p.id} value={p.id} className="theme-text-primary">
               {PRESET_LABEL_KEYS[p.id] ? t(`listSettings.admin.recentlyCompletedPresets.${PRESET_LABEL_KEYS[p.id]}`) : p.label}
