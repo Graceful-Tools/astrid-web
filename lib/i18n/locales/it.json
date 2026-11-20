@@ -79,6 +79,8 @@
     "boardState": "Stato della bacheca",
     "markComplete": "Segna come completata",
     "markIncomplete": "Segna come non completata",
+    "markAsDone": "Segna come fatta",
+    "markAsTodo": "Segna come da fare",
     "comments": "Commenti",
     "attachments": "Allegati",
     "subtasks": "Attività secondarie",

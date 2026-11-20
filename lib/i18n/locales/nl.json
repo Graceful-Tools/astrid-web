@@ -79,6 +79,8 @@
     "boardState": "Bordstatus",
     "markComplete": "Markeer als voltooid",
     "markIncomplete": "Markeer als niet voltooid",
+    "markAsDone": "Markeer als klaar",
+    "markAsTodo": "Markeer als te doen",
     "comments": "Reacties",
     "attachments": "Bijlagen",
     "subtasks": "Subtaken",
