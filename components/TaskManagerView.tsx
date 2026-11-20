@@ -821,7 +821,7 @@ const TaskManagerView = memo(function TaskManagerView({
             />
           </div>
         ) : projectBoardOpen && !isSearchActive ? (
-          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onCreateTask={handleQuickCreateTask} onOpenTask={handleTaskClick} onCreateListInProject={(name, projectId) => handleCreateList({ name, description: '', memberEmails: [], projectId })} selectedTaskId={selectedTaskId} isOneColumn={columnCount === 1} />
+          <LazyProjectBoardHost lists={lists} tasks={tasks} currentUser={effectiveSession?.user as User | undefined} onUpdateTask={handleUpdateTask} onCreateTask={handleQuickCreateTask} onOpenTask={handleTaskClick} onCreateListInProject={(name, projectId) => handleCreateList({ name, description: '', memberEmails: [], projectId })} selectedTaskId={selectedTaskId} isOneColumn={columnCount === 1} filterState={newFilterState} />
         ) : (
           <MainContent
             isMobile={isMobile}

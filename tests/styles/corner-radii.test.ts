@@ -11,7 +11,10 @@ import { join } from 'node:path'
 import { designTokens } from '@/lib/design/tokens'
 
 const css = readFileSync(join(process.cwd(), 'styles', 'components.css'), 'utf8')
-const board = readFileSync(join(process.cwd(), 'components', 'project-status-board.tsx'), 'utf8')
+// The column and card markup live once, in the shared components both boards render (ADEV-156).
+const board =
+  readFileSync(join(process.cwd(), 'components', 'board-column.tsx'), 'utf8') +
+  readFileSync(join(process.cwd(), 'components', 'board-card.tsx'), 'utf8')
 
 function rule(selector: string): string {
   const start = css.indexOf(`${selector} {`)
@@ -45,6 +48,7 @@ describe('corner radii come from the layout tokens (AWTD-1617, DS13)', () => {
     expect(css.indexOf('.board-card {')).toBeGreaterThan(css.indexOf('.task-card {'))
     expect(rule('.board-column')).toContain('border-radius: var(--board-column-radius)')
     expect(board).toMatch(/className=\{`board-column flex h-full/)
+    expect(board).not.toMatch(/rounded-md border theme-border theme-bg-secondary/)
     expect(board).toMatch(/task-row task-card board-card/)
   })
 

@@ -24,6 +24,7 @@ import { contrast } from '@/lib/design/contrast'
 import type { Rgb } from '@/lib/design/tokens'
 import { sortTasksForList } from '@/lib/task-sort'
 import { sortDoneColumnTasks } from '@/lib/board-done-column'
+import { applyBoardLiveFilters, type BoardLiveFilters } from '@/lib/board-live-filters'
 
 export { PROJECT_BOARD_LIST_DRAG_TYPE, readDraggedListId } from '@/lib/project-board-list-drag'
 
@@ -93,19 +94,23 @@ export function buildSwimlanes(
   rows: TaskList[],
   tasks: Task[],
   columns: ProjectBoardColumn[],
-  options: { now?: Date } = {},
+  options: { now?: Date; liveFilters?: BoardLiveFilters & { sortBy?: string } } = {},
 ): BoardSwimlane[] {
   const now = options.now ?? new Date()
   return rows.map(list => {
     const window = (list.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
-    const inRow = tasks.filter(task =>
-      task.lists?.some(member => member.id === list.id) &&
-      (!task.completed || isTaskRecentlyCompleted(task, window, now)),
+    // The Sort & Filters set on the board apply to every row, as on a list's own board (ADEV-145).
+    const inRow = applyBoardLiveFilters(
+      tasks.filter(task =>
+        task.lists?.some(member => member.id === list.id) &&
+        (!task.completed || isTaskRecentlyCompleted(task, window, now)),
+      ),
+      options.liveFilters,
     )
     const manualOrder = Array.isArray(list.manualSortOrder)
       ? (list.manualSortOrder as unknown[]).filter((id): id is string => typeof id === 'string')
       : undefined
-    const sorted = sortTasksForList(inRow, list.sortBy || 'auto', manualOrder)
+    const sorted = sortTasksForList(inRow, options.liveFilters?.sortBy || list.sortBy || 'auto', manualOrder)
 
     const cells: Record<string, Task[]> = Object.fromEntries(columns.map(column => [column.id, [] as Task[]]))
     for (const task of sorted) cells[getTaskProjectColumnId(task, columns)]?.push(task)
