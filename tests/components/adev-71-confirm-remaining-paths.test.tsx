@@ -397,7 +397,8 @@ describe('ADEV-71: the sheet decides by assigneeId, not the loaded assignee', ()
     )
 
     // The sheet opens on the question (ADEV-71's two-step flow), as assigned, not as nobody's.
-    expect(confirmTitle()).not.toBeNull()
+    // (ADEV-158: the question is one muted line, not a title.)
+    expect(screen.getByTestId('task-options-complete-holder')).toBeTruthy()
     expect(screen.queryByText('tasks.confirmCompleteUnassigned')).toBeNull()
   })
 })
