@@ -284,6 +284,20 @@ export const tokenOpacity = {
   completed: 'var(--astrid-state-completed-mark-opacity)',
 }
 
+/**
+ * The app-wide layers, by name (docs/specs/DESIGN_SYSTEM.md → Layers and scrims): `z-modal`,
+ * `z-modal-card`, `z-above-modal`. Tailwind's own small steps (`z-10` … `z-50`) are for stacking
+ * inside one component. A `z-[…]` written out is counted by the design ratchet.
+ */
+export const tokenLayers = {
+  /** A full-screen modal's scrim: List Settings, a lazy panel. */
+  modal: '9999',
+  /** The card on that scrim. */
+  'modal-card': '10000',
+  /** What opens over a modal: its menus, selects and popovers, and a confirm. */
+  'above-modal': '10100',
+}
+
 /** `active:scale-press`. */
 export const tokenScale = {
   press: 'var(--astrid-state-press-scale)',

@@ -508,7 +508,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                 <SelectTrigger className="theme-input theme-border-input border theme-text-primary">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-[10100]">
+                <SelectContent className="z-above-modal">
                   <SelectItem value="admin">{t('lists.membersManager.adminOption')}</SelectItem>
                   <SelectItem value="member">{t('lists.membersManager.memberOption')}</SelectItem>
                 </SelectContent>
@@ -610,7 +610,7 @@ export function ListMembersManager({ list, currentUser, onUpdate, onLeave }: Lis
                         <MoreVertical className="w-3 h-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="z-[10100]" onCloseAutoFocus={handleMenuCloseAutoFocus}>
+                    <DropdownMenuContent align="end" className="z-above-modal" onCloseAutoFocus={handleMenuCloseAutoFocus}>
                       {isAdmin && member.user_id !== currentUser.id && (
                         <>
                           {member.type === 'member' && (

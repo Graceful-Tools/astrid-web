@@ -176,7 +176,7 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
                 <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid={`orchestration-${scope}-routing`}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="theme-bg-primary theme-border z-[10100]">
+                <SelectContent className="theme-bg-primary theme-border z-above-modal">
                   <SelectItem value={INHERIT}>{inheritLabel(routingLabel(inherited.routing.assignTo))}</SelectItem>
                   <SelectItem value={ANY_AGENT}>{t("orchestrationPolicy.routing.anyAgent")}</SelectItem>
                   {routingOptions.map(mailbox => (
@@ -216,7 +216,7 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
                 <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid={`orchestration-${scope}-escalation`}>
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="theme-bg-primary theme-border z-[10100]">
+                <SelectContent className="theme-bg-primary theme-border z-above-modal">
                   <SelectItem value={INHERIT}>{inheritLabel(escalationLabel(inherited.escalation))}</SelectItem>
                   <SelectItem value="listOwner">{t("orchestrationPolicy.escalation.listOwner")}</SelectItem>
                   <SelectItem value="taskCreator">{t("orchestrationPolicy.escalation.taskCreator")}</SelectItem>
@@ -275,7 +275,7 @@ function AutonomyRow(props: {
         <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid={`orchestration-${props.scope}-${props.field}`}>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="theme-bg-primary theme-border z-[10100]">
+        <SelectContent className="theme-bg-primary theme-border z-above-modal">
           <SelectItem value={INHERIT}>{props.inheritLabel}</SelectItem>
           {AUTONOMY_VALUES.map(value => (
             <SelectItem key={value} value={value}>{props.autonomyLabel(value)}</SelectItem>
