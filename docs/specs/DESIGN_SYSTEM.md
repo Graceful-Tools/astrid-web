@@ -320,6 +320,27 @@ swatch, and the card's radius and number badge from the tokens (`app/globals.css
 AWTD-1617). Headings h1 to h4 read `type.comfortable.markdown-h1` to `-h4` (28 / 22 / 17 / 17,
 semibold; DS24, AWTD-1625); h5 and h6 stay at 14 px.
 
+### Pill
+
+One capsule for a board status, the completed-on date, a column's count and the
+Done-since trigger (register DS33; iOS is the reference). The values are the `pill`
+tokens:
+
+- the fill is the meaning's colour at `pill.fill-opacity` (15%), over the surface the
+  pill sits on;
+- the stroke is the same colour at `pill.stroke-opacity` (40%), `pill.stroke-width` wide;
+- padding is `pill.padding-x` across and `pill.padding-y` down, the radius a capsule,
+  the type `caption1`;
+- **the label is the meaning's ink** (`pill.<state>.ink`), which the generator holds to
+  4.5:1 on the pill's own wash.
+
+Board state to meaning: Inbox `error`, Waiting `warning`, Ready `success`, Doing `info`,
+Done `accent`. The completed-on pill wears Done's. A count and a board's own column
+have no meaning and are muted.
+
+On web it is `Pill` in `components/ui/pill.tsx`, which wears `.board-status-pill`
+(`styles/components.css`). A capsule is not written out as classes.
+
 ### Still to write
 
 Task row, sidebar row, board card, comment bubble, pickers, empty state. Each lands with

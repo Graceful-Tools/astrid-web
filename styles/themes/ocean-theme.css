@@ -13,9 +13,9 @@
      Ocean's page and border tokens are both the cyan, so a white card and the
      grey line around it have no name of their own yet: the white is the one
      the tokens call the hover surface, the grey the one they call active. */
-  --theme-surface: var(--astrid-bg-hover);
-  --theme-surface-hover: var(--astrid-bg-tertiary);
-  --theme-surface-border: var(--astrid-bg-active);
+  --theme-surface: var(--astrid-surface);
+  --theme-surface-hover: var(--astrid-surface-hover);
+  --theme-surface-border: var(--astrid-surface-border);
 
   /* Border colors (same as light) */
   --theme-border: var(--astrid-border);
@@ -47,11 +47,11 @@
   --theme-info: var(--astrid-info);
 
   /* Sidebar colors (same as light) */
-  --theme-sidebar-bg: var(--astrid-bg-secondary);
+  --theme-sidebar-bg: var(--astrid-sidebar-bg);
   --theme-sidebar-border: var(--theme-surface-border);
 
   /* Task panel colors (same as light) */
-  --theme-panel-bg: var(--astrid-bg-secondary);
+  --theme-panel-bg: var(--astrid-panel-bg);
   --theme-panel-border: var(--theme-surface-border);
   --theme-panel-arrow: var(--theme-panel-bg);
 
@@ -65,7 +65,7 @@
   --theme-input-placeholder: var(--astrid-input-placeholder);
 
   /* Comment colors (same as light) */
-  --theme-comment-bg: var(--astrid-bg-secondary);
+  --theme-comment-bg: var(--astrid-comment-bg);
 
   /* Button colors (same as light) */
   --theme-button-bg: var(--astrid-button-bg);
