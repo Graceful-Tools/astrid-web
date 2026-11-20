@@ -73,7 +73,8 @@ describe('completing someone else\'s task from the options sheet (AWTD-877, ADEV
   it('opens on the question itself, naming whose task it is', () => {
     openSheet({ onToggleComplete: vi.fn() })
 
-    expect(screen.getByText('tasks.confirmCompleteTitle')).toBeTruthy()
+    // ADEV-158: one muted line, no title above it.
+    expect(screen.queryByText('tasks.confirmCompleteTitle')).toBeNull()
     expect(screen.getByText(/Sam Smith/)).toBeTruthy()
     expect(completeButton()).toHaveTextContent('common.complete')
   })
@@ -105,7 +106,7 @@ describe('completing someone else\'s task from the options sheet (AWTD-877, ADEV
       currentUser: { id: ME, name: 'Me', email: 'me@example.com', createdAt: new Date() },
     })
 
-    expect(screen.getByText('tasks.confirmCompleteTitle')).toBeTruthy()
+    expect(completeButton()).toHaveTextContent('common.complete')
   })
 })
 
