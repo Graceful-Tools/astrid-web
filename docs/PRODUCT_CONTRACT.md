@@ -219,8 +219,13 @@ identically to a task you own. That is the bug this rule exists to prevent.
   `components/task-leading-control.tsx` renders. iOS:
   `TaskLeadingControl.kind(assigneeId:currentUserId:)`. No component decides
   for itself — that is how the row and the detail drifted apart.
-- **Completed + unassigned falls back to the checkbox**, because the mark has to
-  be able to read as checked and the unassigned mark cannot.
+- **A completed task always shows the checked checkbox, whoever holds it**
+  (ADEV-147; earlier only completed + unassigned did). The mark has to be able
+  to read as checked, and neither the unassigned mark nor someone else's photo
+  can. Only the mark changes: a tap on someone else's task still opens the
+  picker rather than reopening it. The rule lives in astrid-core
+  (`LeadingControl::for_row`) and `contracts/fixtures/leading-control.json`
+  keeps web and core answering the same table.
 
 Shared copy for the mark:
 
