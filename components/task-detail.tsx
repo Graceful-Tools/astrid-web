@@ -1264,6 +1264,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
             setOptionsOpen(false)
           }}
           completed={Boolean(task.completed)}
+          repeating={task.repeating !== 'never'}
           onToggleComplete={() => {
             handleToggleComplete()
             setOptionsOpen(false)

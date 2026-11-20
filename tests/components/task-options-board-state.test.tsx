@@ -175,4 +175,42 @@ describe('complete / mark incomplete (task ffa5bbb5)', () => {
     expect(button.firstElementChild).toBe(screen.getByTestId('task-options-complete-icon'))
     expect(button.className).not.toContain('border-2')
   })
+
+  it('ADEV-148: the row shows the task row\'s own checkbox — unchecked beside "Mark as done", in the priority colour', () => {
+    const me = { id: 'user-me', name: 'Me', email: 'me@example.com', createdAt: new Date() }
+    render(
+      <PriorityAssigneePicker
+        {...BASE}
+        selectedPriority={2}
+        selectedAssignee={me}
+        currentUserId={me.id}
+        completed={false}
+        onToggleComplete={vi.fn()}
+      />,
+    )
+    const art = screen.getByTestId('task-options-complete').querySelector('[data-testid="task-checkbox-art"]')
+    expect(art).not.toBeNull()
+    expect(art?.getAttribute('data-checked')).toBe('false')
+    expect(art?.getAttribute('data-priority')).toBe('2')
+    expect(art?.getAttribute('data-repeating')).toBe('false')
+  })
+
+  it('ADEV-148: a done task shows the checked checkbox beside "Mark as to-do"; a repeating one keeps its arrows', () => {
+    const me = { id: 'user-me', name: 'Me', email: 'me@example.com', createdAt: new Date() }
+    render(
+      <PriorityAssigneePicker
+        {...BASE}
+        selectedAssignee={me}
+        currentUserId={me.id}
+        completed
+        repeating
+        onToggleComplete={vi.fn()}
+      />,
+    )
+    const button = screen.getByTestId('task-options-complete')
+    expect(button).toHaveTextContent('tasks.markAsTodo')
+    const art = button.querySelector('[data-testid="task-checkbox-art"]')
+    expect(art?.getAttribute('data-checked')).toBe('true')
+    expect(art?.getAttribute('data-repeating')).toBe('true')
+  })
 })
