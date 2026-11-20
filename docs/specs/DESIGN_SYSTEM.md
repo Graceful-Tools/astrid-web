@@ -590,8 +590,11 @@ pinned revision, in its CI.
 
 ## Not built yet
 
-- **Literal ratchet on the other clients.** Web has one (below). iOS has
-  `check-brand.sh` and Windows a radius test to grow from; Android has none.
+- **Literal ratchet on the other clients.** Web has one (above). iOS and Mac have one too
+  (`scripts/report-design-metrics.mjs` with `scripts/design-metrics.budget.json`, run by its
+  predeploy since AITD-608); it does not run in CI yet and misses shorthand system colours, Mac
+  font sizes, opacity and stack spacing (astrid-ios ADEV-167). Windows has a radius test to grow
+  from; Android has none.
 - **Reference screenshots.** A fixed set of screens in each theme, captured per client
   and set side by side.
 - **Shared assets on the native clients.** astrid-core generates the checkbox for Apple,
