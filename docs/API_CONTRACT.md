@@ -647,7 +647,7 @@ Done (completed tasks) → `done`; Inbox (`statusRole` null) → `inbox`; `ready
 themselves; any custom column → no frame. Implementation: `lib/empathy-art/rules.ts`; cases every
 port must reproduce: `contracts/fixtures/empathy-art.json`.
 
-The art is drawn in astrid-ios (`docs/design/empathy-states/hifi/webp/`) and copied here with
+The art is drawn in [astrid-ios](https://github.com/Graceful-Tools/astrid-ios/tree/main/docs/design/empathy-states/hifi/webp) and copied here with
 `npx tsx scripts/import-empathy-art.ts`, which also regenerates `lib/empathy-art/frames.json`.
 
 ---

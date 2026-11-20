@@ -23,6 +23,7 @@ export const V1_ROUTE_FAMILY_COVERAGE = {
   chat: { mode: 'direct', tests: ['tests/api/v1-chat-message-attachments.test.ts'] },
   comments: { mode: 'direct', tests: ['tests/api/v1-comments-id.test.ts'] },
   contacts: { mode: 'direct', tests: ['tests/api/v1-contacts.test.ts'] },
+  'empathy-art': { mode: 'direct', tests: ['tests/api/v1-empathy-art.test.ts'] },
   'custom-agents': {
     mode: 'parity',
     tests: ['tests/api/custom-agent-compatibility.test.ts'],
