@@ -79,6 +79,8 @@
     "boardState": "看板状态",
     "markComplete": "标记为已完成",
     "markIncomplete": "标记为未完成",
+    "markAsDone": "标记为已完成",
+    "markAsTodo": "标记为待办",
     "comments": "评论",
     "attachments": "附件",
     "subtasks": "子任务",

@@ -79,6 +79,8 @@
     "boardState": "ボードの状態",
     "markComplete": "完了にする",
     "markIncomplete": "未完了にする",
+    "markAsDone": "完了にする",
+    "markAsTodo": "やることに戻す",
     "comments": "コメント",
     "attachments": "添付ファイル",
     "subtasks": "サブタスク",

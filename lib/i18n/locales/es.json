@@ -79,6 +79,8 @@
     "boardState": "Estado del tablero",
     "markComplete": "Marcar como completada",
     "markIncomplete": "Marcar como incompleta",
+    "markAsDone": "Marcar como hecha",
+    "markAsTodo": "Marcar como pendiente",
     "comments": "Comentarios",
     "attachments": "Archivos adjuntos",
     "subtasks": "Subtareas",

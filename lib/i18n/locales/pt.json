@@ -79,6 +79,8 @@
     "boardState": "Estado do quadro",
     "markComplete": "Marcar como concluída",
     "markIncomplete": "Marcar como não concluída",
+    "markAsDone": "Marcar como feita",
+    "markAsTodo": "Marcar como a fazer",
     "comments": "Comentários",
     "attachments": "Anexos",
     "subtasks": "Subtarefas",
