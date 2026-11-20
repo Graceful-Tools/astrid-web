@@ -610,6 +610,48 @@ The project routes answer `{ projectId, project, effective, engine, canEdit, met
 
 ---
 
+## Board Art Endpoints
+
+### GET `/api/v1/empathy-art`
+
+The high-fidelity empathy-state frames for empty board columns (ADEV-142, iOS ADEV-127). No
+authentication. **Optional for every client:** when the request fails or a frame isn't cached,
+show the built-in art. Fetch it while idle, never block a board on it.
+
+```json
+{
+  "version": 1,
+  "revision": "<sha256 over the set>",
+  "metaphors": ["race", "wall", "chef", "garden", "hike"],
+  "states": ["inbox", "ready", "doing", "waiting", "done"],
+  "frames": [{ "metaphor": "race", "state": "inbox", "url": "https://…/images/empathy-art/race-inbox.<hash12>.webp", "sha256": "…", "bytes": 98123 }]
+}
+```
+
+- One frame per metaphor × state (25): a 1024² transparent WebP of about 100 KB.
+- Frame URLs carry their content hash and are served `immutable`; cache them forever. Refetch
+  frames only when `revision` changes. The response has `ETag: "<revision>"` and answers `304`
+  to a matching `If-None-Match`.
+- New metaphors are appended to `metaphors`; a client must use the array it receives, not a
+  built-in count, so the rotation stays in step with other clients.
+
+**Which frame a column shows.** A list's metaphor for the day is
+
+```
+metaphors[(fnv1a32(utf8(listId)) + floor(epochMs / 86400000)) % metaphors.length]
+```
+
+FNV-1a 32-bit (offset `0x811c9dc5`, prime `0x01000193`) over the list id exactly as the server
+sends it; the day changes at 00:00 UTC; the sum has no 32-bit wraparound. The column's state:
+Done (completed tasks) → `done`; Inbox (`statusRole` null) → `inbox`; `ready`, `doing`, `waiting` →
+themselves; any custom column → no frame. Implementation: `lib/empathy-art/rules.ts`; cases every
+port must reproduce: `contracts/fixtures/empathy-art.json`.
+
+The art is drawn in astrid-ios (`docs/design/empathy-states/hifi/webp/`) and copied here with
+`npx tsx scripts/import-empathy-art.ts`, which also regenerates `lib/empathy-art/frames.json`.
+
+---
+
 ## Comment Endpoints
 
 ### GET `/api/tasks/{taskId}/comments`

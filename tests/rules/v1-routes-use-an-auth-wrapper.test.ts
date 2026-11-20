@@ -52,6 +52,8 @@ const PUBLIC: Record<string, string> = {
   'app/api/v1/capabilities/route.ts':
     'describes the deployment, not a user; the client needs it BEFORE sign-in to know which sign-in methods to show',
   'app/api/v1/agent-icon/[slug]/route.ts': 'serves a static agent icon',
+  'app/api/v1/empathy-art/route.ts':
+    'the same manifest of public, content-hashed art files for every user (ADEV-142); clients prefetch it while idle',
   'app/api/v1/oauth/token/route.ts': 'the token endpoint — it issues credentials, it cannot require them',
   'app/api/v1/oauth/register/route.ts': 'RFC 7591 dynamic client registration',
   'app/api/v1/auth/apple/route.ts': 'establishes a session; there is none yet',
