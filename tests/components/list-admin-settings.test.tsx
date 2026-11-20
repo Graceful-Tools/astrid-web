@@ -5,7 +5,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { buildUser } from '../fixtures/domain'
 import { buildTaskList } from '../fixtures/domain'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ListAdminSettings } from '@/components/list-admin-settings'
 import type { TaskList, User } from '@/types/task'
 
@@ -110,11 +111,9 @@ describe('ListAdminSettings - Delete List Modal', () => {
       const deleteButton = screen.getByText('Delete List')
       fireEvent.click(deleteButton)
 
-      // Modal should appear - check by looking for h3 with "Delete List"
+      // The confirm is the shared ConfirmDialog since ADEV-159, portalled out of the section.
       await waitFor(() => {
-        const modalHeading = Array.from(container.querySelectorAll('h3'))
-          .find(h => h.textContent === 'Delete List')
-        expect(modalHeading).toBeInTheDocument()
+        expect(within(screen.getByTestId('list-delete-confirm')).getByRole('heading', { name: 'Delete List' })).toBeInTheDocument()
       })
     })
 
@@ -142,8 +141,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
 
       // Check that modal contains the custom list name
       await waitFor(() => {
-        const modalContent = container.querySelector('.fixed')
-        expect(modalContent?.textContent).toContain('My Custom List')
+        expect(screen.getByTestId('list-delete-confirm')).toHaveTextContent('My Custom List')
       })
     })
 
@@ -169,7 +167,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
       fireEvent.click(dontDeleteButton)
 
       // Modal should be closed
-      expect(screen.queryByText('Delete List', { selector: 'h3' })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('list-delete-confirm')).not.toBeInTheDocument()
       expect(mockOnDelete).not.toHaveBeenCalled()
     })
 
@@ -191,10 +189,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
       fireEvent.click(deleteButton)
 
       // Click "Delete" in modal - get all buttons with "Delete" text
-      const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i })
-      const confirmDeleteButton = allDeleteButtons.find(
-        button => button.classList.contains('bg-danger')
-      )
+      const confirmDeleteButton = within(screen.getByTestId('list-delete-confirm')).getByRole('button', { name: 'Delete' })
       expect(confirmDeleteButton).toBeInTheDocument()
       fireEvent.click(confirmDeleteButton!)
 
@@ -203,10 +198,11 @@ describe('ListAdminSettings - Delete List Modal', () => {
       expect(mockOnDelete).toHaveBeenCalledTimes(1)
 
       // Modal should be closed
-      expect(screen.queryByText('Delete List', { selector: 'h3' })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('list-delete-confirm')).not.toBeInTheDocument()
     })
 
-    it('should close modal when backdrop is clicked', () => {
+    it('should close modal when backdrop is clicked', async () => {
+      const user = userEvent.setup()
       render(
         <ListAdminSettings
           list={mockList}
@@ -224,16 +220,15 @@ describe('ListAdminSettings - Delete List Modal', () => {
       fireEvent.click(deleteButton)
 
       // Modal should be visible
-      const modalTitle = screen.getByText('Delete List', { selector: 'h3' })
-      expect(modalTitle).toBeInTheDocument()
+      const dialog = screen.getByTestId('list-delete-confirm')
 
-      // Click backdrop (the overlay div)
-      const backdrop = modalTitle.closest('.fixed')
+      // Click backdrop (the dialog primitive's scrim, a sibling of the dialog)
+      const backdrop = Array.from(document.querySelectorAll('.fixed.inset-0')).find(el => !el.contains(dialog) && el.getAttribute('data-state') === 'open')
       expect(backdrop).toBeInTheDocument()
-      fireEvent.click(backdrop!)
+      await user.click(backdrop!)
 
       // Modal should be closed
-      expect(screen.queryByText('Delete List', { selector: 'h3' })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('list-delete-confirm')).not.toBeInTheDocument()
       expect(mockOnDelete).not.toHaveBeenCalled()
     })
 
@@ -259,7 +254,7 @@ describe('ListAdminSettings - Delete List Modal', () => {
       fireEvent.click(modalContent)
 
       // Modal should still be visible
-      expect(screen.getByText('Delete List', { selector: 'h3' })).toBeInTheDocument()
+      expect(screen.getByTestId('list-delete-confirm')).toBeInTheDocument()
       expect(mockOnDelete).not.toHaveBeenCalled()
     })
 
@@ -281,21 +276,18 @@ describe('ListAdminSettings - Delete List Modal', () => {
       fireEvent.click(deleteButton)
 
       // Check modal structure
-      const modalTitle = screen.getByText('Delete List', { selector: 'h3' })
+      const modalTitle = within(screen.getByTestId('list-delete-confirm')).getByRole('heading', { name: 'Delete List' })
       expect(modalTitle).toHaveClass('text-lg', 'font-semibold')
 
       // Check buttons
       const dontDeleteButton = screen.getByText("Don't Delete")
-      const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i })
-      const confirmDeleteButton = allDeleteButtons.find(
-        button => button.classList.contains('bg-danger')
-      )
+      const confirmDeleteButton = within(screen.getByTestId('list-delete-confirm')).getByRole('button', { name: 'Delete' })
 
       expect(dontDeleteButton).toBeInTheDocument()
       expect(confirmDeleteButton).toBeInTheDocument()
 
       // Verify destructive button styling
-      expect(confirmDeleteButton).toHaveClass('bg-danger', 'hover:bg-danger/90', 'text-danger-foreground')
+      expect(confirmDeleteButton).toHaveClass('bg-destructive', 'text-destructive-foreground')
     })
 
     it('should prevent reopening modal after successful delete', () => {
@@ -316,14 +308,11 @@ describe('ListAdminSettings - Delete List Modal', () => {
       fireEvent.click(deleteButton)
 
       // Confirm delete
-      const allDeleteButtons = screen.getAllByRole('button', { name: /delete/i })
-      const confirmDeleteButton = allDeleteButtons.find(
-        button => button.classList.contains('bg-danger')
-      )
+      const confirmDeleteButton = within(screen.getByTestId('list-delete-confirm')).getByRole('button', { name: 'Delete' })
       fireEvent.click(confirmDeleteButton!)
 
       // Modal should be closed
-      expect(screen.queryByText('Delete List', { selector: 'h3' })).not.toBeInTheDocument()
+      expect(screen.queryByTestId('list-delete-confirm')).not.toBeInTheDocument()
 
       // Verify delete was called
       expect(mockOnDelete).toHaveBeenCalledWith(mockList.id)

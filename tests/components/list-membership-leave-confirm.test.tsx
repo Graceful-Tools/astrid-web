@@ -154,6 +154,7 @@ describe('the Leave confirm keeps the keyboard and the pointer (AWTD-1594 review
     expect(screen.queryByTestId('list-leave-confirm')).not.toBeInTheDocument()
     expect(onOpenChange).not.toHaveBeenCalled()
     expect(onLeave).not.toHaveBeenCalled()
-    expect(document.activeElement).toBe(leaveButton)
+    // The dialog primitive hands focus back on the next tick, as it unmounts (ADEV-159).
+    await waitFor(() => expect(document.activeElement).toBe(leaveButton))
   })
 })
