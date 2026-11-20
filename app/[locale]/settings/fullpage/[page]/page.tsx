@@ -69,7 +69,7 @@ export default function SettingsFullPage() {
       <div className="border-b theme-border px-6 py-3 flex items-center gap-3 sticky top-0 theme-bg-secondary z-10">
         <button
           onClick={goBack}
-          className="p-1.5 rounded-lg hover:bg-[rgb(var(--theme-surface-hover))] transition-colors"
+          className="p-1.5 rounded-lg hover:bg-[rgb(var(--astrid-surface-hover))] transition-colors"
           title={t('actions.back')}
         >
           <ArrowLeft className="w-4 h-4" />
