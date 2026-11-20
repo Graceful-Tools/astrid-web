@@ -205,7 +205,10 @@ export function taskLeadingControlKind({
     return completed ? 'checkbox' : 'unassigned'
   }
 
-  if (assigneeId !== currentUserId) return 'avatar'
+  // ADEV-147: a completed task owned by someone else reads as done, like your
+  // own. The tap still opens the sheet (`leadingControlOpensOptions`), so it
+  // cannot reopen anyone's work by accident.
+  if (assigneeId !== currentUserId) return completed ? 'checkbox' : 'avatar'
 
   return 'checkbox'
 }
