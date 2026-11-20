@@ -57,7 +57,7 @@ export function ProjectFieldFilterSelect({
         <SelectTrigger className={FILTER_TRIGGER_CLASS} aria-label={label}>
           <SelectValue />
         </SelectTrigger>
-        <SelectContent className="z-[10100]">
+        <SelectContent className="z-above-modal">
           <SelectItem value={ALL}>
             <span className="text-brand">{t("tasks.projectFields.filterAll")}</span>
           </SelectItem>

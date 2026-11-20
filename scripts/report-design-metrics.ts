@@ -39,12 +39,42 @@ export interface Metric {
   exempt?: Exemption[]
   /** Narrows the pattern's matches when a regex alone cannot tell debt from a legitimate use. */
   select?: (source: string) => string[]
+  /** Counts across files at once, for debt no single file shows: the same thing written in several. */
+  tally?: (sources: Array<{ path: string; source: string }>) => number
 }
 
 export interface Exemption {
   pattern: RegExp
   /** Why these files are not counted. A pattern with no reason is a budget raised quietly. */
   reason: string
+}
+
+const PRIMITIVES: Exemption[] = [
+  { pattern: /^components\/ui\//, reason: 'the primitives themselves: the one place the raw element, scrim or shadcn name is written' },
+]
+
+/** A `className` this long, written this many times, is a component nobody extracted. */
+export const REPEATED_CLASS_MIN_CLASSES = 5
+export const REPEATED_CLASS_MIN_COPIES = 3
+
+/**
+ * Every copy of a long class string that is written three or more times. A string literal on
+ * `className`, as the markup has it: the same five-plus classes in the same order. The count is
+ * of copies, so a fourth copy of a string raises it and extracting the component drops all of them.
+ */
+export function repeatedClassStrings(sources: Array<{ path: string; source: string }>): number {
+  const copies = new Map<string, number>()
+  for (const { source } of sources) {
+    for (const match of source.matchAll(/\bclassName=(?:"([^"]+)"|\{"([^"]+)"\}|\{'([^']+)'\})/g)) {
+      const classes = (match[1] ?? match[2] ?? match[3]).trim().split(/\s+/)
+      if (classes.length < REPEATED_CLASS_MIN_CLASSES) continue
+      const key = classes.join(' ')
+      copies.set(key, (copies.get(key) ?? 0) + 1)
+    }
+  }
+  let total = 0
+  for (const n of copies.values()) if (n >= REPEATED_CLASS_MIN_COPIES) total += n
+  return total
 }
 
 const DESIGN_HOME: Exemption[] = [
@@ -252,6 +282,59 @@ export const METRICS: Metric[] = [
     distinct: true,
     exempt: COPY_EXEMPTIONS,
   },
+  // What a count of literals cannot see (ADEV-161): the same component built twice.
+  {
+    id: 'arbitraryLayers',
+    what: 'z-index values written out (z-[9999], z-[60], …)',
+    instead: 'a named layer (z-modal, z-modal-card, z-above-modal: docs/specs/DESIGN_SYSTEM.md → Layers and scrims); z-10 … z-50 for stacking inside one component',
+    roots: UI,
+    extensions: CODE,
+    pattern: /(?<![\w-])-?z-\[[^\]]+\]/g,
+  },
+  {
+    id: 'handRolledOverlays',
+    what: 'full-screen scrims drawn by hand (fixed inset-0 … bg-black)',
+    instead: 'ConfirmDialog for a confirm, components/ui/dialog.tsx for a dialog with fields',
+    roots: UI,
+    extensions: CODE,
+    pattern: /\bfixed inset-0\b[^"'`\n]*\bbg-black\b/g,
+    exempt: PRIMITIVES,
+  },
+  {
+    id: 'rawFormControls',
+    what: 'raw <select> and <textarea> elements',
+    instead: 'components/ui/select.tsx and components/ui/textarea.tsx',
+    roots: UI,
+    extensions: ['.tsx'],
+    pattern: /<(?:select|textarea)\b/g,
+    exempt: PRIMITIVES,
+  },
+  {
+    id: 'aliasedErrorInk',
+    what: 'text-destructive, a second name for error text',
+    instead: 'text-danger, the error ink (register DS25)',
+    roots: UI,
+    extensions: CODE,
+    pattern: /(?<![\w:-])(?:[a-z-]+:)*text-destructive(?![\w/-])/g,
+    exempt: PRIMITIVES,
+  },
+  {
+    id: 'repeatedClassStrings',
+    what: `copies of a className of ${REPEATED_CLASS_MIN_CLASSES}+ classes written ${REPEATED_CLASS_MIN_COPIES} or more times`,
+    instead: 'one component, or a class in styles/components.css',
+    roots: ['app', 'components'],
+    extensions: ['.tsx'],
+    pattern: /\bclassName=/g,
+    tally: repeatedClassStrings,
+  },
+  {
+    id: 'cssPixelLiterals',
+    what: 'pixel values written out in the stylesheets',
+    instead: 'var(--astrid-space-*), var(--astrid-radius-*) or a layout token',
+    roots: ['styles'],
+    extensions: ['.css'],
+    pattern: /(?<![\w.#-])-?\d*\.?\d+px\b/g,
+  },
 ]
 
 function files(root: string, directory: string, extensions: string[], out: string[] = []): string[] {
@@ -283,6 +366,11 @@ export function isExempt(metric: Metric, path: string): boolean {
 }
 
 export function count(metric: Metric, sources: Array<{ path: string; source: string }>): number {
+  if (metric.tally) {
+    return metric.tally(
+      sources.filter(({ path }) => !isExempt(metric, path)).map(({ path, source }) => ({ path, source: withoutComments(source) })),
+    )
+  }
   const seen = new Set<string>()
   let total = 0
   for (const { path, source } of sources) {

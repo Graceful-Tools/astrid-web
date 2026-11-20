@@ -273,7 +273,7 @@ export function DefaultTaskSettingsSection({
               <SelectTrigger className="w-48 theme-input">
                 <SelectValue placeholder={t("listSettings.admin.selectDefaultAssignee")} />
               </SelectTrigger>
-              <SelectContent className="z-[10100]">
+              <SelectContent className="z-above-modal">
                 <SelectItem value="task_creator">{t("listSettings.admin.taskCreator")}</SelectItem>
                 <SelectItem value="unassigned">{t("tasks.unassigned")}</SelectItem>
                 {getDefaultAssigneeOptions().map(member => (
@@ -379,7 +379,7 @@ export function DefaultTaskSettingsSection({
                 <SelectTrigger className="w-32 theme-input">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="z-[10100]">
+                <SelectContent className="z-above-modal">
                   <SelectItem value="never">{t('repeating.oneTimeOnly')}</SelectItem>
                   <SelectItem value="daily">{t('repeating.daily')}</SelectItem>
                   <SelectItem value="weekly">{t('repeating.weekly')}</SelectItem>
@@ -427,7 +427,7 @@ export function DefaultTaskSettingsSection({
             placeholder={t("listSettings.admin.noDefaultTime")}
             showAllDayOption={true}
             compact
-            popoverClassName="z-[10100]"
+            popoverClassName="z-above-modal"
           />
         </div>
         <p className="text-xs text-muted-foreground">

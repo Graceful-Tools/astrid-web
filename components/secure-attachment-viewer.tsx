@@ -190,7 +190,7 @@ export function SecureAttachmentViewer({
       {/* Full Screen Modal - Optimized for iPad */}
       {isModalOpen && typeof window !== 'undefined' && createPortal((
         <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[9999]"
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-modal"
           onClick={() => setIsModalOpen(false)}
           onKeyDown={handleKeyDown}
           tabIndex={-1}
