@@ -34,6 +34,9 @@ export const AUTHENTICATED_UI_SPECS = [
   'user-profile',
   'mobile-tradeoff-grid-no-overflow',
   'long-unbroken-strings-wrap',
+  // Left PENDING_E2E_SPECS on 2026-11-20 (ADEV-141): its exit condition was "three green CI runs",
+  // which a pending spec can never get, so it sat there for two weeks.
+  'accessibility',
 ]
 
 /**
@@ -42,11 +45,12 @@ export const AUTHENTICATED_UI_SPECS = [
  * leaves it by being fixed into a project above, or rewritten/deleted under
  * AWTD-1339. tests/rules/every-e2e-spec-runs.test.ts fails on a spec that is in
  * neither place, and on an entry here that no longer exists or already runs.
+ *
+ * A spec listed here runs NOWHERE, CI included, so an entry's exit condition must never be
+ * "after N green CI runs": that can't happen (ADEV-141). Leave by passing locally signed in
+ * (PLAYWRIGHT_AUTHENTICATED=1) or by joining a project, so the PR's own CI is the first run.
  */
-export const PENDING_E2E_SPECS: Record<string, string> = {
-  // Revive candidates — selectors exist, but the spec no longer passes signed in.
-  'accessibility': 'AWTD-1435 fixed the product gaps and rewrote the spec for signed-in use; it moves to AUTHENTICATED_UI_SPECS after three green CI runs in a row (run it locally first: PLAYWRIGHT_AUTHENTICATED=1)',
-}
+export const PENDING_E2E_SPECS: Record<string, string> = {}
 const specPattern = (names: string[]) => new RegExp(`(^|/)(${names.join('|')})\\.spec\\.ts$`)
 
 /**
