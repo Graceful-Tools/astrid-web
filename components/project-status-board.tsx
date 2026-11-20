@@ -556,6 +556,7 @@ export function ProjectStatusBoard({
               setOptionsTaskId(null)
             }}
             completed={Boolean(task.completed)}
+            repeating={task.repeating !== 'never'}
             onToggleComplete={() => {
               onUpdateTask({ ...task, completed: !task.completed })
               setOptionsTaskId(null)
