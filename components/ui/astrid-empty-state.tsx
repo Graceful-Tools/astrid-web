@@ -2,7 +2,7 @@
 
 import { BRAND } from '@/lib/brand/config'
 import { SpeechBubbleTail } from '@/components/ui/speech-bubble-tail'
-import { memo } from 'react'
+import { memo, useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -13,6 +13,11 @@ interface AstridEmptyStateProps {
   className?: string
   /** Overrides the list-type message, e.g. a board column's own (ADEV-85). */
   message?: string
+  /**
+   * A richer picture of the character to show instead, once it has loaded: a board column's
+   * empathy frame (ADEV-144). Until then, and if it fails, the brand icon stays.
+   */
+  characterSrc?: string | null
 }
 
 /**
@@ -27,8 +32,23 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
   isViewingFromFeatured = false,
   className = '',
   message: messageOverride,
+  characterSrc,
 }) => {
   const { t } = useTranslations()
+  const [loadedCharacterSrc, setLoadedCharacterSrc] = useState<string | null>(null)
+
+  // Preload off-screen and swap only once the bytes are here, so the column never flashes an
+  // empty box or a broken image while the frame downloads.
+  useEffect(() => {
+    if (!characterSrc) return
+    let cancelled = false
+    const image = new Image()
+    image.onload = () => { if (!cancelled) setLoadedCharacterSrc(characterSrc) }
+    image.src = characterSrc
+    return () => { cancelled = true }
+  }, [characterSrc])
+
+  const shownCharacterSrc = characterSrc && loadedCharacterSrc === characterSrc ? characterSrc : BRAND.icon
 
   // Get contextual message based on list type
   const getMessage = (): string => {
@@ -78,9 +98,10 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
         {/* Astrid Icon - 1/3 of width, matching popover */}
         <div className="flex-shrink-0 w-1/3">
           <img
-            src={BRAND.icon}
+            src={shownCharacterSrc}
             alt={BRAND.appName}
             className="w-full h-auto"
+            data-testid="empty-state-character"
           />
         </div>
 

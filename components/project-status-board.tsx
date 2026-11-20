@@ -35,6 +35,7 @@ import { VirtualizedTaskList } from "@/components/TaskManager/MainContent/Virtua
 import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnEmptyKey, boardColumnLabel } from "@/lib/board-column-labels"
+import { empathyFrameSrc } from "@/lib/empathy-art/board"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import { useProjectFields } from "@/hooks/use-project-fields"
 import { useProjectFieldValues } from "@/hooks/use-project-field-values"
@@ -406,6 +407,7 @@ export function ProjectStatusBoard({
                     listType="default"
                     listName={selectedList?.name}
                     message={t(boardColumnEmptyKey(column))}
+                    characterSrc={empathyFrameSrc(selectedList?.id, column, new Date())}
                     className="py-4"
                   />
                 )}
