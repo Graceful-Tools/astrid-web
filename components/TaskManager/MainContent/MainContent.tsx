@@ -767,7 +767,7 @@ export function MainContent({
               onCreateTask={handleQuickCreateTask}
               isOneColumn={isOneColumn}
               onOpenTask={handleTaskClick}
-              selectedTaskId={selectedTaskId}
+              selectedTaskId={selectedTaskId} liveFilters={newFilterState.filters}
             />
           </div>
         ) : finalFilteredTasks.length === 0 && !justReturnedFromTaskDetail ? (
