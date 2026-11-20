@@ -9,9 +9,9 @@ import { isCodingAgent } from "@/lib/ai-agent-utils"
 import { completionAssigneeLabel } from "@/components/completion-confirmation"
 import { completionNeedsConfirmation } from "@/lib/task-leading-control"
 import { priorityFillClass, priorityOutlineClass } from "@/lib/design/priority"
-import { CheckboxArt } from "@/components/task-checkbox-art"
+import { BoardStatePicker } from "@/components/board-state-picker"
+import { MarkDoneQuickSetRow } from "@/components/mark-done-quick-set-row"
 import { useTranslations } from "@/lib/i18n/client"
-import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { UnassignButton } from "@/components/unassign-button"
 
 interface PriorityAssigneePickerProps {
@@ -359,30 +359,12 @@ export function PriorityAssigneePicker({
                 >
                   {t('tasks.boardState')}
                 </h3>
-                <div
-                  className="flex flex-wrap gap-2"
-                  role="group"
-                  aria-labelledby="task-options-board-state"
-                >
-                  {statusColumns.map(column => {
-                    const isSelected = selectedColumnId === column.id
-                    return (
-                      <button
-                        key={column.id}
-                        type="button"
-                        onClick={() => onStatusSelect(column.id)}
-                        aria-pressed={isSelected}
-                        className={`h-9 px-3 rounded-lg text-sm font-medium transition-all duration-fast active:scale-95 ${
-                          isSelected
-                            ? 'bg-brand text-brand-foreground'
-                            : 'bg-transparent border-2 border-theme-button text-theme-secondary'
-                        }`}
-                      >
-                        {boardColumnLabel(column, t)}
-                      </button>
-                    )
-                  })}
-                </div>
+                <BoardStatePicker
+                  columns={statusColumns}
+                  selectedColumnId={selectedColumnId}
+                  onSelect={onStatusSelect}
+                  ariaLabelledBy="task-options-board-state"
+                />
               </div>
               <div className="h-px bg-theme-active" />
             </>
@@ -394,60 +376,19 @@ export function PriorityAssigneePicker({
           {onToggleComplete && (
             <>
               <div className="px-4 py-4">
-                {asksBeforeCompleting && (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-theme-primary">{t('tasks.confirmCompleteTitle')}</p>
-                    <p className="mt-1 text-xs text-theme-muted">
-                      {holderId
-                        ? t('tasks.confirmCompleteAssigned', { name: completionAssigneeLabel(holderId, selectedAssignee) ?? '' })
-                        : t('tasks.confirmCompleteUnassigned')}
-                    </p>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  {asksBeforeCompleting && (
-                    <button
-                      type="button"
-                      data-testid="task-options-complete-cancel"
-                      onClick={handleClose}
-                      className="flex-1 h-11 rounded-lg text-sm font-medium text-theme-secondary transition-all duration-fast active:scale-95"
-                    >
-                      {t('common.cancel')}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    data-testid="task-options-complete"
-                    onClick={onToggleComplete}
-                    className={
-                      asksBeforeCompleting
-                        ? "flex-1 h-11 rounded-lg text-sm font-medium border-2 border-theme-button text-theme-secondary transition-all duration-fast active:scale-95"
-                        : "flex-1 h-11 rounded-lg px-1 flex items-center gap-3 text-left text-sm font-medium text-theme-primary transition-all duration-fast active:scale-95"
-                    }
-                  >
-                    {asksBeforeCompleting ? (
-                      t('common.complete')
-                    ) : (
-                      <>
-                        {/*
-                          * iOS's quick set: the task row's own checkbox on the left —
-                          * unchecked beside "Mark as done", checked beside "Mark as
-                          * to-do", in the task's priority colour (ADEV-148) — and the
-                          * action beside it.
-                          */}
-                        <span data-testid="task-options-complete-icon" className="w-6 h-6 shrink-0 inline-flex">
-                          <CheckboxArt
-                            priority={tempPriority}
-                            checked={Boolean(completed)}
-                            repeating={repeating}
-                            className="w-6 h-6"
-                          />
-                        </span>
-                        {completed ? t('tasks.markAsTodo') : t('tasks.markAsDone')}
-                      </>
-                    )}
-                  </button>
-                </div>
+                <MarkDoneQuickSetRow
+                  priority={tempPriority}
+                  completed={Boolean(completed)}
+                  repeating={repeating}
+                  asksBeforeCompleting={asksBeforeCompleting}
+                  holderLine={
+                    holderId
+                      ? t('tasks.confirmCompleteAssigned', { name: completionAssigneeLabel(holderId, selectedAssignee) ?? '' })
+                      : t('tasks.confirmCompleteUnassigned')
+                  }
+                  onToggleComplete={onToggleComplete}
+                  onCancel={handleClose}
+                />
               </div>
               <div className="h-px bg-theme-active" />
             </>
