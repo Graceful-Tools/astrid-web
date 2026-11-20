@@ -7,6 +7,7 @@ import { BoardColumnQuickAdd } from "@/components/board-column-quick-add"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { TaskRowContent } from "@/components/task-row-content"
 import { sortTasksForList } from "@/lib/task-sort"
+import { applyBoardLiveFilters, type BoardLiveFilters } from "@/lib/board-live-filters"
 import { sortDoneColumnTasks } from "@/lib/board-done-column"
 import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
 import { BoardDoneSincePicker } from "@/components/board-done-since-picker"
@@ -64,6 +65,11 @@ interface ProjectStatusBoardProps {
   onOpenTask?: (taskId: string, anchor?: HTMLElement) => void
   /** The task whose details are open, so its card reads as selected like a row. */
   selectedTaskId?: string | null
+  /**
+   * The Sort & Filters currently set on the list (ADEV-145). Absent, the board
+   * falls back to the list's saved sort and no extra filters.
+   */
+  liveFilters?: BoardLiveFilters & { sortBy?: string }
 }
 
 /**
@@ -122,7 +128,8 @@ export function ProjectStatusBoard({
   isOneColumn = false,
   onOpenTask,
   selectedTaskId = null,
-}: ProjectStatusBoardProps) {
+  liveFilters,
+}:ProjectStatusBoardProps) {
   const { t } = useTranslations()
   const [optionsTaskId, setOptionsTaskId] = React.useState<string | null>(null)
   const completion = useCompletionConfirmation(currentUser?.id)
@@ -209,8 +216,8 @@ export function ProjectStatusBoard({
         )
       : undefined
 
-    return sortTasksForList(trimmed, sortBy, manualOrder)
-  }, [allTasks, lists, projectId, selectedList, fieldFilter, fieldValues])
+    return sortTasksForList(applyBoardLiveFilters(trimmed, liveFilters), liveFilters?.sortBy || sortBy, manualOrder)
+  }, [allTasks, lists, projectId, selectedList, fieldFilter, fieldValues, liveFilters])
 
   if (!projectId || columns.length === 0) {
     return null
