@@ -42,9 +42,10 @@ describe('taskLeadingControlKind (task 2bb1b196)', () => {
       .toBe('checkbox')
   })
 
-  it('still shows the avatar for a completed task owned by someone else', () => {
+  it('ADEV-147: shows the checked checkbox for a completed task owned by someone else', () => {
+    // A photo cannot read as done; completed looks the same whoever finished it.
     expect(taskLeadingControlKind({ assigneeId: 'other', currentUserId: 'me', completed: true }))
-      .toBe('avatar')
+      .toBe('checkbox')
   })
 
   it('shows the unassigned mark when there is no signed-in user to compare against', () => {
