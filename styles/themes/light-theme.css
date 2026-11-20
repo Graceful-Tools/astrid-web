@@ -13,9 +13,9 @@
      so each is named once here and reads a token: nothing below is a colour
      written out. A card is the page's white; its hover is the tertiary grey
      (--astrid-bg-hover is white on white here); its border is the border. */
-  --theme-surface: var(--astrid-bg-primary);
-  --theme-surface-hover: var(--astrid-bg-tertiary);
-  --theme-surface-border: var(--astrid-border);
+  --theme-surface: var(--astrid-surface);
+  --theme-surface-hover: var(--astrid-surface-hover);
+  --theme-surface-border: var(--astrid-surface-border);
   
   /* Border colors */
   --theme-border: var(--astrid-border);
@@ -44,11 +44,11 @@
   --theme-info: var(--astrid-info);
   
   /* Sidebar colors */
-  --theme-sidebar-bg: var(--astrid-bg-secondary);
+  --theme-sidebar-bg: var(--astrid-sidebar-bg);
   --theme-sidebar-border: var(--theme-surface-border);
   
   /* Task panel colors */
-  --theme-panel-bg: var(--theme-surface);
+  --theme-panel-bg: var(--astrid-panel-bg);
   --theme-panel-border: var(--theme-surface-border);
   --theme-panel-arrow: var(--theme-panel-bg);
   
@@ -67,9 +67,9 @@
   --theme-button-border: var(--astrid-button-border);
   
   /* Light mode specific UI elements */
-  --theme-pill-bg: var(--astrid-bg-tertiary);
-  --theme-comment-bg: var(--astrid-bg-secondary);
-  --theme-count-bg: var(--astrid-bg-tertiary);
+  --theme-pill-bg: var(--astrid-pill-bg);
+  --theme-comment-bg: var(--astrid-comment-bg);
+  --theme-count-bg: var(--astrid-count-bg);
   
   /* Component shadows: the shared scale */
   --theme-shadow-sm: var(--astrid-shadow-sm);
