@@ -79,6 +79,8 @@
     "boardState": "Board state",
     "markComplete": "Mark complete",
     "markIncomplete": "Mark incomplete",
+    "markAsDone": "Mark as done",
+    "markAsTodo": "Mark as to-do",
     "comments": "Comments",
     "attachments": "Attachments",
     "subtasks": "Subtasks",

@@ -156,6 +156,23 @@ describe('complete / mark incomplete (task ffa5bbb5)', () => {
     // unassigned task this is the route to completion, so it has to work in
     // both directions.
     render(<PriorityAssigneePicker {...BASE} completed onToggleComplete={vi.fn()} />)
-    expect(screen.getByTestId('task-options-complete')).toHaveTextContent(/incomplete|reopen/i)
+    expect(screen.getByTestId('task-options-complete')).toHaveTextContent('tasks.markAsTodo')
+  })
+
+  it('ADEV-146: an open task reads "Mark as done" with a check mark on the left, not a bordered button', () => {
+    const me = { id: 'user-me', name: 'Me', email: 'me@example.com', createdAt: new Date() }
+    render(
+      <PriorityAssigneePicker
+        {...BASE}
+        selectedAssignee={me}
+        currentUserId={me.id}
+        completed={false}
+        onToggleComplete={vi.fn()}
+      />,
+    )
+    const button = screen.getByTestId('task-options-complete')
+    expect(button).toHaveTextContent('tasks.markAsDone')
+    expect(button.firstElementChild).toBe(screen.getByTestId('task-options-complete-icon'))
+    expect(button.className).not.toContain('border-2')
   })
 })

@@ -79,6 +79,8 @@
     "boardState": "Статус на доске",
     "markComplete": "Отметить выполненной",
     "markIncomplete": "Отметить невыполненной",
+    "markAsDone": "Отметить сделанной",
+    "markAsTodo": "Вернуть в список дел",
     "comments": "Комментарии",
     "attachments": "Вложения",
     "subtasks": "Подзадачи",

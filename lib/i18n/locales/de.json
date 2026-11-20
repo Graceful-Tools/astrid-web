@@ -79,6 +79,8 @@
     "boardState": "Board-Status",
     "markComplete": "Als erledigt markieren",
     "markIncomplete": "Als offen markieren",
+    "markAsDone": "Als erledigt markieren",
+    "markAsTodo": "Als To-do markieren",
     "comments": "Kommentare",
     "attachments": "Anhänge",
     "subtasks": "Teilaufgaben",

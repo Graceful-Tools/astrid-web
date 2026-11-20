@@ -79,6 +79,8 @@
     "boardState": "보드 상태",
     "markComplete": "완료로 표시",
     "markIncomplete": "미완료로 표시",
+    "markAsDone": "완료로 표시",
+    "markAsTodo": "할 일로 표시",
     "comments": "댓글",
     "attachments": "첨부 파일",
     "subtasks": "하위 작업",
