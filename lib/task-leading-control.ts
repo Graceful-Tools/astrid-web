@@ -198,17 +198,17 @@ export function taskLeadingControlKind({
   currentUserId,
   completed = false,
 }: TaskLeadingControlInput): TaskLeadingControlKind {
-  if (!assigneeId) {
-    // A completed task must still show that it is completed, and the "U" mark
-    // has no checked state to show. Fall back to the checkbox rather than
-    // inventing a checked "U".
-    return completed ? 'checkbox' : 'unassigned'
-  }
+  // A completed task shows the checked checkbox WHOEVER holds it (ADEV-147).
+  // Neither the "U" mark nor someone else's photo has a checked state, so a
+  // finished task assigned to someone else used to look unfinished. Only the
+  // mark changes: tapping someone else's task still opens the picker rather
+  // than reopening it (`leadingControlOpensOptions`, AITD-375). Mirrored by
+  // astrid-core `LeadingControl::for_row`; contracts/fixtures/leading-control.json.
+  if (completed) return 'checkbox'
 
-  // ADEV-147: a completed task owned by someone else reads as done, like your
-  // own. The tap still opens the sheet (`leadingControlOpensOptions`), so it
-  // cannot reopen anyone's work by accident.
-  if (assigneeId !== currentUserId) return completed ? 'checkbox' : 'avatar'
+  if (!assigneeId) return 'unassigned'
+
+  if (assigneeId !== currentUserId) return 'avatar'
 
   return 'checkbox'
 }

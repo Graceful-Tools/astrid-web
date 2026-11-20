@@ -159,6 +159,10 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // Which empathy-state frame an empty board column shows: the daily per-list rotation and the
   // column-to-state map (ADEV-142). iOS ADEV-127 and any web client must pick the same frame.
   'empathy-art.json': () => runDriver('empathy-art.mjs', 'empathy-art'),
+  // The mark at a task's leading edge and what a tap on it does, over every assignee × reader ×
+  // completion (ADEV-147: completed is always the checked checkbox). astrid-core's
+  // LeadingControl::for_row and TaskRow::build answer the same table.
+  'leading-control.json': () => runDriver('leading-control.mjs', 'leading-control'),
   // What /api/v1 actually sends for a task and a list, per surface — fixed rows run through the
   // routes' own shapers, so the core's model decodes the real wire rather than a description of
   // it (AWTD-1263; the drift class of D52–D55).
