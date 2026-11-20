@@ -34,6 +34,7 @@ the move, apart from the `$comment` line naming the script.
 | `agent-modes.json` | `app/api/v1/users/me/agent-modes/route.ts` — **executed**: GET rows and mode map, including the locked polling-only identity | AstridCore agent-modes contract. Any later fields are additive in their own PR. |
 | `fixall-claim.json` | `app/api/v1/tasks/[id]/claim-fixall/route.ts` — **executed**: claimed, conflict, not-ready and forbidden response outcomes | AstridCore claim contract. AWTD-1550 adds general claim outcomes additively in its own PR. |
 | `agent-registry.json` | `lib/brand/agent-emails.ts`, `lib/ai/harness-agents.ts` — **executed**: built-in mailboxes, polling-only harnesses and labels | AstridCore agent registry. Any later fields are additive in their own PR. |
+| `empathy-art.json` | `lib/empathy-art/rules.ts` — **executed**: FNV-1a vectors, each list's metaphor across UTC day boundaries, and the column → state map (ADEV-142) | iOS empty-column art (ADEV-127); astrid-core once a second client needs it |
 
 ## How the executed ones run
 

@@ -156,6 +156,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // How a description, comment or chat message reads: web's renderer run in a jsdom window (the
   // browser path, through DOMPurify) and its HTML read back into the core's blocks (AWTD-1064).
   'markdown.json': () => runDriver('markdown.mjs', 'markdown'),
+  // Which empathy-state frame an empty board column shows: the daily per-list rotation and the
+  // column-to-state map (ADEV-142). iOS ADEV-127 and any web client must pick the same frame.
+  'empathy-art.json': () => runDriver('empathy-art.mjs', 'empathy-art'),
   // What /api/v1 actually sends for a task and a list, per surface — fixed rows run through the
   // routes' own shapers, so the core's model decodes the real wire rather than a description of
   // it (AWTD-1263; the drift class of D52–D55).
