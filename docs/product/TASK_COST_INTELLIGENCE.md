@@ -1,6 +1,6 @@
 # Task Cost Intelligence
 
-*Spec of record for per-task cost estimation and actuals. Proposal, not yet built.*
+*Spec of record for per-task cost estimation and actuals. Phases 0–1 built behind the `task_cost` flag: the schema (`TaskCostEvent`, `Task.costEstimateMicrocents`), microcent storage and the write path `POST /api/v1/tasks/:id/cost`. Estimates, rollups and UI are not built.*
 
 Status: **draft v1** (2026-08-12). Grew out of the Paperclip review, which found
 that Paperclip's one genuinely enviable capability is cost control — and that
