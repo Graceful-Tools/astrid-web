@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "{name}을(를) 삭제할까요?",
     "deleteProjectDetail": "목록은 어떤 프로젝트에도 속하지 않은 채로 남습니다. 보드 고유의 열은 함께 삭제됩니다.",
     "deleteProjectAction": "삭제",
-    "deleteProjectFailed": "프로젝트를 삭제할 수 없습니다"
+    "deleteProjectFailed": "프로젝트를 삭제할 수 없습니다",
+    "goals": {
+      "title": "목표와 가드레일",
+      "intro": "이 프로젝트의 목적과 해서는 안 되는 일입니다. 여기서 일하는 사람과 에이전트 모두 둘 다 읽으므로 지침은 짧게 유지할 수 있습니다.",
+      "goalsHeading": "목표",
+      "guardrailsHeading": "가드레일",
+      "goalPlaceholder": "목표 (예: 장기 수익 극대화)",
+      "measurePlaceholder": "지표",
+      "targetPlaceholder": "목표치",
+      "currentPlaceholder": "현재",
+      "guardrailPlaceholder": "가드레일 (예: 관련 법률을 위반하지 않기)",
+      "kindLabel": "확인 방식",
+      "kindHint": "명시: 사람과 에이전트가 판단합니다. 강제: 프로그램이 확인합니다.",
+      "kindStated": "명시",
+      "kindEnforced": "강제",
+      "addGoal": "목표 추가",
+      "addGuardrail": "가드레일 추가",
+      "remove": "제거",
+      "saveFailed": "목표와 가드레일을 저장하지 못했습니다. 다시 시도하세요.",
+      "counts": "목표: {goals} · 가드레일: {guardrails}",
+      "targetValue": "목표치: {value}",
+      "currentValue": "현재: {value}"
+    }
   },
   "viewRotator": {
     "showList": "목록 보기",

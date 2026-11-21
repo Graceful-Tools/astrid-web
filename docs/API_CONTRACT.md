@@ -608,6 +608,42 @@ The project routes answer `{ projectId, project, effective, engine, canEdit, met
 `effective` is the project's policy over the default. Over MCP, agents read it with
 `get_orchestration_policy { listId | taskId }`.
 
+### GET|PUT `/api/v1/projects/{id}/goals` and GET `/api/v1/lists/{id}/goals`
+A project's goals and guardrails (ADEV-179): what it is for and what it must not do, read by the
+people and agents working in it so guidance can stay short. Stated per project; a list answers its
+project's. Shape and rules: `lib/goals-guardrails.ts`, the one place they are read.
+
+- **Project.** `GET` (scope `projects:read`) is for everyone working in the project: its owner, its
+  members and anyone with a role on one of its lists, agents included; 404 otherwise. `PUT` (scope
+  `projects:write`) is for its owner or an admin (`canUserManageProject`).
+- **List.** `GET` (scope `lists:read`) for anyone with a role on the list. A list in no project
+  answers empty lists and `projectId: null`. There is no list `PUT`.
+- **An agent never writes them**, whatever its token's scopes: 403. Guardrails bound what agents do.
+- `PUT { goals, guardrails }` replaces both. The server trims every field, drops items with a blank
+  statement and empty optional fields, defaults `kind` to `stated`, and gives each item without an
+  id the first free `g1, g2…` / `r1, r2…`. `null`, or both lists empty, clears it. Limits: 12 goals,
+  20 guardrails, 500 characters a statement, 120 a measure, target or current value; a duplicate id
+  or an unknown `kind` is a 400.
+- Clients only display and send: all normalising is the server's, so there is no contract fixture.
+  Show goals in order with their measure, `Target: …` and `Now: …`; mark `enforced` guardrails.
+
+**Response** (lists add `listId`; `projectName` and `projectId` are null for a list in no project):
+```json
+{
+  "projectId": "p1", "projectName": "Fund",
+  "goals": [{ "id": "returns", "statement": "Maximise long-term returns", "measure": "IRR", "target": "≥ 8%/yr", "current": "6.1%" }],
+  "guardrails": [
+    { "id": "law", "statement": "Break no applicable laws", "kind": "stated" },
+    { "id": "r1", "statement": "No more than 20% in one position", "kind": "enforced" }
+  ],
+  "canEdit": true,
+  "meta": { "apiVersion": "v1" }
+}
+```
+`stated` guardrails are judged by whoever reads them; `enforced` ones are meant for a program to
+check (ADEV-182). Agents get the same statement in their prompt and payloads (`projectGoals` on the
+webhook task and the agent queue), and over MCP with `get_project_goals { listId | projectId | taskId }`.
+
 ---
 
 ## Board Art Endpoints

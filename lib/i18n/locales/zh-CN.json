@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "删除{name}？",
     "deleteProjectDetail": "其列表会保留，不属于任何项目。看板专属的列会一同删除。",
     "deleteProjectAction": "删除",
-    "deleteProjectFailed": "无法删除项目"
+    "deleteProjectFailed": "无法删除项目",
+    "goals": {
+      "title": "目标与护栏",
+      "intro": "这个项目要实现什么,以及不能做什么。在这里工作的人和智能体都会阅读两者,因此指令可以保持简短。",
+      "goalsHeading": "目标",
+      "guardrailsHeading": "护栏",
+      "goalPlaceholder": "一个目标,例如:最大化长期回报",
+      "measurePlaceholder": "衡量指标",
+      "targetPlaceholder": "目标值",
+      "currentPlaceholder": "当前",
+      "guardrailPlaceholder": "一条护栏,例如:不违反任何适用法律",
+      "kindLabel": "检查方式",
+      "kindHint": "声明:由人和智能体判断。强制:由程序检查。",
+      "kindStated": "声明",
+      "kindEnforced": "强制",
+      "addGoal": "添加目标",
+      "addGuardrail": "添加护栏",
+      "remove": "移除",
+      "saveFailed": "无法保存目标与护栏。请重试。",
+      "counts": "目标:{goals} · 护栏:{guardrails}",
+      "targetValue": "目标值:{value}",
+      "currentValue": "当前:{value}"
+    }
   },
   "viewRotator": {
     "showList": "显示列表",

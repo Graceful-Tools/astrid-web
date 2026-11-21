@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "Excluir {name}?",
     "deleteProjectDetail": "As listas permanecem, fora de qualquer projeto. As colunas próprias do quadro são excluídas com ele.",
     "deleteProjectAction": "Excluir",
-    "deleteProjectFailed": "Não foi possível excluir o projeto"
+    "deleteProjectFailed": "Não foi possível excluir o projeto",
+    "goals": {
+      "title": "Objetivos e limites",
+      "intro": "Para que serve este projeto e o que ele não deve fazer. Todos que trabalham aqui, pessoas e agentes, leem os dois, para que as instruções possam ser curtas.",
+      "goalsHeading": "Objetivos",
+      "guardrailsHeading": "Limites",
+      "goalPlaceholder": "Um objetivo, ex. Maximizar o retorno de longo prazo",
+      "measurePlaceholder": "Medida",
+      "targetPlaceholder": "Meta",
+      "currentPlaceholder": "Atual",
+      "guardrailPlaceholder": "Um limite, ex. Não violar nenhuma lei aplicável",
+      "kindLabel": "Como é verificado",
+      "kindHint": "Declarado: pessoas e agentes avaliam. Aplicado: um programa verifica.",
+      "kindStated": "Declarado",
+      "kindEnforced": "Aplicado",
+      "addGoal": "Adicionar objetivo",
+      "addGuardrail": "Adicionar limite",
+      "remove": "Remover",
+      "saveFailed": "Não foi possível salvar os objetivos e limites. Tente novamente.",
+      "counts": "Objetivos: {goals} · Limites: {guardrails}",
+      "targetValue": "Meta: {value}",
+      "currentValue": "Agora: {value}"
+    }
   },
   "viewRotator": {
     "showList": "Mostrar lista",
