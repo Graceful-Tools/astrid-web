@@ -421,9 +421,9 @@ ORDER BY r."scheduledFor";
 ### Whitelabeling
 
 Astrid deploys under a different brand — different name, artwork, domain, sign-in
-methods and sync providers — with no source changes. Everything is build-time
-configuration, and every value defaults to Astrid's, so an unconfigured deployment is
-unchanged.
+methods and sync providers — with no source changes. Everything is configuration in a
+brand profile, which the image reads when it starts (or has built in), and every value
+defaults to Astrid's, so an unconfigured deployment is unchanged.
 
 ```bash
 npm run check:brands                            # verify every brand profile

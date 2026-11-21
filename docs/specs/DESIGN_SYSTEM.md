@@ -383,6 +383,11 @@ The numbers are `layout.<density>.board-*`:
 - **The header badge** is one capsule for the count and the Done-since trigger: `caption1`,
   `text-secondary`, a `bg-tertiary` fill and no stroke, 8 across and 4 down (iOS
   `BoardHeaderBadge`, register DS37).
+- **Web** reads these numbers as the `--board-*` custom properties in `styles/components.css`,
+  compact with a pointer and comfortable on touch (ADEV-171), and one `BoardColumn`
+  (`components/board-column.tsx`) serves the list board and the project board (ADEV-156).
+  Still different from iOS: Done shows its description, the Done-since badge has no chevron,
+  and the column name is 14 px semibold rather than `headline`.
 
 ### Board card
 
@@ -397,12 +402,15 @@ From iOS's `BoardTaskCardView` (register DS35):
   neither, so there is never a frame inside a frame.
 - Titles wrap: a card has no detail panel beside it to make room for.
 - The leading control picks the task's board status instead of completing it outright
-  (task f9d7ed42). A Done card shows its completed-on day as the Done pill (see Pill).
+  (task f9d7ed42; iOS and Mac). Web differs: your own card's checkbox completes, and someone
+  else's card opens the options sheet (PRODUCT_CONTRACT §4). A Done card shows its
+  completed-on day as the Done pill (see Pill).
 
 ### "Mark as done" row
 
-The last row of every quick changer, on the card, the list row and the task details
-(iOS `MarkDoneQuickSetRow`, ADEV-146/148/152):
+The completion row of every quick changer, on the card, the list row and the task details
+(iOS `MarkDoneQuickSetRow`, ADEV-146/148/152; web `components/mark-done-quick-set-row.tsx`,
+ADEV-158). On iOS it is the last row; on web it sits between the board state and the assignee.
 
 - The task row's own checkbox at the row's size (`size.leading-control`; the compact
   detail size on a pointer), in the task's priority colour, unchecked beside "Mark as
@@ -410,8 +418,9 @@ The last row of every quick changer, on the card, the list row and the task deta
 - The label in `body`, `text-primary`, 12 from the checkbox.
 - The row sits on `bg-secondary`, radius `sm`, 12 across and 8 down, so it stands out from
   the popover. Not an accent button.
-- A task that is not yours keeps the same row and adds one muted `caption1` line saying
-  whose it is. Tapping the row is the confirmation; there is no second step.
+- A task that is not yours: on iOS it keeps the same row and adds one muted `caption1` line
+  saying whose it is, and the tap is the confirmation. On web the row becomes that muted line
+  above Cancel and Complete; Complete is the confirmation.
 
 ### Empty column
 
@@ -420,7 +429,8 @@ The one empty state, iOS's `AstridSpeechBubble` (register DS36):
 - The art beside a speech bubble whose tail points at it. The art is `layout.<density>.empty-art`:
   160 comfortable, 96 compact, none on a project board's short rows (one board never
   shows a different picture per row). A board column's art is its cached empathy frame
-  when there is one.
+  when there is one. Web does not follow the project-board rule yet: its empty cells show
+  art at the column size, keyed per row list.
 - The bubble pads 16 (12 compact), radius 16, a 2 border, the message `body` semibold
   and an optional muted `caption1` line under it.
 - The message is the column's own, in Astrid's voice (`BoardColumnEmptyMessage`).
@@ -428,7 +438,8 @@ The one empty state, iOS's `AstridSpeechBubble` (register DS36):
 
 ### Sidebar Projects
 
-iOS `SidebarProjectSections` (ADEV-170), on iOS and the Mac:
+iOS `SidebarProjectSections` (ADEV-170), on iOS, the Mac and web
+(`components/TaskManager/Sidebar/ProjectsSection.tsx`, AWTD-1660 / ADEV-61):
 
 - Each project is its own section, headed by its name on one line, its lists the
   section's rows. Section header and rows are the platform's sidebar section and row.
@@ -733,6 +744,9 @@ The counts added on 2026-11-20 (ADEV-161) start where the code was that day:
 | `text-destructive` for error text | 1 |
 | Copies of a repeated `className` (5+ classes, 3+ copies) | 214 |
 | Pixel values in the stylesheets | 81 |
+
+These tables are dated snapshots. The live budgets, which only fall, are
+`tests/rules/design-metrics.budget.json` (on 2026-11-21: rgb literals 8, pixel values 77).
 
 \* Since AWTD-1613 the copy count leaves out Privacy and Terms, the developer docs and internal
 tools, which keep their English on purpose; each is an `exempt` pattern with its reason in
