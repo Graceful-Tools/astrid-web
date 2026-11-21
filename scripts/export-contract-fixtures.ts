@@ -173,6 +173,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // Decision cards and trade-off grids in comments: web's recognisers over the canonical example in
   // docs/DECISIONS.md and the edge cases, so iOS/Mac read the same text the same way (AWTD-1531).
   'decisions.json': () => runDriver('decisions.mjs', 'decisions'),
+  // Editing a decision's trade-off grid: the lossless parse ↔ serialise, a decision started from a
+  // project's goals, and the chosen-option record (ADEV-180). Clients edit the same markdown.
+  'decision-grid.json': () => runDriver('decision-grid.mjs', 'decision-grid'),
   // The agent protocol clients rely on: queue/inbox and held work, settings modes, claim outcomes,
   // and the canonical mailbox/harness registry (AWTD-1566).
   'agent-queue.json': () => runDriver('agent-queue.mjs', 'agent-queue'),
