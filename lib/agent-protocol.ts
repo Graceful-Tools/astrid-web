@@ -336,6 +336,7 @@ export async function transformEventForAgent(
       type: mappedType,
       data: {
         taskId: data.taskId,
+        projectGoals: await projectGoalsForTask(data.taskId),
         comment: comment
           ? {
               id: comment.id,
@@ -354,5 +355,19 @@ export async function transformEventForAgent(
   // v1Task is for the app clients (AWTD-1040): an agent reads `task`, and the
   // full shape would only grow every payload it is sent.
   const { v1Task: _v1Task, ...agentData } = data
-  return { type: mappedType, data: { taskId: data.taskId, ...agentData } }
+  const projectGoals = internalType === 'task_deleted' ? null : await projectGoalsForTask(data.taskId)
+  return { type: mappedType, data: { taskId: data.taskId, ...agentData, projectGoals } }
+}
+
+/**
+ * The project goals for a task's first list (ADEV-193). Broadcast payloads are built by the writer
+ * with its own include, which never loads `lists.project`, so an agent recipient re-reads it here.
+ */
+async function projectGoalsForTask(taskId: unknown): Promise<GoalsAndGuardrails | null> {
+  if (typeof taskId !== 'string') return null
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { lists: { select: { ...LIST_PROJECT_GOALS_SELECT } } },
+  })
+  return task ? goalsOfFirstList(task) : null
 }
