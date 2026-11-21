@@ -6,6 +6,13 @@ Each Astrid list's **description** field doubles as an instruction file for AI a
 
 This means **users control agent behavior per-list** just by editing the list description. No code changes, no deploys, no hardcoded workflows.
 
+**Goals and guardrails belong to the project, not here** (ADEV-179). What the work is for and
+what it must not do are stated once per project (Project settings → Goals & guardrails) and reach
+every agent beside this description, as `## Project goals and guardrails`. Keep the list
+description to what is specific to this list; when a project states its goals, most of the
+guidance a list used to carry is no longer needed. See [API_CONTRACT.md](./API_CONTRACT.md) →
+`/api/v1/projects/{id}/goals`.
+
 ## How It Works
 
 ### For Users
