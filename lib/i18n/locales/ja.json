@@ -1868,7 +1868,10 @@
       "saveFailed": "目標とガードレールを保存できませんでした。もう一度お試しください。",
       "counts": "目標: {goals} · ガードレール: {guardrails}",
       "targetValue": "目標値: {value}",
-      "currentValue": "現在: {value}"
+      "currentValue": "現在: {value}",
+      "progressValue": "目標の{percent}%",
+      "targetMet": "目標達成",
+      "workServed": "この目標に貢献したタスク: {count}件"
     }
   },
   "viewRotator": {

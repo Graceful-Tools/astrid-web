@@ -25,6 +25,23 @@ export const PROJECT_GOALS_TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: 'update_goal_measure',
+    description:
+      "Record a goal's new current value (for example after work that moved it), with who and when kept in the goal's history. Pass the goal id from get_project_goals, the new value, and the project (projectId, or the listId or taskId you work from). Pass taskId too so the change is traced to the work. This changes only the number; the goals and guardrails themselves are a person's to edit. When your report names the goal it served, end a line with GOAL: <goal id>.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        goalId: { type: 'string', description: 'The goal id, e.g. g1.' },
+        current: { type: 'string', description: 'The new current value, e.g. "6.4%".' },
+        projectId: { type: 'string', description: 'The project, when you have its id.' },
+        listId: { type: 'string', description: 'The list (board) you are working from.' },
+        taskId: { type: 'string', description: 'The task whose work moved it; also finds the project when no projectId or listId is given.' },
+      },
+      required: ['goalId', 'current'],
+      additionalProperties: false,
+    },
+  },
 ] as const
 
 type ToolName = (typeof PROJECT_GOALS_TOOLS)[number]['name']
@@ -33,7 +50,34 @@ export function isProjectGoalsTool(name: string): name is ToolName {
   return PROJECT_GOALS_TOOLS.some(tool => tool.name === name)
 }
 
-export async function callProjectGoalsTool(client: Requester, _name: ToolName, rawArgs: unknown) {
+async function updateGoalMeasure(client: Requester, rawArgs: unknown) {
+  const args = (rawArgs && typeof rawArgs === 'object' ? rawArgs : {}) as Record<string, unknown>
+  const pick = (key: string) => (typeof args[key] === 'string' ? (args[key] as string).trim() : '')
+  const goalId = pick('goalId')
+  const current = pick('current')
+  const taskId = pick('taskId')
+  let projectId = pick('projectId')
+  let listId = pick('listId')
+  if (!goalId || !current) throw new Error('Pass goalId and current')
+  if (!projectId) {
+    if (!listId && taskId) {
+      const { task } = await client.makeRequest<{ task?: { listIds?: string[] } }>(`/api/v1/tasks/${encodeURIComponent(taskId)}`)
+      listId = task?.listIds?.[0] ?? ''
+    }
+    if (!listId) throw new Error('Pass projectId, listId or taskId to find the project')
+    const goals = await client.makeRequest<{ projectId?: string | null }>(`/api/v1/lists/${encodeURIComponent(listId)}/goals`)
+    projectId = goals.projectId ?? ''
+    if (!projectId) throw new Error('This list is in no project, so it has no goals')
+  }
+  const data = await client.makeRequest(
+    `/api/v1/projects/${encodeURIComponent(projectId)}/goals/${encodeURIComponent(goalId)}/measure`,
+    { method: 'PUT', body: JSON.stringify({ current, ...(taskId ? { taskId } : {}) }) },
+  )
+  return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] }
+}
+
+export async function callProjectGoalsTool(client: Requester, name: ToolName, rawArgs: unknown) {
+  if (name === 'update_goal_measure') return updateGoalMeasure(client, rawArgs)
   const args = (rawArgs && typeof rawArgs === 'object' ? rawArgs : {}) as Record<string, unknown>
   const pick = (key: string) => (typeof args[key] === 'string' ? (args[key] as string).trim() : '')
   const projectId = pick('projectId')

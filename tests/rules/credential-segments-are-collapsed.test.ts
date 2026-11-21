@@ -73,6 +73,7 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   'agent-icon': 'route-word', // an agent slug
   'brand-icon': 'route-word', // a generated icon file name, icon-192.png (AWTD-1588)
   'brand-assets': 'route-word', // a partner's artwork file name, acme-logo.png (AWTD-1587)
+  goals: 'route-word', //       app/api/v1/projects/[id]/goals/[goalId]: a goal id like g1, a label (ADEV-182)
   connections: 'route-word', //  a connection KIND (google, github)
   missing: 'route-word', //     app/missing/[locale]: a locale code from a 404 rewrite (AWTD-1599)
   t: 'route-word', //           app/[locale]/t/[identifier] — a task id like AWTD-12 (AWTD-1016):

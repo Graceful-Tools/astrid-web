@@ -1868,7 +1868,10 @@
       "saveFailed": "No se pudieron guardar los objetivos y límites. Inténtalo de nuevo.",
       "counts": "Objetivos: {goals} · Límites: {guardrails}",
       "targetValue": "Meta: {value}",
-      "currentValue": "Ahora: {value}"
+      "currentValue": "Ahora: {value}",
+      "progressValue": "{percent}% del objetivo",
+      "targetMet": "Objetivo cumplido",
+      "workServed": "{count} tareas sirvieron a este objetivo"
     }
   },
   "viewRotator": {

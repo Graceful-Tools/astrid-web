@@ -1868,7 +1868,10 @@
       "saveFailed": "无法保存目标与护栏。请重试。",
       "counts": "目标:{goals} · 护栏:{guardrails}",
       "targetValue": "目标值:{value}",
-      "currentValue": "当前:{value}"
+      "currentValue": "当前:{value}",
+      "progressValue": "已达目标的 {percent}%",
+      "targetMet": "目标已达成",
+      "workServed": "{count} 个任务服务于此目标"
     }
   },
   "viewRotator": {
