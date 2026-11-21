@@ -341,10 +341,90 @@ have no meaning and are muted.
 On web it is `Pill` in `components/ui/pill.tsx`, which wears `.board-status-pill`
 (`styles/components.css`). A capsule is not written out as classes.
 
+### Board column
+
+Taken from iOS's `BoardColumnView` and the Mac's `MacBoardView` (ADEV-154, register DS34).
+The numbers are `layout.<density>.board-*`:
+
+| | Comfortable (touch) | Compact (pointer) |
+|---|---|---|
+| Column width | share the board, none under `board-column-min-width` 300, at most five abreast | share the board, none under 250 |
+| Between columns | `board-column-gap` 16 | 12, inside a `board-padding` 16 inset |
+| Header padding | 12 across, 12 above, 8 below | 10 across, 10 above, 8 below |
+| Body padding | 6 across, 8 down, inside a 6 `board-column-wall` each side | 10 across, none down |
+| Between cards | `board-card-gap` 6 | 8 |
+| Radius | `board-column-radius` 12 | 8 |
+
+- **Comfortable is a frame and a well.** The column's frame (the card surface) shows as
+  the header strip, a 6 wall each side and the foot; the cards sit in a recessed well
+  inside it, one tier down, so a card reads against the well and the well against the
+  frame. Compact is one surface.
+- **The header** is the column's name in `headline` and its count on the trailing edge
+  (the header badge, below). Under it, the column's description, muted, two lines at
+  most, on every column but Done.
+- **Done's header** is the Done-since control in place of the count: the header badge
+  reading "15 ✓ This week" with a chevron. The badge is the button; it opens the period
+  menu (Jon, 2026-11-20).
+- **The header badge** is one capsule for the count and the Done-since trigger: `caption1`,
+  `text-secondary`, a `bg-tertiary` fill and no stroke, 8 across and 4 down (iOS
+  `BoardHeaderBadge`, register DS37).
+
+### Board card
+
+From iOS's `BoardTaskCardView` (register DS35):
+
+- The task row's content, drawn as a card: radius `board-card-radius` (8 comfortable, 6
+  compact), padding `board-card-padding-x` × `-y` (10 × 12, and 8 × 8 compact). The well
+  already insets the card, so it pads less than a list row.
+- The card surface with a `size.hairline` stroke in `border`. Selected, it wears the DS5
+  outline instead.
+- **One chrome.** The card draws the background and border; the row inside it draws
+  neither, so there is never a frame inside a frame.
+- Titles wrap: a card has no detail panel beside it to make room for.
+- The leading control picks the task's board status instead of completing it outright
+  (task f9d7ed42). A Done card shows its completed-on day as the Done pill (see Pill).
+
+### "Mark as done" row
+
+The last row of every quick changer, on the card, the list row and the task details
+(iOS `MarkDoneQuickSetRow`, ADEV-146/148/152):
+
+- The task row's own checkbox at the row's size (`size.leading-control`; the compact
+  detail size on a pointer), in the task's priority colour, unchecked beside "Mark as
+  done" and checked beside "Mark as to-do" (`tasks.markAsDone` / `tasks.markAsTodo`).
+- The label in `body`, `text-primary`, 12 from the checkbox.
+- The row sits on `bg-secondary`, radius `sm`, 12 across and 8 down, so it stands out from
+  the popover. Not an accent button.
+- A task that is not yours keeps the same row and adds one muted `caption1` line saying
+  whose it is. Tapping the row is the confirmation; there is no second step.
+
+### Empty column
+
+The one empty state, iOS's `AstridSpeechBubble` (register DS36):
+
+- The art beside a speech bubble whose tail points at it. The art is `layout.<density>.empty-art`:
+  160 comfortable, 96 compact, none on a project board's short rows (one board never
+  shows a different picture per row). A board column's art is its cached empathy frame
+  when there is one.
+- The bubble pads 16 (12 compact), radius 16, a 2 border, the message `body` semibold
+  and an optional muted `caption1` line under it.
+- The message is the column's own, in Astrid's voice (`BoardColumnEmptyMessage`).
+- A comfortable column holds at least `empty-column-min-height` 260 while it is empty.
+
+### Sidebar Projects
+
+iOS `SidebarProjectSections` (ADEV-170), on iOS and the Mac:
+
+- Each project is its own section, headed by its name on one line, its lists the
+  section's rows. Section header and rows are the platform's sidebar section and row.
+- The header's trailing chevron hides or shows the project's lists: `text-secondary`,
+  small, pointing right when collapsed and down when open. On the Mac it sits in the rows'
+  count column.
+
 ### Still to write
 
-Task row, sidebar row, board card, comment bubble, pickers, empty state. Each lands with
-the web-only surfaces it needs (register DS9).
+Task row, sidebar row, comment bubble, pickers. Each lands with the web-only surfaces it
+needs (register DS9).
 
 ## Palette classes to theme classes
 
