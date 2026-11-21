@@ -54,6 +54,7 @@ import {
   buildAgentContextInstructions,
   serializeUntrustedAgentData,
 } from '@/lib/ai/prompt-trust'
+import { goalsOfFirstList, LIST_PROJECT_GOALS_SELECT } from '@/lib/goals-guardrails'
 import { uploadTextContent } from '@/lib/secure-storage'
 import { createLogger } from '@/lib/logger'
 import { isWebhookDeliveryNotice } from '@/lib/webhooks/delivery-policy'
@@ -116,7 +117,7 @@ export async function runAssistantWorkflow(
       include: {
         assignee: true,
         creator: { select: { id: true, name: true, email: true } },
-        lists: { select: { id: true, name: true, description: true, githubRepositoryId: true } },
+        lists: { select: { id: true, name: true, description: true, githubRepositoryId: true, ...LIST_PROJECT_GOALS_SELECT } },
         comments: {
           orderBy: { createdAt: 'desc' },
           take: 10,
@@ -285,6 +286,7 @@ export function buildPrompt(task: any, isCommentResponse?: boolean, userComment?
   const instructions = buildAgentContextInstructions(
     listDescription,
     `Complete tasks in ${listName} using the available tools.`,
+    goalsOfFirstList(task),
   )
   const taskContext = serializeUntrustedAgentData({
     title: task.title,

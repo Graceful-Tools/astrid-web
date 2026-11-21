@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "{name} löschen?",
     "deleteProjectDetail": "Die Listen bleiben erhalten, außerhalb jedes Projekts. Die eigenen Spalten des Boards werden mit gelöscht.",
     "deleteProjectAction": "Löschen",
-    "deleteProjectFailed": "Das Projekt konnte nicht gelöscht werden"
+    "deleteProjectFailed": "Das Projekt konnte nicht gelöscht werden",
+    "goals": {
+      "title": "Ziele & Leitplanken",
+      "intro": "Wofür dieses Projekt da ist und was es nicht tun darf. Alle, die hier arbeiten, Menschen wie Agenten, lesen beides, damit Anweisungen kurz bleiben können.",
+      "goalsHeading": "Ziele",
+      "guardrailsHeading": "Leitplanken",
+      "goalPlaceholder": "Ein Ziel, z. B. Langfristige Rendite maximieren",
+      "measurePlaceholder": "Kennzahl",
+      "targetPlaceholder": "Zielwert",
+      "currentPlaceholder": "Aktuell",
+      "guardrailPlaceholder": "Eine Leitplanke, z. B. Keine geltenden Gesetze brechen",
+      "kindLabel": "Wie sie geprüft wird",
+      "kindHint": "Formuliert: Menschen und Agenten beurteilen sie. Erzwungen: ein Programm prüft sie.",
+      "kindStated": "Formuliert",
+      "kindEnforced": "Erzwungen",
+      "addGoal": "Ziel hinzufügen",
+      "addGuardrail": "Leitplanke hinzufügen",
+      "remove": "Entfernen",
+      "saveFailed": "Ziele und Leitplanken konnten nicht gespeichert werden. Bitte erneut versuchen.",
+      "counts": "Ziele: {goals} · Leitplanken: {guardrails}",
+      "targetValue": "Zielwert: {value}",
+      "currentValue": "Aktuell: {value}"
+    }
   },
   "viewRotator": {
     "showList": "Liste anzeigen",

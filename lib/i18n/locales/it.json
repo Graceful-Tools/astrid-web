@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "Eliminare {name}?",
     "deleteProjectDetail": "Le sue liste restano, fuori da qualsiasi progetto. Le colonne proprie della bacheca vengono eliminate con esso.",
     "deleteProjectAction": "Elimina",
-    "deleteProjectFailed": "Impossibile eliminare il progetto"
+    "deleteProjectFailed": "Impossibile eliminare il progetto",
+    "goals": {
+      "title": "Obiettivi e vincoli",
+      "intro": "A cosa serve questo progetto e cosa non deve fare. Chi lavora qui, persone e agenti, legge entrambi, così le istruzioni possono restare brevi.",
+      "goalsHeading": "Obiettivi",
+      "guardrailsHeading": "Vincoli",
+      "goalPlaceholder": "Un obiettivo, ad es. Massimizzare il rendimento a lungo termine",
+      "measurePlaceholder": "Misura",
+      "targetPlaceholder": "Traguardo",
+      "currentPlaceholder": "Attuale",
+      "guardrailPlaceholder": "Un vincolo, ad es. Non violare alcuna legge applicabile",
+      "kindLabel": "Come viene verificato",
+      "kindHint": "Dichiarato: lo valutano persone e agenti. Applicato: lo verifica un programma.",
+      "kindStated": "Dichiarato",
+      "kindEnforced": "Applicato",
+      "addGoal": "Aggiungi obiettivo",
+      "addGuardrail": "Aggiungi vincolo",
+      "remove": "Rimuovi",
+      "saveFailed": "Impossibile salvare obiettivi e vincoli. Riprova.",
+      "counts": "Obiettivi: {goals} · Vincoli: {guardrails}",
+      "targetValue": "Traguardo: {value}",
+      "currentValue": "Ora: {value}"
+    }
   },
   "viewRotator": {
     "showList": "Mostra elenco",

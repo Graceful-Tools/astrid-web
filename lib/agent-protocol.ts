@@ -9,6 +9,7 @@ import { type NextRequest } from 'next/server'
 import { authenticateAPI, type AuthContext, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { prisma } from '@/lib/prisma'
+import { goalsOfFirstList, LIST_PROJECT_GOALS_SELECT, type GoalsAndGuardrails } from '@/lib/goals-guardrails'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -23,6 +24,11 @@ export interface AgentTask {
   listId: string | null
   listName: string | null
   listDescription: string | null
+  /**
+   * The goals and guardrails of the project the task's list is in (ADEV-179), or null when it is in
+   * no project or nothing is stated. Work toward the goals, inside the guardrails.
+   */
+  projectGoals: GoalsAndGuardrails | null
   assignerName: string | null
   assignerId: string | null
   comments: AgentComment[]
@@ -114,6 +120,7 @@ export function enrichTaskForAgent(task: any): AgentTask {
     listId: list?.id || null,
     listName: list?.name || null,
     listDescription: list?.description || null,
+    projectGoals: goalsOfFirstList(task),
     assignerName: task.creator?.name || task.creator?.email || null,
     assignerId: task.creator?.id || null,
     comments: (task.comments || []).map((c: any) => ({
@@ -252,6 +259,7 @@ export const agentTaskInclude = {
       name: true,
       description: true,
       color: true,
+      ...LIST_PROJECT_GOALS_SELECT,
     },
   },
   assignee: {

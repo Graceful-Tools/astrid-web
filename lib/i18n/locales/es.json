@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "¿Eliminar {name}?",
     "deleteProjectDetail": "Sus listas se conservan, fuera de cualquier proyecto. Las columnas propias del tablero se eliminan con él.",
     "deleteProjectAction": "Eliminar",
-    "deleteProjectFailed": "No se pudo eliminar el proyecto"
+    "deleteProjectFailed": "No se pudo eliminar el proyecto",
+    "goals": {
+      "title": "Objetivos y límites",
+      "intro": "Para qué es este proyecto y qué no debe hacer. Todos los que trabajan aquí, personas y agentes, leen ambos, así las instrucciones pueden ser breves.",
+      "goalsHeading": "Objetivos",
+      "guardrailsHeading": "Límites",
+      "goalPlaceholder": "Un objetivo, p. ej. Maximizar la rentabilidad a largo plazo",
+      "measurePlaceholder": "Medida",
+      "targetPlaceholder": "Meta",
+      "currentPlaceholder": "Actual",
+      "guardrailPlaceholder": "Un límite, p. ej. No infringir ninguna ley aplicable",
+      "kindLabel": "Cómo se comprueba",
+      "kindHint": "Declarado: personas y agentes lo juzgan. Aplicado: un programa lo comprueba.",
+      "kindStated": "Declarado",
+      "kindEnforced": "Aplicado",
+      "addGoal": "Añadir objetivo",
+      "addGuardrail": "Añadir límite",
+      "remove": "Quitar",
+      "saveFailed": "No se pudieron guardar los objetivos y límites. Inténtalo de nuevo.",
+      "counts": "Objetivos: {goals} · Límites: {guardrails}",
+      "targetValue": "Meta: {value}",
+      "currentValue": "Ahora: {value}"
+    }
   },
   "viewRotator": {
     "showList": "Mostrar lista",

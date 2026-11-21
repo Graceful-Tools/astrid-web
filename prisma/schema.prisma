@@ -313,6 +313,10 @@ model Project {
   /// default; each list may override it (TaskList.orchestrationPolicy). NULL = the default, which
   /// is today's behaviour: every action needs a person, any agent claims, questions go to the list owner.
   orchestrationPolicy  Json?
+  /// What the project is for and what it must not do (ADEV-179): `{ goals, guardrails }`, read by
+  /// people and agents alike so guidance can stay minimal. Shape and rules: lib/goals-guardrails.ts.
+  /// NULL means nothing stated.
+  goalsAndGuardrails   Json?
   /// Next identifier to hand out. Allocated with an atomic UPDATE ... RETURNING
   /// inside the task-create transaction — never SELECT max()+1, because
   /// concurrent creation from web, iOS, MCP and agents is the normal case here,

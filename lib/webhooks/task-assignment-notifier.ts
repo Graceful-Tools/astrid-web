@@ -34,6 +34,7 @@ import { getAgentType } from './agent-type'
 import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import { isPollingOnlyAgent, resolveAgentRunBilling } from '@/lib/ai/agent-execution-mode'
 import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
+import { goalsOfFirstList, LIST_PROJECT_GOALS_SELECT } from '@/lib/goals-guardrails'
 import type { TaskAssignmentWebhookPayload } from './types'
 import type { PushNotificationService } from '@/lib/push-notification-service'
 import {
@@ -109,6 +110,7 @@ export async function notifyTaskAssignment(
             ownerId: true,
             aiAgentConfiguredBy: true,
             owner: { select: { id: true, email: true } },
+            ...LIST_PROJECT_GOALS_SELECT,
           },
         },
         comments: {
@@ -248,6 +250,7 @@ export async function notifyTaskAssignment(
           task.lists[0]?.description,
           aiAgentConfig.contextInstructions ||
             `Use the MCP API to read task details, add progress comments, and mark the task complete when finished.${task.lists[0]?.githubRepositoryId ? ` This list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+          goalsOfFirstList(task),
         ),
       },
       creator: {

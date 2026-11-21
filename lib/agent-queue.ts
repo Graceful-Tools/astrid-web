@@ -33,6 +33,9 @@ import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions } from '@/lib/agent-queue-list-instructions'
 import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
+import { goalsForLists } from '@/services/project-goals.service'
+import { wrapUntrustedProjectGoals } from '@/lib/ai/prompt-trust'
+import type { GoalsAndGuardrails } from '@/lib/goals-guardrails'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
 /**
@@ -157,6 +160,19 @@ export interface AgentQueueResult {
   runtimeBinding?: { id: string; revision: number }
   /** The named board's effective orchestration policy as this agent sees it (ADEV-36); absent without `listId`. */
   orchestrationPolicy?: AgentListPolicyView[]
+  /**
+   * The goals and guardrails of the projects the queued tasks are in (ADEV-179), one entry per
+   * project, read from each task's first list as listInstructions is. Absent, not empty, when no
+   * queued task's project states any, so such a queue's JSON is what it was.
+   */
+  projectGoals?: AgentProjectGoals[]
+}
+
+export interface AgentProjectGoals extends GoalsAndGuardrails {
+  projectId: string
+  projectName: string
+  /** The same goals as markdown, wrapped as untrusted guidance the way listInstructions is. */
+  instructions: string
 }
 
 /**
@@ -477,6 +493,13 @@ export async function buildAgentQueue({
   if (dueTasks.length > 0) reasons.push('ready')
   if (attention.tasks.length > 0 || attention.messages.length > 0) reasons.push('attention')
 
+  // Goals steer the work; they never gate it, so a read that fails leaves them out rather than
+  // failing the poll.
+  const projectGoals: AgentProjectGoals[] = dueTasks.length
+    ? (await goalsForLists(dueTasks.map(task => task.lists[0]?.id).filter((id): id is string => !!id)).catch(() => []))
+        .map(({ projectId, projectName, value }) => ({ projectId, projectName, ...value, instructions: wrapUntrustedProjectGoals(value) }))
+    : []
+
   return {
     agent: { mailbox, email, id: agentUser.id, name: agentUser.name },
     mode,
@@ -519,6 +542,7 @@ export async function buildAgentQueue({
     },
     ...(policy ? { orchestrationPolicy: [policy] } : {}),
     ...(runtimeBinding ? { runtimeBinding } : {}),
+    ...(projectGoals.length ? { projectGoals } : {}),
   }
 }
 

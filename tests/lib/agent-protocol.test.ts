@@ -45,6 +45,7 @@ describe('enrichTaskForAgent', () => {
       listId: 'list-1',
       listName: 'Agent Tasks',
       listDescription: 'You are a helpful agent. Complete tasks assigned to you.',
+      projectGoals: null,
       assignerName: 'Jon',
       assignerId: 'user-1',
       comments: [{
