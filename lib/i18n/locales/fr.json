@@ -86,7 +86,7 @@
     "subtasks": "Sous-tâches",
     "tags": "Étiquettes",
     "completed": "Terminée",
-    "incomplete": "Incomplète",
+    "incomplete": "À faire",
     "overdue": "En retard",
     "noDueDate": "Pas de date limite",
     "noReminder": "Pas de rappel",
@@ -149,11 +149,11 @@
       "filterAll": "Toutes les tâches"
     },
     "tradeoffRatings": {
-      "veryPoor": "Très mauvais",
+      "veryPoor": "Rédhibitoire",
       "poor": "Mauvais",
       "mixed": "Mitigé",
       "good": "Bon",
-      "veryGood": "Très bon"
+      "veryGood": "Décisif"
     },
     "tradeoffGrid": {
       "fullScreen": "Plein écran"
@@ -1898,15 +1898,15 @@
       "priority": "Priorité",
       "date": "Date",
       "who": "Qui",
-      "completed": "Terminée",
-      "incomplete": "Incomplète",
+      "completed": "Terminées d'abord",
+      "incomplete": "À faire d'abord",
       "manual": "Manuel"
     },
     "show": {
       "allTasks": "Toutes les tâches",
       "completedOnly": "Terminées uniquement",
-      "incompleteOnly": "Non terminées uniquement",
-      "default": "Incomplètes + Terminées récemment"
+      "incompleteOnly": "À faire uniquement",
+      "default": "À faire + Terminées récemment"
     },
     "priority": {
       "all": "Toutes les priorités",

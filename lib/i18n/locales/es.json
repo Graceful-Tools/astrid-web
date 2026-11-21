@@ -85,8 +85,8 @@
     "attachments": "Archivos adjuntos",
     "subtasks": "Subtareas",
     "tags": "Etiquetas",
-    "completed": "Completada",
-    "incomplete": "Incompleta",
+    "completed": "Hecha",
+    "incomplete": "Por hacer",
     "overdue": "Atrasada",
     "noDueDate": "Sin fecha límite",
     "noReminder": "Sin recordatorio",
@@ -149,11 +149,11 @@
       "filterAll": "Todas las tareas"
     },
     "tradeoffRatings": {
-      "veryPoor": "Muy mal",
+      "veryPoor": "Descalificante",
       "poor": "Mal",
       "mixed": "Regular",
       "good": "Bien",
-      "veryGood": "Muy bien"
+      "veryGood": "Decisivo"
     },
     "tradeoffGrid": {
       "fullScreen": "Pantalla completa"
@@ -1898,15 +1898,15 @@
       "priority": "Prioridad",
       "date": "Fecha",
       "who": "Quién",
-      "completed": "Completada",
-      "incomplete": "Incompleta",
+      "completed": "Hechas primero",
+      "incomplete": "Por hacer primero",
       "manual": "Manual"
     },
     "show": {
       "allTasks": "Todas las tareas",
-      "completedOnly": "Solo completadas",
-      "incompleteOnly": "Solo pendientes",
-      "default": "Incompletas + Completadas recientemente"
+      "completedOnly": "Solo hechas",
+      "incompleteOnly": "Solo por hacer",
+      "default": "Por hacer + Hechas recientemente"
     },
     "priority": {
       "all": "Todas las prioridades",

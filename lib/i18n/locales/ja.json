@@ -86,7 +86,7 @@
     "subtasks": "サブタスク",
     "tags": "タグ",
     "completed": "完了",
-    "incomplete": "未完了",
+    "incomplete": "やること",
     "overdue": "期限切れ",
     "noDueDate": "期限なし",
     "noReminder": "リマインダーなし",
@@ -149,11 +149,11 @@
       "filterAll": "すべてのタスク"
     },
     "tradeoffRatings": {
-      "veryPoor": "非常に悪い",
+      "veryPoor": "除外",
       "poor": "悪い",
       "mixed": "どちらとも言えない",
       "good": "良い",
-      "veryGood": "非常に良い"
+      "veryGood": "決め手"
     },
     "tradeoffGrid": {
       "fullScreen": "全画面表示"
@@ -1898,15 +1898,15 @@
       "priority": "優先度",
       "date": "日付",
       "who": "担当者",
-      "completed": "完了",
-      "incomplete": "未完了",
+      "completed": "完了を先に",
+      "incomplete": "やることを先に",
       "manual": "手動"
     },
     "show": {
       "allTasks": "すべてのタスク",
       "completedOnly": "完了のみ",
-      "incompleteOnly": "未完了のみ",
-      "default": "未完了 + 最近完了"
+      "incompleteOnly": "やることのみ",
+      "default": "やること + 最近完了"
     },
     "priority": {
       "all": "すべての優先度",
