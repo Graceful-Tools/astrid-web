@@ -85,8 +85,8 @@
     "attachments": "Bijlagen",
     "subtasks": "Subtaken",
     "tags": "Tags",
-    "completed": "Voltooid",
-    "incomplete": "Onvoltooid",
+    "completed": "Klaar",
+    "incomplete": "Te doen",
     "overdue": "Verlopen",
     "noDueDate": "Geen vervaldatum",
     "noReminder": "Geen herinnering",
@@ -1876,15 +1876,15 @@
       "priority": "Prioriteit",
       "date": "Datum",
       "who": "Wie",
-      "completed": "Voltooid",
-      "incomplete": "Onvoltooid",
+      "completed": "Klaar eerst",
+      "incomplete": "Te doen eerst",
       "manual": "Handmatig"
     },
     "show": {
       "allTasks": "Alle taken",
-      "completedOnly": "Alleen voltooide",
-      "incompleteOnly": "Alleen onvoltooide",
-      "default": "Onvoltooid + Onlangs voltooid"
+      "completedOnly": "Alleen klaar",
+      "incompleteOnly": "Alleen te doen",
+      "default": "Te doen + Onlangs klaar"
     },
     "priority": {
       "all": "Alle prioriteiten",

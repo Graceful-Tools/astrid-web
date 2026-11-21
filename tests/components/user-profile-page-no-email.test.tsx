@@ -49,6 +49,6 @@ describe('user profile page without an email (AWTD-1419)', () => {
     serve(profile({ name: null }))
     render(<UserProfilePage />)
     expect(await screen.findByRole('heading', { level: 1 })).toBeTruthy()
-    expect(await screen.findByText('Completed')).toBeTruthy()
+    expect(await screen.findByText('Done')).toBeTruthy()
   })
 })
