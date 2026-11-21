@@ -149,11 +149,11 @@
       "filterAll": "すべてのタスク"
     },
     "tradeoffRatings": {
-      "veryPoor": "非常に悪い",
+      "veryPoor": "除外",
       "poor": "悪い",
       "mixed": "どちらとも言えない",
       "good": "良い",
-      "veryGood": "非常に良い"
+      "veryGood": "決め手"
     },
     "tradeoffGrid": {
       "fullScreen": "全画面表示"

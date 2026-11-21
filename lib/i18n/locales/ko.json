@@ -149,11 +149,11 @@
       "filterAll": "모든 작업"
     },
     "tradeoffRatings": {
-      "veryPoor": "매우 나쁨",
+      "veryPoor": "탈락",
       "poor": "나쁨",
       "mixed": "보통",
       "good": "좋음",
-      "veryGood": "매우 좋음"
+      "veryGood": "결정적"
     },
     "tradeoffGrid": {
       "fullScreen": "전체 화면"

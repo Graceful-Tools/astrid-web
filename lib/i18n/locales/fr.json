@@ -85,7 +85,7 @@
     "attachments": "Pièces jointes",
     "subtasks": "Sous-tâches",
     "tags": "Étiquettes",
-    "completed": "Terminé",
+    "completed": "Terminée",
     "incomplete": "À faire",
     "overdue": "En retard",
     "noDueDate": "Pas de date limite",
@@ -149,11 +149,11 @@
       "filterAll": "Toutes les tâches"
     },
     "tradeoffRatings": {
-      "veryPoor": "Très mauvais",
+      "veryPoor": "Rédhibitoire",
       "poor": "Mauvais",
       "mixed": "Mitigé",
       "good": "Bon",
-      "veryGood": "Très bon"
+      "veryGood": "Décisif"
     },
     "tradeoffGrid": {
       "fullScreen": "Plein écran"
