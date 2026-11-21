@@ -23,6 +23,7 @@ import { BLOCKER_TOOLS } from "./blockers"
 import { ATTACHMENT_TOOLS } from "./task-attachments"
 import { LIST_TOOLS } from "./list-tools"
 import { ORCHESTRATION_TOOLS } from "./orchestration-policy-tool"
+import { PROJECT_GOALS_TOOLS } from "./project-goals-tool"
 
 /**
  * The Decision and trade-off grid formats, short enough for a tool description (AWTD-1531).
@@ -381,6 +382,7 @@ export const OAUTH_MCP_TOOLS = [
       ...ATTACHMENT_TOOLS,
       ...LIST_TOOLS,
       ...ORCHESTRATION_TOOLS,
+      ...PROJECT_GOALS_TOOLS,
 ] as const
 
 const CLAIM_TASK_TOOL = {

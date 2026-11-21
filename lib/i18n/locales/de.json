@@ -2998,6 +2998,27 @@
       "strict": "Webhook-Zustellung fehlgeschlagen ({reason}). Wegen deiner strikten Zustellrichtlinie hat {appName} keinen eigenen Fallback genutzt. Diese Aufgabe steht daher bis {until} in „Wartet“ und bleibt mir zugewiesen. Repariere den Webhook und weise sie mir dann erneut zu oder schreibe einen Kommentar, um es noch einmal zu versuchen."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Agenten-Richtlinie",
     "help": "Wer nicht zugewiesene bereite Aufgaben übernimmt, was Agenten selbst tun dürfen und wen sie fragen. Agenten lesen dies vor dem Mergen, Deployen oder Migrieren.",

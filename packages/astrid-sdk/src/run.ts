@@ -69,12 +69,18 @@ export interface RunDeps {
 
 const DEFAULT_LEASE_SECONDS = 900
 
-/** The prompt every harness gets: the task, and who is reporting on it. */
-export function buildPrompt(task: AstridTask, agent: string): string {
+/**
+ * The prompt every harness gets: the task, and who is reporting on it. `goals` is the project's
+ * goals and guardrails as text (ADEV-179), when it states any.
+ */
+export function buildPrompt(task: AstridTask, agent: string, goals?: string | null): string {
   const name = task.identifier ? `${task.identifier}: ${task.title}` : task.title
   return [
     `Work this Astrid task and report on it as the "${agent}" agent: ${name}`,
     task.description ? `\n${task.description}` : '',
+    goals
+      ? `\nProject goals and guardrails (work toward the goals; if the task cannot be done inside a guardrail, stop and ask a person):\n${goals}`
+      : '',
     `\nTask id: ${task.id}`,
   ].join('\n')
 }
@@ -152,7 +158,11 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
   if (options.fixall && claimsFile) appendFileSync(claimsFile, `${taskId}\n`)
 
   const task = await client.getTask(taskId)
-  const prompt = buildPrompt(task, options.agent)
+  // Fails open, like the routing policy: goals that cannot be read never stop the worker.
+  const goals = task.listIds?.[0]
+    ? await client.getListGoals(task.listIds[0]).then(view => view.text, () => null)
+    : null
+  const prompt = buildPrompt(task, options.agent, goals)
   const env = {
     ...deps.env,
     ASTRID_TASK_ID: task.id,

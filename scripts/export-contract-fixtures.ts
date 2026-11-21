@@ -163,6 +163,9 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // completion (ADEV-147: completed is always the checked checkbox). astrid-core's
   // LeadingControl::for_row and TaskRow::build answer the same table.
   'leading-control.json': () => runDriver('leading-control.mjs', 'leading-control'),
+  // A project's goals and guardrails: what a submitted value must look like, how it is normalised,
+  // and the measure line and agent text every client draws the same (ADEV-179).
+  'goals.json': () => runDriver('goals.mjs', 'goals'),
   // What /api/v1 actually sends for a task and a list, per surface — fixed rows run through the
   // routes' own shapers, so the core's model decodes the real wire rather than a description of
   // it (AWTD-1263; the drift class of D52–D55).

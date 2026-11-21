@@ -19,15 +19,20 @@ import {
 import { apiPatch } from "@/lib/api"
 import { renameLoadedProject } from "@/lib/client-projects"
 import { useTranslations } from "@/lib/i18n/client"
+import { ProjectGoalsEditor, type ProjectGoalsEditorProps } from "@/components/projects/ProjectGoalsEditor"
+import type { GoalsAndGuardrails } from "@/lib/goals-guardrails"
 
 interface ProjectSettingsDialogProps {
   projectId: string
   projectName: string
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** The project's goals and guardrails (ADEV-179) and how to save them; the section is absent without `onSaveGoals`. */
+  goals?: GoalsAndGuardrails | null
+  onSaveGoals?: ProjectGoalsEditorProps["onSave"]
 }
 
-export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChange }: ProjectSettingsDialogProps) {
+export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChange, goals, onSaveGoals }: ProjectSettingsDialogProps) {
   const { t } = useTranslations()
   const [name, setName] = React.useState(projectName)
   const [saving, setSaving] = React.useState(false)
@@ -82,6 +87,7 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
           {failed && (
             <p role="alert" className="text-xs text-danger">{t("projectMode.settingsSaveFailed")}</p>
           )}
+          {onSaveGoals && <ProjectGoalsEditor value={goals ?? null} onSave={onSaveGoals} />}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               {t("projectMode.settingsCancel")}

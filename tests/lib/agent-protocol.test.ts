@@ -36,6 +36,7 @@ describe('enrichTaskForAgent', () => {
     const result = enrichTaskForAgent(makeTask())
     expect(result).toEqual({
       id: 'task-1',
+      projectGoals: null,
       title: 'Test Task',
       description: 'Do the thing',
       priority: 2,

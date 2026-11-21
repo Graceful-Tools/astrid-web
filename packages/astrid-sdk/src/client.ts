@@ -231,6 +231,15 @@ export class AstridClient {
     return this.request(`/api/v1/lists/${encodeURIComponent(listId)}/orchestration-policy`)
   }
 
+  /**
+   * `GET /api/v1/lists/:id/goals`: the goals and guardrails of the list's project (ADEV-179).
+   * `text` is the plain-text block for a prompt, empty when the project states none.
+   */
+  async getListGoals(listId: string): Promise<{ goals: unknown; text: string }> {
+    const view = await this.request<{ goals: unknown; text?: string }>(`/api/v1/lists/${encodeURIComponent(listId)}/goals`)
+    return { goals: view.goals ?? null, text: view.text ?? '' }
+  }
+
   async getTask(taskId: string): Promise<AstridTask> {
     const body = await this.request<{ task: AstridTask }>(`/api/v1/tasks/${encodeURIComponent(taskId)}`)
     return body.task

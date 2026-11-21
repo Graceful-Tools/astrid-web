@@ -2998,6 +2998,27 @@
       "strict": "La entrega del webhook falló ({reason}). Con tu política de entrega estricta, {appName} no usó su propia alternativa, así que esta tarea está en «En espera» hasta {until}, todavía asignada a mí. Arregla el webhook y luego vuelve a asignármela o añade un comentario para reintentarlo."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Política de agentes",
     "help": "Quién toma las tareas listas sin asignar, qué pueden hacer los agentes por su cuenta y a quién preguntan. Los agentes lo leen antes de fusionar, desplegar o migrar.",

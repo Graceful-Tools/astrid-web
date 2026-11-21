@@ -2998,6 +2998,27 @@
       "strict": "Webhook の配信に失敗しました（{reason}）。厳格な配信ポリシーのため {appName} は独自のフォールバックを使用しませんでした。このタスクは {until} まで待機中で、引き続き私に割り当てられています。Webhook を修正してから、再度私に割り当てるかコメントを追加して再試行してください。"
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "エージェントポリシー",
     "help": "未割り当ての準備完了タスクを誰が引き受けるか、エージェントが単独で何をしてよいか、誰に確認するか。エージェントはマージ、デプロイ、マイグレーションの前にこれを読みます。",

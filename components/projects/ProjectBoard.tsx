@@ -38,6 +38,8 @@ import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
+import { ProjectGoalsStrip } from "@/components/projects/ProjectGoalsStrip"
+import { useProjectGoals } from "@/hooks/use-project-goals"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
 import {
@@ -108,6 +110,7 @@ export function ProjectBoard({
   const { t } = useTranslations()
   const [doneSince, setDoneSince] = useDoneSince(currentUser?.id, projectId)
   const customStates = useProjectCustomStates(projectId)
+  const projectGoals = useProjectGoals(projectId)
   const columns = React.useMemo(() => getProjectBoardColumns(customStates), [customStates])
   const { listIds, loaded, saveFailed, save } = useProjectBoardRows(projectId)
   const [settingsOpen, setSettingsOpen] = React.useState(false)
@@ -215,6 +218,8 @@ export function ProjectBoard({
               projectName={projectName}
               open={settingsOpen}
               onOpenChange={setSettingsOpen}
+              goals={projectGoals.goals}
+              onSaveGoals={projectGoals.save}
             />
           </>
         )}
@@ -245,6 +250,8 @@ export function ProjectBoard({
         </DropdownMenu>
         </div>
       </div>
+
+      <ProjectGoalsStrip goals={projectGoals.goals} />
 
       {newListName !== null && onCreateListInProject && (
         <form

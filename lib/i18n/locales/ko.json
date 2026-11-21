@@ -2998,6 +2998,27 @@
       "strict": "웹훅 전송에 실패했습니다({reason}). 엄격한 전송 정책에 따라 {appName}은(는) 자체 대체 경로를 사용하지 않았으며, 이 작업은 {until}까지 대기 중이고 여전히 저에게 할당되어 있습니다. 웹훅을 고친 다음 저에게 다시 할당하거나 댓글을 추가해 다시 시도하세요."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "에이전트 정책",
     "help": "할당되지 않은 준비 작업을 누가 맡는지, 에이전트가 스스로 할 수 있는 일, 누구에게 묻는지. 에이전트는 병합, 배포, 마이그레이션 전에 이것을 읽습니다.",

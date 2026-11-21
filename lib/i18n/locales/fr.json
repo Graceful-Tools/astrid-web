@@ -2998,6 +2998,27 @@
       "strict": "La livraison du webhook a échoué ({reason}). Avec ta politique de livraison stricte, {appName} n’a pas utilisé son propre repli : cette tâche est « En attente » jusqu’au {until}, toujours assignée à moi. Répare le webhook, puis réassigne-la-moi ou ajoute un commentaire pour réessayer."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Politique des agents",
     "help": "Qui prend les tâches prêtes non attribuées, ce que les agents peuvent faire seuls et à qui ils demandent. Les agents la lisent avant de fusionner, déployer ou migrer.",
