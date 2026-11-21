@@ -66,7 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # mcp: acme ships with MCP off; one entry switches it on, so the smoke test
+        # mcp: acme ships with MCP on (ADEV-97); the matrix still tests both values; one entry switches it on, so the smoke test
         # sees both answers — /mcp challenging with its discovery documents served,
         # and all three absent (ADEV-105).
         include:

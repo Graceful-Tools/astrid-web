@@ -43,7 +43,7 @@ and stack versions with `npm run check:docs`.
 - **[Performance budgets](./PERFORMANCE_BUDGETS.md)** - Release-gate budgets for the task and list paths used by web and incremental sync
 
 ### 🎨 Whitelabeling
-- **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
+- **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through configuration: a brand profile mounted at runtime or built in
 - **[White-label launch checklist](./deployment/WHITE_LABEL_LAUNCH_CHECKLIST.md)** - Operator launch steps, required versus optional setup, and post-deploy probes
 - **[White-label security and data flow](./deployment/WHITE_LABEL_SECURITY_DATA_FLOW.md)** - Deployment boundary, data locations, third-party flows, session/secrets handling, and retention questions
 - **[White-label backup and disaster recovery](./deployment/WHITE_LABEL_BACKUP_DR.md)** - Backup inventory and isolated restore-drill template; RPO/RTO remain decisions
@@ -79,7 +79,7 @@ and stack versions with `npm run check:docs`.
 - **[Fixall Queue Workflow](./FIXALL_WORKFLOW.md)** - the canonical autonomous agent queue loop; the user-facing connect flow is `/docs/loops` in the app
 - **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
 - **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
-- **[Agent Task Claim API](./AGENT_CLAIM_API.md)** - opt-in atomic claim, resume, and release contract for authenticated harnesses
+- **[Agent Task Claim API](./AGENT_CLAIM_API.md)** - atomic claim, resume, release and heartbeat on every board; a claim holds a 15-minute lease
 - **[List descriptions as agent instructions](./LIST_DESCRIPTION_AS_AGENT_INSTRUCTIONS.md)** - a list's description is the instruction file every agent on it reads; project goals and guardrails sit beside it
 - **[GitHub Copilot SDK integration](./COPILOT_SDK_INTEGRATION_PLAN.md)** - implemented: the `@github/copilot-sdk` runtime and the OAuth app it needs
 - **[SDK channel restart recovery](./SDK_CHANNEL_RECOVERY.md)** - AWTD-1565: opt-in session recovery for SDK channels after a restart

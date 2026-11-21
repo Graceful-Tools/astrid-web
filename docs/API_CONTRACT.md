@@ -1284,7 +1284,9 @@ Rejected bearer credentials return HTTP 401 with:
 WWW-Authenticate: Bearer resource_metadata="https://www.astrid.cc/.well-known/oauth-protected-resource/mcp", error="invalid_token"
 ```
 
-The metadata URL follows the requested host. Missing credentials receive the same
+On `/mcp` and `/mcp/messages` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
+falling back to the request's Host only when that is unset, so a proxy's `localhost` Host is
+never advertised (ADEV-99); `/api/mcp/operations` uses the request origin. Missing credentials receive the same
 discovery challenge without `error="invalid_token"`. `/api/mcp/operations` also
 includes discovery in its existing HTTP 401 challenge. Backend authentication
 failures remain HTTP 500, not invalid-token challenges; authenticated task/scope

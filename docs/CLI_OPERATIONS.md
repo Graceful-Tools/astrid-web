@@ -14,9 +14,12 @@ For project architecture, code patterns, and the per-task coding workflow, see
 
 > ### ⚠️ Production deploys are MANUAL — by construction, not by accident.
 > `.github/workflows/production-deployment.yml` has **`workflow_dispatch` only**.
-> Nothing reaches `astrid.cc` until someone deploys: the Actions tab, or
+> Nothing reaches `astrid.cc` until something dispatches it: the Actions tab,
+> `gh workflow run`, `agent-ship.yml` after it lands an eligible agent PR
+> (`ASTRID_SHIP_ENABLED=true`), an approved deploy card, or
 > `./scripts/deploy-preview.sh --production`. A push to `main` is a push, not a
-> release.
+> release; check `gh run list --workflow=production-deployment.yml` before
+> dispatching, because one may already be queued.
 >
 > **This became true on 2026-08-18 (#204), by changing the workflow.** Before that
 > the same workflow ran on `push: branches: [main]` with no path filter *and* on
@@ -25,9 +28,10 @@ For project architecture, code patterns, and the per-task coding workflow, see
 > (no job checked `github.event.pull_request.merged`, despite a comment claiming it
 > did). Do not restore either trigger without deciding that merging should ship.
 >
-> Prisma migrations run inside that deploy — its own job and again via
-> `npm run build` → `scripts/build-with-migrations.js` — with production env
-> (`DATABASE_URL_DIRECT` is Production-scoped). **Pending migrations apply when you
+> Prisma migrations run inside that deploy, in its own *Database Migration* job,
+> with production env (`DATABASE_URL_DIRECT` is Production-scoped). The Vercel
+> build in the deploy job receives a localhost placeholder and does not migrate
+> (`scripts/lib/build-migration-policy.js`). **Pending migrations apply when you
 > deploy.** Verify migration impact against production data before deploying.
 >
 > Two failure modes, both of which have burned an agent here:
@@ -97,7 +101,11 @@ The Vercel API answers the same question if you need it from outside the app:
 
 Once a deploy's health check passes, the workflow moves the **`prod` branch** to that commit
 and tags it `prod-<YYYYMMDD-HHMMSS>-<sha7>` (`scripts/advance-prod-branch.sh`). Only the deploy
-moves it. So what is waiting to ship is a git question:
+moves it. The built-in `GITHUB_TOKEN` cannot push commits that touch `.github/workflows/`, so on
+a deploy whose range includes workflow changes the *Advance prod Branch* job fails and `prod`
+lags; production is unaffected. A repository secret `PROD_POINTER_TOKEN` (fine-grained PAT or
+App token with Contents and Workflows write) lifts that, and the job uses it when set
+(ADEV-115). `/api/health` stays the ground truth. So what is waiting to ship is a git question:
 ```bash
 git fetch origin && git log --oneline origin/prod..origin/main    # the next deploy's commits
 git diff origin/prod origin/main -- prisma/migrations/            # and its migrations

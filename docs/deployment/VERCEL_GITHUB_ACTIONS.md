@@ -93,11 +93,15 @@ The following secrets are required in your GitHub repository (Settings → Secre
 | `VERCEL_PROJECT_ID` | `prj_MUWxfWJ9lIZOi2clHPZhlHsYqSiy` | Production (astrid.cc) |
 | `VERCEL_TEAM_ID` | `team_gFxp7fWaX7e8tUPt8Vt3YXl0` | Same as ORG_ID |
 
-##### Database Configuration
+##### Database Configuration (the `production` environment, not repository secrets)
 
 | Secret Name | Description |
 |-------------|-------------|
-| `DATABASE_URL` | Production database URL (from .env.local `DATABASE_URL_PROD`) |
+| `DATABASE_URL` | Pooled production URL |
+| `DATABASE_URL_DIRECT` | Direct production URL; the migration job uses it |
+
+`PROD_POINTER_TOKEN` (optional, repository secret) lets the deploy move `prod` past
+workflow-file changes (ADEV-115).
 
 ##### Astrid Integration (for AI Agent)
 
@@ -192,10 +196,11 @@ The cloud agent uses the `ASTRID_MCP_TOKEN` secret to authenticate and the workf
 
 **Steps:**
 1. Quality gates (tests, linting, typecheck)
-2. Database migrations
+2. Database migrations (refuses a destructive one unless `allow_destructive_migrations`)
 3. Deploy to Vercel production
 4. Health checks
-5. Update AI tasks (if applicable)
+5. Advance the `prod` branch and tag (uses `PROD_POINTER_TOKEN` when set)
+6. Deployment summary
 
 **Usage:**
 ```bash
