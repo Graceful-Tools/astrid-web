@@ -152,7 +152,7 @@ test.describe('hover:theme-* variants (AWTD-936, AWTD-935)', () => {
       const surfaceHover = await resolve(
         page,
         'background-color',
-        'background-color: rgb(var(--theme-surface-hover))',
+        'background-color: rgb(var(--astrid-surface-hover))',
       )
       const border = await resolve(page, 'border-top-color', 'border-color: rgb(var(--theme-border))')
 
@@ -160,7 +160,7 @@ test.describe('hover:theme-* variants (AWTD-936, AWTD-935)', () => {
       // every assertion below while being invisible to a user. That is exactly
       // the trap --theme-bg-hover falls into in light (pure white, the same as
       // --theme-bg-primary), and the reason hover:theme-bg-hover resolves to
-      // --theme-surface-hover instead.
+      // --astrid-surface-hover instead.
       expect(textPrimary, 'primary must differ from muted, or the hover is invisible').not.toBe(muted)
       expect(textSecondary, 'secondary must differ from muted').not.toBe(muted)
       expect(surfaceHover, 'surface-hover must be a real colour').not.toBe('rgba(0, 0, 0, 0)')
@@ -178,7 +178,7 @@ test.describe('hover:theme-* variants (AWTD-936, AWTD-935)', () => {
       const bg = await probe(page, 'hover:theme-bg-hover')
       await expect(bg).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
       await hoverProbe(page, bg)
-      await expect(bg, 'hover:theme-bg-hover resolves to --theme-surface-hover').toHaveCSS(
+      await expect(bg, 'hover:theme-bg-hover resolves to --astrid-surface-hover').toHaveCSS(
         'background-color',
         surfaceHover,
       )
