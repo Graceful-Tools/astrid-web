@@ -1868,7 +1868,10 @@
       "saveFailed": "목표와 가드레일을 저장하지 못했습니다. 다시 시도하세요.",
       "counts": "목표: {goals} · 가드레일: {guardrails}",
       "targetValue": "목표치: {value}",
-      "currentValue": "현재: {value}"
+      "currentValue": "현재: {value}",
+      "progressValue": "목표의 {percent}%",
+      "targetMet": "목표 달성",
+      "workServed": "이 목표에 기여한 작업 {count}개"
     }
   },
   "viewRotator": {

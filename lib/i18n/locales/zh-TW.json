@@ -1868,7 +1868,10 @@
       "saveFailed": "無法儲存目標與護欄。請再試一次。",
       "counts": "目標:{goals} · 護欄:{guardrails}",
       "targetValue": "目標值:{value}",
-      "currentValue": "目前:{value}"
+      "currentValue": "目前:{value}",
+      "progressValue": "已達目標的 {percent}%",
+      "targetMet": "目標已達成",
+      "workServed": "{count} 個任務服務於此目標"
     }
   },
   "viewRotator": {

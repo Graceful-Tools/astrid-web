@@ -20,8 +20,11 @@ import {
   EMPTY_GOALS_AND_GUARDRAILS,
   hasGoalsOrGuardrails,
   parseGoalsAndGuardrails,
+  goalIdsServed,
   storedGoalsAndGuardrails,
+  withMeasurement,
   type GoalsAndGuardrails,
+  type ProjectGoal,
 } from '@/lib/goals-guardrails'
 
 export type GoalsResult<T> = { ok: true; value: T } | { ok: false; status: 400 | 403 | 404; error: string }
@@ -32,6 +35,8 @@ export interface ProjectGoalsView {
   goals: GoalsAndGuardrails['goals']
   guardrails: GoalsAndGuardrails['guardrails']
   canEdit: boolean
+  /** Tasks whose work report named each goal (`GOAL: <id>`, ADEV-182): `{ [goalId]: taskCount }`. */
+  workByGoal?: Record<string, number>
 }
 
 export interface ListGoalsView extends Omit<ProjectGoalsView, 'projectId' | 'projectName'> {
@@ -73,11 +78,62 @@ function projectView(project: LoadedProject, userId: string, value?: GoalsAndGua
   }
 }
 
+/**
+ * How many tasks of the project's lists reported serving each goal. A report is a comment with a
+ * `GOAL: <id>` line; a task counts once per goal however many comments name it.
+ */
+async function workByGoal(projectId: string, goalIds: string[]): Promise<Record<string, number>> {
+  if (!goalIds.length) return {}
+  const comments = await prisma.comment.findMany({
+    where: { content: { contains: 'GOAL:' }, task: { lists: { some: { projectId } } } },
+    select: { taskId: true, content: true },
+    take: 2000,
+  })
+  const tasksByGoal = new Map<string, Set<string>>()
+  for (const comment of comments) {
+    for (const id of goalIdsServed(comment.content)) {
+      if (!goalIds.includes(id)) continue
+      if (!tasksByGoal.has(id)) tasksByGoal.set(id, new Set())
+      tasksByGoal.get(id)!.add(comment.taskId)
+    }
+  }
+  return Object.fromEntries([...tasksByGoal].map(([id, tasks]) => [id, tasks.size]))
+}
+
 export async function getProjectGoals(projectId: string, userId: string): Promise<GoalsResult<ProjectGoalsView>> {
   const project = await loadProject(projectId)
   // 404 rather than 403 for a project the caller has no part in, so the route does not confirm it exists.
   if (!project || !worksInProject(project, userId)) return { ok: false, status: 404, error: 'Project not found' }
-  return { ok: true, value: projectView(project, userId) }
+  const view = projectView(project, userId)
+  return { ok: true, value: { ...view, workByGoal: await workByGoal(projectId, view.goals.map(g => g.id)) } }
+}
+
+/**
+ * Record a goal's new `current` value (ADEV-182). Unlike the statement itself, this is open to
+ * everyone working in the project, agents and scripts included: moving the number is the point of
+ * the work, and each change keeps who and when (and the task, if given) in the goal's history.
+ * `by` is the agent mailbox or user id the change is signed with.
+ */
+export async function recordGoalMeasurement(
+  projectId: string,
+  userId: string,
+  goalId: string,
+  body: unknown,
+  by: string,
+): Promise<GoalsResult<ProjectGoalsView>> {
+  const project = await loadProject(projectId)
+  if (!project || !worksInProject(project, userId)) return { ok: false, status: 404, error: 'Project not found' }
+  const input = (body && typeof body === 'object' ? body : {}) as { current?: unknown; taskId?: unknown }
+  if (typeof input.current !== 'string' || !input.current.trim()) return { ok: false, status: 400, error: 'Send { current: "<value>" }' }
+  const taskId = typeof input.taskId === 'string' && input.taskId.trim() ? input.taskId.trim() : undefined
+  const stored = storedGoalsAndGuardrails(project.goalsAndGuardrails)
+  if (!stored.goals.some(g => g.id === goalId)) return { ok: false, status: 404, error: 'Goal not found' }
+  const value: GoalsAndGuardrails = {
+    ...stored,
+    goals: stored.goals.map(g => (g.id === goalId ? withMeasurement(g, input.current as string, by, new Date(), taskId) : g)),
+  }
+  await prisma.project.update({ where: { id: projectId }, data: { goalsAndGuardrails: value as unknown as Prisma.InputJsonValue } })
+  return { ok: true, value: projectView(project, userId, value) }
 }
 
 /** `{ goals, guardrails }` replaces what is stored; both empty (or `null`) clears it. */
@@ -92,7 +148,18 @@ export async function setProjectGoals(projectId: string, userId: string, body: u
   }
   const parsed = parseGoalsAndGuardrails(body)
   if (!parsed.ok) return { ok: false, status: 400, error: parsed.error }
-  const value = parsed.value
+  // History is the server's: carry over what is stored, and record a `current` the editor changed.
+  const stored = storedGoalsAndGuardrails(project.goalsAndGuardrails)
+  const now = new Date()
+  const value: GoalsAndGuardrails = {
+    ...parsed.value,
+    goals: parsed.value.goals.map(goal => {
+      const before = stored.goals.find(g => g.id === goal.id)
+      const { history: _submitted, ...rest } = goal
+      const kept: ProjectGoal = before?.history ? { ...rest, history: before.history } : rest
+      return goal.current && goal.current !== before?.current ? withMeasurement({ ...kept, current: before?.current }, goal.current, userId, now) : kept
+    }),
+  }
   await prisma.project.update({
     where: { id: projectId },
     // Nothing stated is SQL NULL, never a stored empty object.

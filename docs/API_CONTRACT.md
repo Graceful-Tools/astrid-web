@@ -644,6 +644,21 @@ project's. Shape and rules: `lib/goals-guardrails.ts`, the one place they are re
 check (ADEV-182). Agents get the same statement in their prompt and payloads (`projectGoals` on the
 webhook task and the agent queue), and over MCP with `get_project_goals { listId | projectId | taskId }`.
 
+**Measures and enforced checks (ADEV-182).**
+- `PUT /api/v1/projects/{id}/goals/{goalId}/measure { current, taskId? }` records a goal's new value
+  and answers like GET. Open to everyone working in the project, agents and scripts included (scope
+  `projects:write`); the goal keeps its latest 20 changes in `history: [{ value, by, at, taskId? }]`
+  (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
+  same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
+  listId | taskId }`.
+- GET adds `workByGoal: { [goalId]: taskCount }`: tasks of the project whose comments carry a
+  `GOAL: g1, g2` line. Agents end a completion or handback report with that line.
+- An `enforced` guardrail may carry `check: { type: "policy", field, atLeast: "ask" | "never" }`
+  (`field` is `merge`, `deploy`, `migrateAdditive`, `migrateDestructive`, `release` or `spend`). It is
+  violated while the board's effective orchestration policy lets agents do `field` more freely than
+  `atLeast`; `scripts/land-and-deploy.ts` then holds the merge, or the deploy and its migrations, and
+  names the guardrail in the run summary. Custom script checks are not built yet.
+
 ---
 
 ## Board Art Endpoints

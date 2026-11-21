@@ -61,6 +61,7 @@ import { isAwaitingDeploy, isAwaitingMerge } from './lib/doing-release'
 import { boardTasksUrl } from './lib/board-read-url'
 import { loadScriptEnv } from './lib/load-env'
 import type { OrchestrationPolicy } from '@/lib/orchestration-policy'
+import { storedGoalsAndGuardrails, type ProjectGuardrail } from '@/lib/goals-guardrails'
 import { SweepApi } from './lib/sweep-api'
 import {
   RUNNER_PR_MARKER,
@@ -74,6 +75,7 @@ import {
   migrationApprovalSummary,
   migrationHold,
   policyHold,
+  guardrailHold,
   migrationSqlPath,
   pendingMigrations,
   summary,
@@ -594,11 +596,27 @@ async function readPolicy(listId: string | null): Promise<OrchestrationPolicy> {
   }
 }
 
+/** ADEV-182: the board's project guardrails, or none when unreadable (a stored policy still applies). */
+async function readGuardrails(listId: string | null): Promise<ProjectGuardrail[]> {
+  if (!listId) return []
+  try {
+    const { auth } = await astridAuth()
+    const response = await fetch(`${API}/api/v1/lists/${listId}/goals`, { headers: auth })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const body = (await response.json()) as { guardrails?: ProjectGuardrail[] }
+    return storedGoalsAndGuardrails({ guardrails: body.guardrails }).guardrails
+  } catch (error) {
+    log(`  ⚠️  guardrails unreadable (${(error as Error).message.split('\n')[0]}) — enforced guardrails not checked`)
+    return []
+  }
+}
+
 async function main() {
   run('git', ['fetch', 'origin', '--quiet'])
 
   const policy = await readPolicy(options.listId)
-  const mergeHold = policyHold(policy, POLICY_AGENT, 'merge')
+  const guardrails = await readGuardrails(options.listId)
+  const mergeHold = policyHold(policy, POLICY_AGENT, 'merge') ?? guardrailHold(guardrails, policy, ['merge'])
   if (mergeHold) log(`  not landing PRs — ${mergeHold}`)
 
   const { land: landable, skipped } = landablePullRequests(await openPullRequests(), {
@@ -712,6 +730,7 @@ async function main() {
     predeployGreen,
     policy,
     agent: POLICY_AGENT,
+    guardrails,
   })
 
   let verified = false
