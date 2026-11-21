@@ -309,7 +309,7 @@ export function ProjectStatusBoard({
           scroller's width and each column fill it makes area and snapport equal
           whatever the shell does.
         */}
-        <div className={`flex h-full gap-3 ${isOneColumn ? "" : "w-full"}`}>
+        <div className={`board-row flex h-full ${isOneColumn ? "" : "w-full"}`}>
         {columns.map((column, columnIndex) => {
           const isDoneColumn = column.kind === 'done'
           const inColumn = boardTasks.filter(task =>

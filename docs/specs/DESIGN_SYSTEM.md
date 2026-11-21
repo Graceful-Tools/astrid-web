@@ -335,8 +335,9 @@ tokens:
   4.5:1 on the pill's own wash.
 
 Board state to meaning: Inbox `error`, Waiting `warning`, Ready `success`, Doing `info`,
-Done `accent`. The completed-on pill wears Done's. A count and a board's own column
-have no meaning and are muted.
+Done `accent`. The completed-on pill wears Done's. A column's count and the Done-since
+trigger have no meaning: they wear the header badge instead (Board column, register DS37).
+On web that is `Pill`'s `neutral` tone.
 
 On web it is `Pill` in `components/ui/pill.tsx`, which wears `.board-status-pill`
 (`styles/components.css`). A capsule is not written out as classes.
