@@ -85,8 +85,8 @@
     "attachments": "附件",
     "subtasks": "子任务",
     "tags": "标签",
-    "completed": "已完成",
-    "incomplete": "未完成",
+    "completed": "完成",
+    "incomplete": "待办",
     "overdue": "已逾期",
     "noDueDate": "无截止日期",
     "noReminder": "无提醒",
@@ -1876,15 +1876,15 @@
       "priority": "优先级",
       "date": "日期",
       "who": "负责人",
-      "completed": "已完成",
-      "incomplete": "未完成",
+      "completed": "完成优先",
+      "incomplete": "待办优先",
       "manual": "手动"
     },
     "show": {
       "allTasks": "所有任务",
-      "completedOnly": "仅已完成",
-      "incompleteOnly": "仅未完成",
-      "default": "未完成 + 最近完成"
+      "completedOnly": "仅完成",
+      "incompleteOnly": "仅待办",
+      "default": "待办 + 最近完成"
     },
     "priority": {
       "all": "所有优先级",
