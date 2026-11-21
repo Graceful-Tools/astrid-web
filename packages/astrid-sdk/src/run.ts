@@ -69,10 +69,19 @@ export interface RunDeps {
 
 const DEFAULT_LEASE_SECONDS = 900
 
+/** The queue response's per-list guidance (`listInstructions`, `projectGoals`). */
+export interface GuidanceEntry { listId: string; instructions: string }
+export interface QueueGuidance { listInstructions?: GuidanceEntry[]; projectGoals?: GuidanceEntry[] }
+
 /** The prompt every harness gets: the task, and who is reporting on it. */
-export function buildPrompt(task: AstridTask, agent: string): string {
+export function buildPrompt(task: AstridTask, agent: string, guidance: QueueGuidance = {}): string {
   const name = task.identifier ? `${task.identifier}: ${task.title}` : task.title
+  const listId = task.listId ?? task.listIds?.[0]
+  const forList = (entries?: GuidanceEntry[]) => entries?.find(entry => entry.listId === listId)?.instructions
+  // Each entry is already wrapped as untrusted guidance by the server.
+  const sections = [forList(guidance.listInstructions), forList(guidance.projectGoals)].filter(Boolean)
   return [
+    ...sections.map(section => `${section}\n`),
     `Work this Astrid task and report on it as the "${agent}" agent: ${name}`,
     task.description ? `\n${task.description}` : '',
     `\nTask id: ${task.id}`,
@@ -115,13 +124,20 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
     }
   }
 
-  const candidates = options.taskId
-    ? [options.taskId]
-    : ((await client.getQueue({
+  const queue = options.taskId
+    ? undefined
+    : await client.getQueue({
         agent: options.agent,
         listId: options.listId,
         includeUnassigned: options.includeUnassigned,
-      })).queue ?? []).map(task => task.id)
+      })
+  const candidates = options.taskId
+    ? [options.taskId]
+    : ((queue?.queue as Array<{ id: string }> | undefined) ?? []).map(task => task.id)
+  const guidance: QueueGuidance = {
+    listInstructions: queue?.listInstructions as GuidanceEntry[] | undefined,
+    projectGoals: queue?.projectGoals as GuidanceEntry[] | undefined,
+  }
 
   let claimed: string | null = null
   for (const id of candidates) {
@@ -152,7 +168,7 @@ export async function runAgent(options: RunOptions, deps: RunDeps): Promise<RunO
   if (options.fixall && claimsFile) appendFileSync(claimsFile, `${taskId}\n`)
 
   const task = await client.getTask(taskId)
-  const prompt = buildPrompt(task, options.agent)
+  const prompt = buildPrompt(task, options.agent, guidance)
   const env = {
     ...deps.env,
     ASTRID_TASK_ID: task.id,
