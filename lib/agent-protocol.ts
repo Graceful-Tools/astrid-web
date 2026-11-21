@@ -9,6 +9,7 @@ import { type NextRequest } from 'next/server'
 import { authenticateAPI, type AuthContext, UnauthorizedError, ForbiddenError } from '@/lib/api-auth-middleware'
 import { hasRequiredScopes } from '@/lib/oauth/oauth-scopes'
 import { prisma } from '@/lib/prisma'
+import { readStoredGoals, type GoalsAndGuardrails } from '@/lib/goals-guardrails'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ export interface AgentTask {
   listId: string | null
   listName: string | null
   listDescription: string | null
+  /** The list's project's goals and guardrails (ADEV-179); null when it states none. */
+  projectGoals: GoalsAndGuardrails | null
   assignerName: string | null
   assignerId: string | null
   comments: AgentComment[]
@@ -114,6 +117,7 @@ export function enrichTaskForAgent(task: any): AgentTask {
     listId: list?.id || null,
     listName: list?.name || null,
     listDescription: list?.description || null,
+    projectGoals: readStoredGoals(list?.project?.goalsAndGuardrails),
     assignerName: task.creator?.name || task.creator?.email || null,
     assignerId: task.creator?.id || null,
     comments: (task.comments || []).map((c: any) => ({
@@ -252,6 +256,7 @@ export const agentTaskInclude = {
       name: true,
       description: true,
       color: true,
+      project: { select: { goalsAndGuardrails: true } },
     },
   },
   assignee: {

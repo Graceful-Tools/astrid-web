@@ -2998,6 +2998,27 @@
       "strict": "A entrega do webhook falhou ({reason}). Com sua política de entrega estrita, o {appName} não usou a própria contingência, então esta tarefa está em «Aguardando» até {until}, ainda atribuída a mim. Corrija o webhook e depois atribua a tarefa a mim de novo ou adicione um comentário para tentar outra vez."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Política de agentes",
     "help": "Quem assume as tarefas prontas sem responsável, o que os agentes podem fazer sozinhos e a quem perguntam. Os agentes leem isto antes de mesclar, implantar ou migrar.",

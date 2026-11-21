@@ -2998,6 +2998,27 @@
       "strict": "Webhook 投递失败（{reason}）。根据你的严格投递策略，{appName} 未使用自身的回退方式，因此此任务将等待至 {until}，仍分配给我。请修复 webhook，然后重新分配给我或添加评论以重试。"
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "智能体策略",
     "help": "谁来接手未分配的就绪任务、智能体可以自行做什么，以及向谁询问。智能体在合并、部署或迁移前会读取此设置。",

@@ -2998,6 +2998,27 @@
       "strict": "Не удалось доставить вебхук ({reason}). Из-за строгой политики доставки {appName} не использовал собственный резервный путь, поэтому задача в статусе «Ожидание» до {until} и по-прежнему назначена мне. Исправьте вебхук, затем снова назначьте задачу мне или добавьте комментарий, чтобы повторить попытку."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Политика агентов",
     "help": "Кто берёт неназначенные готовые задачи, что агенты могут делать сами и кого спрашивают. Агенты читают это перед слиянием, развёртыванием или миграцией.",

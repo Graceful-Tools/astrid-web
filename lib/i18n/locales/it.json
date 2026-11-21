@@ -2998,6 +2998,27 @@
       "strict": "La consegna del webhook non è riuscita ({reason}). Con la tua regola di consegna rigorosa {appName} non ha usato il proprio percorso di riserva, quindi questa attività è In attesa fino a {until}, ancora assegnata a me. Correggi il webhook, poi riassegnamela o aggiungi un commento per riprovare."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Criterio degli agenti",
     "help": "Chi prende le attività pronte non assegnate, cosa possono fare gli agenti da soli e a chi chiedono. Gli agenti lo leggono prima di unire, distribuire o migrare.",

@@ -2998,6 +2998,27 @@
       "strict": "Webhook 傳送失敗（{reason}）。依照你的嚴格傳送政策，{appName} 未使用自身的備援方式，因此此任務將等待至 {until}，仍指派給我。請修正 webhook，然後重新指派給我或新增留言以重試。"
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "代理程式政策",
     "help": "誰來接手未指派的就緒任務、代理程式可以自行做什麼，以及向誰詢問。代理程式在合併、部署或遷移前會讀取此設定。",

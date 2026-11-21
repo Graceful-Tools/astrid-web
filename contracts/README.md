@@ -35,6 +35,7 @@ the move, apart from the `$comment` line naming the script.
 | `fixall-claim.json` | `app/api/v1/tasks/[id]/claim-fixall/route.ts` — **executed**: claimed, conflict, not-ready and forbidden response outcomes | AstridCore claim contract. AWTD-1550 adds general claim outcomes additively in its own PR. |
 | `agent-registry.json` | `lib/brand/agent-emails.ts`, `lib/ai/harness-agents.ts` — **executed**: built-in mailboxes, polling-only harnesses and labels | AstridCore agent registry. Any later fields are additive in their own PR. |
 | `empathy-art.json` | `lib/empathy-art/rules.ts` — **executed**: FNV-1a vectors, each list's metaphor across UTC day boundaries, and the column → state map (ADEV-142) | iOS empty-column art (ADEV-127); astrid-core once a second client needs it |
+| `goals.json` | `lib/goals-guardrails.ts` — **executed**: a matrix of submitted goals and guardrails, recording whether each is accepted, the normalised value or the refusal, the measure line and the text agents read, plus the limits (ADEV-179) | Clients validate and draw a project's goals and guardrails the same way; `GET/PUT /api/v1/projects/:id/goals`, `GET /api/v1/lists/:id/goals` |
 | `leading-control.json` | `lib/task-leading-control.ts` — **executed**: every assignee (none, `''`, the reader, someone else) × reader (signed in, not) × completed, recording the mark and whether a tap opens the picker on a list row and a board card (ADEV-147) | astrid-core `LeadingControl::for_row` and `TaskRow::build`, which iOS and the Mac draw from |
 
 ## How the executed ones run

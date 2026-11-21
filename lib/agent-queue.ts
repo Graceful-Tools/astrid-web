@@ -31,7 +31,7 @@ import { RuntimeBindingDeniedError, resolveAgentRuntime } from '@/lib/ai/runtime
 import { runtimeBindingResolverEnabled } from '@/lib/env'
 import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
 import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
-import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions } from '@/lib/agent-queue-list-instructions'
+import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, projectGoalsField, type AgentListInstructions, type AgentProjectGoals } from '@/lib/agent-queue-list-instructions'
 import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
 import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
@@ -156,7 +156,7 @@ export interface AgentQueueResult {
    */
   runtimeBinding?: { id: string; revision: number }
   /** The named board's effective orchestration policy as this agent sees it (ADEV-36); absent without `listId`. */
-  orchestrationPolicy?: AgentListPolicyView[]
+  orchestrationPolicy?: AgentListPolicyView[]; projectGoals?: AgentProjectGoals[] // goals: ADEV-179
 }
 
 /**
@@ -517,7 +517,7 @@ export async function buildAgentQueue({
       reasons,
       incomplete: truncated || attention.truncated || attention.skipped.length > 0,
     },
-    ...(policy ? { orchestrationPolicy: [policy] } : {}),
+    ...(policy && listId ? { orchestrationPolicy: [policy], ...(await projectGoalsField(listId)) } : {}),
     ...(runtimeBinding ? { runtimeBinding } : {}),
   }
 }

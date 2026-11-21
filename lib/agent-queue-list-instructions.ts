@@ -9,7 +9,9 @@
  * sent once per list rather than once per task.
  */
 
-import { wrapUntrustedListGuidance } from '@/lib/ai/prompt-trust'
+import { wrapUntrustedListGuidance, wrapUntrustedProjectGoals } from '@/lib/ai/prompt-trust'
+import type { GoalsAndGuardrails } from '@/lib/goals-guardrails'
+import { goalsByListId } from '@/services/goals-guardrails.service'
 
 /**
  * Most characters of one list's description a poll will carry. The response
@@ -44,4 +46,21 @@ export function collectListInstructions(
     })
   }
   return [...byList.values()]
+}
+
+/**
+ * The named board's project goals and guardrails (ADEV-179), beside the list instructions: what
+ * the project is trying to achieve and must not do. `text` is the block to put in a prompt,
+ * wrapped as untrusted data.
+ */
+export interface AgentProjectGoals {
+  listId: string
+  goals: GoalsAndGuardrails
+  text: string
+}
+
+/** `{ projectGoals: [...] }` for a list whose project states goals, else nothing to spread. */
+export async function projectGoalsField(listId: string): Promise<{ projectGoals?: AgentProjectGoals[] }> {
+  const goals = (await goalsByListId([listId])).get(listId)
+  return goals ? { projectGoals: [{ listId, goals, text: wrapUntrustedProjectGoals(goals) }] } : {}
 }

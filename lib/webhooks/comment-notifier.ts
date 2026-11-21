@@ -26,6 +26,7 @@ import {
 } from '@/lib/brand/agent-emails'
 import { isPollingOnlyAgent, resolveAgentRunBilling } from '@/lib/ai/agent-execution-mode'
 import { buildAgentContextInstructions } from '@/lib/ai/prompt-trust'
+import { readStoredGoals } from '@/lib/goals-guardrails'
 import { getAgentType } from './agent-type'
 import type { TaskAssignmentWebhookPayload } from './types'
 import {
@@ -86,6 +87,7 @@ export async function notifyCommentOnAssignedTask(
             githubRepositoryId: true,
             ownerId: true,
             aiAgentConfiguredBy: true,
+            project: { select: { goalsAndGuardrails: true } },
             owner: { select: { id: true, email: true } },
           },
         },
@@ -199,6 +201,7 @@ export async function notifyCommentOnAssignedTask(
           task.lists[0]?.description,
           aiAgentConfig.contextInstructions ||
             `Read the new comment and respond if needed using the MCP API.${task.lists[0]?.githubRepositoryId ? ` This list is configured with GitHub repository: ${task.lists[0].githubRepositoryId}.` : ''}`,
+          readStoredGoals(task.lists[0]?.project?.goalsAndGuardrails),
         ),
       },
       creator: {

@@ -2998,6 +2998,27 @@
       "strict": "Webhook-bezorging mislukt ({reason}). Door je strikte bezorgbeleid heeft {appName} zijn eigen terugval niet gebruikt, dus deze taak staat in Wachten tot {until} en is nog steeds aan mij toegewezen. Herstel de webhook en wijs hem daarna opnieuw aan mij toe of voeg een reactie toe om het opnieuw te proberen."
     }
   },
+  "projectGoals": {
+    "title": "Goals and guardrails",
+    "help": "What this project is trying to achieve, and what it must not do. People and agents work toward the goals inside the guardrails.",
+    "goalsHeading": "Goals",
+    "guardrailsHeading": "Guardrails",
+    "addGoal": "Add goal",
+    "addGuardrail": "Add guardrail",
+    "goalPlaceholder": "e.g. Maximise long-term returns",
+    "guardrailPlaceholder": "e.g. Break no applicable laws",
+    "measure": "Measure",
+    "target": "Target",
+    "current": "Now",
+    "kind": "Checked by",
+    "kindStated": "The reader (stated)",
+    "kindEnforced": "The system (enforced)",
+    "enforcedBadge": "Enforced",
+    "remove": "Remove",
+    "saveFailed": "Could not save the goals and guardrails. Try again.",
+    "stripGoals": "Goals",
+    "stripGuardrails": "Guardrails"
+  },
   "orchestrationPolicy": {
     "title": "Agentbeleid",
     "help": "Wie niet-toegewezen klaarstaande taken oppakt, wat agents zelf mogen doen en wie ze vragen. Agents lezen dit voordat ze mergen, deployen of migreren.",
