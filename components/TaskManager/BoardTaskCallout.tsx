@@ -22,7 +22,13 @@
  * from the card's rect at the tap, and kept while the board scrolls; docked on the left the arrow
  * moves to the panel's right edge and the reveal grows out of that edge (`.task-panel-callout-*`,
  * over `motion.panel`); the panel and the card both wear the selection outline. Nothing here
- * scrolls the board, so a tapped card is never scrolled under its own panel.
+ * scrolls the board on a tap, so a tapped card is never scrolled under its own panel.
+ *
+ * The one time it does scroll is when the OPEN task's card changes column (completed into Done,
+ * marked to-do, a status set from the details; ADEV-177, iOS `BoardCardCallout.moved`): the board
+ * scrolls so the new column sits on the side the card was opened on, clear of the panel, the column
+ * scrolls to the card, and the side is decided again so the arrow points at the moved card.
+ * A different task opening is not a move. docs/PRODUCT_CONTRACT.md → Task details panel.
  */
 import React from "react"
 import { LazyTaskDetail } from "./lazy-panels"
@@ -60,6 +66,19 @@ export const CALLOUT_ARROW_REACH = 15
 function findAnchor(taskId: string, anchor?: HTMLElement | null): HTMLElement | null {
   if (anchor?.isConnected) return anchor
   return document.querySelector<HTMLElement>(`[data-task-id="${taskId}"]`)
+}
+
+/**
+ * Follow a card that moved column: put its column at the board's edge AWAY from the panel (a
+ * right-hand panel wants the column at the left edge), then scroll the column to the card.
+ * Instant, so the side picked next measures the final place.
+ */
+function followMovedCard(card: HTMLElement, column: HTMLElement, side: CalloutSide) {
+  const scroller = card.closest<HTMLElement>(`[${BOARD_CALLOUT_VIEWPORT_ATTR}]`)
+  const edge = scroller?.getBoundingClientRect()
+  const box = column.getBoundingClientRect()
+  if (scroller && edge) scroller.scrollLeft += side === "right" ? box.left - edge.left : box.right - edge.right
+  card.scrollIntoView?.({ block: "nearest", inline: "nearest" })
 }
 
 function toRect(rect: DOMRect): CalloutRect {
@@ -121,6 +140,20 @@ export function BoardTaskCallout({ taskId, anchor, onClose, paneProps, closing =
         : next,
     )
   }, [taskId, anchor])
+
+  // The open task's card changed column: follow it (ADEV-177). Runs every render, because the card
+  // is a new element in the new column and nothing else tells the callout. Cheap: one closest().
+  const columnRef = React.useRef<[string, Element | null]>([taskId, null])
+  React.useLayoutEffect(() => {
+    const card = findAnchor(taskId, anchor)
+    const column = card?.closest<HTMLElement>("[data-column-index]") ?? null
+    const [previousId, previous] = columnRef.current
+    columnRef.current = [taskId, column]
+    if (!card || !column || previousId !== taskId || !previous || previous === column) return
+    followMovedCard(card, column, sideRef.current?.side ?? "right")
+    sideRef.current = null
+    measure()
+  })
 
   React.useLayoutEffect(() => {
     measure()

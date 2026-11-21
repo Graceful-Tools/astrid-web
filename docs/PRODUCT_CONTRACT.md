@@ -171,6 +171,14 @@ Further rules, learned on iOS and mirrored on Web:
 new default: off by default, and **never offered on the inline/board panel**,
 which is deliberately a peek and would fight the board it is embedded in.
 
+**The details panel follows its card across columns** (ADEV-177, from iOS ADEV-175). When the
+open task's card changes column — completed into Done, marked to-do, a status set from the
+details — the board scrolls so the new column is in view on the side the card was opened on,
+clear of the panel; the column scrolls to the card; and the panel re-docks beside it, its
+arrow pointing at the moved card (the side decided again by core `calloutPlacement`). A
+different task opening is not a move. Windows and Android follow this too. Design spec: *Task
+details panel* (DS7).
+
 ---
 
 ## 4. The task leading control (shared with iOS/Mac)
