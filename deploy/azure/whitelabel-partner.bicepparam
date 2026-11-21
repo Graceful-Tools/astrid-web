@@ -54,7 +54,9 @@ param appSettings = {
   // starts without a relay. Export EMAIL_TRANSPORT=smtp with SMTP_URL before
   // real users arrive: smtp without SMTP_URL refuses to boot (AZURE.md, "Deploy").
   EMAIL_TRANSPORT: readEnvironmentVariable('EMAIL_TRANSPORT', 'log')
-  BRAND_ENABLED_AGENTS: 'claude'
+  // Server-only, so it has to be set here; the environment beats the brand profile,
+  // so keep it equal to BRAND_ENABLED_AGENTS in brands/whitelabel-partner.brand.json.
+  BRAND_ENABLED_AGENTS: 'claude,copilot'
   // Entra ID as the sso provider (AZURE.md, "Sign-in with Entra ID"). Takes
   // effect only in an image whose brand lists sso in NEXT_PUBLIC_BRAND_AUTH_PROVIDERS.
   AUTH_SSO_ISSUER: readEnvironmentVariable('AUTH_SSO_ISSUER', '')
