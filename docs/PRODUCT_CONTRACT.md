@@ -179,6 +179,10 @@ arrow pointing at the moved card (the side decided again by core `calloutPlaceme
 different task opening is not a move. Windows and Android follow this too. Design spec: *Task
 details panel* (DS7).
 
+**A completed task opens with its history showing** (ADEV-129). The comment thread shows system
+comments by default when the task is completed, because "marked this as complete" is its
+completion history. An open task keeps them hidden until asked.
+
 ---
 
 ## 4. The task leading control (shared with iOS/Mac)
@@ -198,12 +202,18 @@ answers, not two:
 Unassigned used to be folded in with "mine", so a task nobody owns rendered
 identically to a task you own. That is the bug this rule exists to prevent.
 
-- **The mark changes; so may the action.** On web, the unassigned mark and
-  someone else's photo open the task options sheet rather than completing
-  (AWTD-877, AWTD-919); your own checkbox completes in one tap.
+- **The mark changes; so may the action.** On web, someone else's photo opens
+  the task options sheet rather than completing (AWTD-877). On a list row the
+  unassigned mark does too (AWTD-919), and so does your own checkbox when the
+  list is on a board, where the mark stays the checkbox (task 036ef139). On a
+  board card your own checkbox completes in one tap and an unassigned card's
+  mark asks first (below). Everywhere else your own checkbox completes in one tap.
 - **Completing a task that is not yours asks first** (ADEV-56, widening
   AWTD-877). Someone else's task *and an unassigned one* show "Complete this
   task?" naming the assignee, or saying nobody holds it, before completing.
+  In the options sheet the question is the sheet itself: a muted line saying
+  whose the task is ("Assigned to …" / "Not assigned to anyone") above Cancel
+  and Complete (ADEV-158).
   Your own task never asks, and reopening never asks. Web:
   `completionNeedsConfirmation` in `lib/task-leading-control.ts`, asked by the
   options sheet, the leading control and the complete-task shortcut — and, since
@@ -283,8 +293,6 @@ uses `picker.*`; the repeat group matches. Reconcile when next touched.
 
 ---
 
----
-
 ## 6. One editing session at a time
 
 Task `7b60c7c5` (Web) / `55010e29` (iOS/Mac). "What happens to my edit when I
@@ -350,8 +358,6 @@ not a tidy-up.
 
 ---
 
----
-
 ## 8. Decision cards and trade-off grids (comments)
 
 Two markdown shapes that comments draw richly on every platform. Anything else is plain markdown.
@@ -406,11 +412,22 @@ the person has the `project_mode` flag (`GET /api/v1/features`), from an admin g
 - **Board.** Each chosen list is a row; the project's status columns (Inbox, Ready, Doing,
   Waiting, the project's custom columns, Done) are the columns. A card's column is its
   `statusRole`, exactly as on a list's own board, and moving a card sets it the same way. A card
-  on two row lists shows in both rows. Done keeps to each list's recently-completed window.
+  on two row lists shows in both rows. Done keeps to each list's recently-completed window, then
+  to the board's Done period: the Done header reads "15 ✓ This week" and opens Today / This week /
+  This month / This year / Pick a date… / All time. The period filters the cards as well as the
+  count, the week is Monday to Sunday, and the default is This week, kept per person and per
+  project on the device (ADEV-133). Done is newest-completed first whatever the sort, and each Done
+  card shows "✓ on Nov 19" (the year only when it is not this year). The Sort & Filters the person
+  has set (priority, assignee, due date, sort) apply to every row (ADEV-145).
 - **Rows.** Drag a list from the sidebar onto the board, or use *Add list*, to add it; × on the
   row header removes it. The choice is the person's, per project, saved on the server
   (`GET|PUT /api/v1/projects/{id}/board-rows`, see API_CONTRACT.md) so every device shows the
   same rows. Nothing saved means the project's own lists; an emptied board stays empty.
+- **Goals & guardrails** (ADEV-179). The board header shows a toggle with the project's goal and
+  guardrail counts that opens the full statement: goals in order with their measure, `Target: …`
+  and `Now: …`, and guardrails with `enforced` marked. It draws nothing when the project states
+  none. The owner or an admin edits them in Project settings (the board's gear); agents read them
+  and never write them. Wire: API_CONTRACT.md `/api/v1/projects/{id}/goals`.
 
 ---
 
