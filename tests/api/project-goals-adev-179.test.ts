@@ -180,11 +180,11 @@ describe('GET /api/v1/lists/:id/goals (ADEV-179)', () => {
 describe('goalsForLists (ADEV-179)', () => {
   it('one entry per project with something stated, in the order first seen', async () => {
     vi.mocked(prisma.taskList.findMany).mockResolvedValue([
-      { project: { id: 'p1', name: 'One', goalsAndGuardrails: STATED } },
-      { project: { id: 'p1', name: 'One', goalsAndGuardrails: STATED } },
-      { project: { id: 'p2', name: 'Two', goalsAndGuardrails: null } },
+      { id: 'a', project: { id: 'p1', name: 'One', goalsAndGuardrails: STATED } },
+      { id: 'b', project: { id: 'p1', name: 'One', goalsAndGuardrails: STATED } },
+      { id: 'c', project: { id: 'p2', name: 'Two', goalsAndGuardrails: null } },
     ] as never)
-    expect(await goalsForLists(['a', 'b', 'c'])).toEqual([{ projectId: 'p1', projectName: 'One', value: STATED }])
+    expect(await goalsForLists(['a', 'b', 'c'])).toEqual([{ projectId: 'p1', projectName: 'One', value: STATED, listIds: ['a', 'b'] }])
   })
 
   it('asks nothing for no lists', async () => {
