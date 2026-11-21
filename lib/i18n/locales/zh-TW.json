@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "刪除{name}？",
     "deleteProjectDetail": "其清單會保留，不屬於任何專案。看板專屬的欄位會一同刪除。",
     "deleteProjectAction": "刪除",
-    "deleteProjectFailed": "無法刪除專案"
+    "deleteProjectFailed": "無法刪除專案",
+    "goals": {
+      "title": "目標與護欄",
+      "intro": "這個專案要實現什麼,以及不能做什麼。在這裡工作的人和代理都會閱讀兩者,因此指示可以保持簡短。",
+      "goalsHeading": "目標",
+      "guardrailsHeading": "護欄",
+      "goalPlaceholder": "一個目標,例如:最大化長期報酬",
+      "measurePlaceholder": "衡量指標",
+      "targetPlaceholder": "目標值",
+      "currentPlaceholder": "目前",
+      "guardrailPlaceholder": "一條護欄,例如:不違反任何適用法律",
+      "kindLabel": "檢查方式",
+      "kindHint": "聲明:由人和代理判斷。強制:由程式檢查。",
+      "kindStated": "聲明",
+      "kindEnforced": "強制",
+      "addGoal": "新增目標",
+      "addGuardrail": "新增護欄",
+      "remove": "移除",
+      "saveFailed": "無法儲存目標與護欄。請再試一次。",
+      "counts": "目標:{goals} · 護欄:{guardrails}",
+      "targetValue": "目標值:{value}",
+      "currentValue": "目前:{value}"
+    }
   },
   "viewRotator": {
     "showList": "顯示清單",

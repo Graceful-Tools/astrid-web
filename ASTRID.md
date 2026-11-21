@@ -298,6 +298,16 @@ Post findings as comments. Mark complete when done.
 
 See `docs/LIST_DESCRIPTION_AS_AGENT_INSTRUCTIONS.md` for full details.
 
+### Project Goals and Guardrails
+
+"Goals and guardrails are better than guidance" (ADEV-179). A project states its **goals** (each
+optionally with a measure, target and current value) and **guardrails** (`stated`, judged by the
+reader, or `enforced`, checked by a program). Owners and admins edit them in Project settings; the
+board shows them to everyone. Every agent path carries them beside the list's guidance, wrapped as
+untrusted data: the server-run and webhook prompt (`buildAgentContextInstructions`), `projectGoals`
+on the agent task payload and the agent queue, and the MCP tool `get_project_goals`. Agents read
+them but never write them. Shape: `lib/goals-guardrails.ts`; API: docs/API_CONTRACT.md.
+
 ### Agent Routing
 
 Tasks assigned to AI agents are automatically routed:

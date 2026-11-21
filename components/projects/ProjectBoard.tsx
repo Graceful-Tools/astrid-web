@@ -37,6 +37,7 @@ import type { BoardLiveFilters } from "@/lib/board-live-filters"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ProjectGoalsStrip } from "@/components/projects/ProjectGoalsStrip"
 import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
@@ -197,6 +198,7 @@ export function ProjectBoard({
     >
       {/* No project-name heading: TaskManagerHeader already names the project (ADEV-63). */}
       <div className="flex items-center justify-end gap-3 border-b theme-border px-4 py-3">
+        <ProjectGoalsStrip projectId={projectId} />
         <div className="flex shrink-0 items-center gap-2">
         {canEditSettings && (
           <>

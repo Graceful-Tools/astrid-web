@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "{name} verwijderen?",
     "deleteProjectDetail": "De lijsten blijven, buiten elk project. De eigen kolommen van het bord gaan mee.",
     "deleteProjectAction": "Verwijderen",
-    "deleteProjectFailed": "Het project kon niet worden verwijderd"
+    "deleteProjectFailed": "Het project kon niet worden verwijderd",
+    "goals": {
+      "title": "Doelen en vangrails",
+      "intro": "Waar dit project voor is en wat het niet mag doen. Iedereen die hier werkt, mensen en agents, leest beide, zodat instructies kort kunnen blijven.",
+      "goalsHeading": "Doelen",
+      "guardrailsHeading": "Vangrails",
+      "goalPlaceholder": "Een doel, bijv. Langetermijnrendement maximaliseren",
+      "measurePlaceholder": "Meetwaarde",
+      "targetPlaceholder": "Streefwaarde",
+      "currentPlaceholder": "Huidig",
+      "guardrailPlaceholder": "Een vangrail, bijv. Geen toepasselijke wetten overtreden",
+      "kindLabel": "Hoe het wordt gecontroleerd",
+      "kindHint": "Vastgelegd: mensen en agents beoordelen het. Afgedwongen: een programma controleert het.",
+      "kindStated": "Vastgelegd",
+      "kindEnforced": "Afgedwongen",
+      "addGoal": "Doel toevoegen",
+      "addGuardrail": "Vangrail toevoegen",
+      "remove": "Verwijderen",
+      "saveFailed": "Doelen en vangrails konden niet worden opgeslagen. Probeer het opnieuw.",
+      "counts": "Doelen: {goals} · Vangrails: {guardrails}",
+      "targetValue": "Streefwaarde: {value}",
+      "currentValue": "Nu: {value}"
+    }
   },
   "viewRotator": {
     "showList": "Lijst tonen",

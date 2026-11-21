@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "Delete {name}?",
     "deleteProjectDetail": "Its lists stay, outside any project. The board's own columns go with it.",
     "deleteProjectAction": "Delete",
-    "deleteProjectFailed": "Couldn't delete the project"
+    "deleteProjectFailed": "Couldn't delete the project",
+    "goals": {
+      "title": "Goals & guardrails",
+      "intro": "What this project is for, and what it must not do. Everyone working here, people and agents, reads both, so instructions can stay short.",
+      "goalsHeading": "Goals",
+      "guardrailsHeading": "Guardrails",
+      "goalPlaceholder": "A goal, e.g. Maximise long-term returns",
+      "measurePlaceholder": "Measure",
+      "targetPlaceholder": "Target",
+      "currentPlaceholder": "Current",
+      "guardrailPlaceholder": "A guardrail, e.g. Break no applicable laws",
+      "kindLabel": "How it is checked",
+      "kindHint": "Stated: people and agents judge it. Enforced: a program checks it.",
+      "kindStated": "Stated",
+      "kindEnforced": "Enforced",
+      "addGoal": "Add goal",
+      "addGuardrail": "Add guardrail",
+      "remove": "Remove",
+      "saveFailed": "Could not save the goals and guardrails. Try again.",
+      "counts": "Goals: {goals} · Guardrails: {guardrails}",
+      "targetValue": "Target: {value}",
+      "currentValue": "Now: {value}"
+    }
   },
   "viewRotator": {
     "showList": "Show list",
