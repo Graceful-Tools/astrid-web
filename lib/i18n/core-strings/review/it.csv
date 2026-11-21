@@ -17,7 +17,7 @@ keyboardShortcuts.shortcuts.dueLater,differ,Make due date one day later,Posticip
 keyboardShortcuts.shortcuts.postpone,differ,Postpone task by one week,Posticipa l'attività di una settimana,Rimanda l’attività di una settimana,mac.shortcut.postpone,
 keyboardShortcuts.shortcuts.removeDueDate,differ,Remove task due date,Rimuovi la data di scadenza dell'attività,Rimuovi la scadenza,mac.shortcut.remove_due_date,
 keyboardShortcuts.shortcuts.togglePanel,differ,Open/close task edit panel,Apri/chiudi il pannello di modifica dell'attività,Apri/chiudi il pannello di modifica,mac.shortcut.toggle_panel,
-listInsights.completed,conflict,Completed,Completate,Completate ‖ Completati ‖ Completato,list_insights.completed stats.completed tasks.completed,
+listInsights.completed,conflict,Completed,Completate,Completate ‖ Completati,list_insights.completed stats.completed,
 lists.list,conflict,List,Lista,Lista ‖ Elenco,lists.list settings.task_display.list sync.list,
 lists.membershipPanel.collaborativeHint,differ,Anyone can view and add tasks. List admins and task creators can edit tasks. Anyone can comment.,Chiunque può vedere e aggiungere attività. Gli amministratori della lista e i creatori delle attività possono modificarle. Chiunque può commentare.,Chiunque può vedere e aggiungere attività. Gli amministratori e chi ha creato l'attività possono modificarla. Chiunque può commentare.,lists.public_collaborative_description,
 lists.membershipPanel.removeAgent,conflict,Remove Agent,Rimuovi agente,Rimuovi agente ‖ Rimuovi Agente,lists.remove_ai_agent settings.openclaw.delete_agent,

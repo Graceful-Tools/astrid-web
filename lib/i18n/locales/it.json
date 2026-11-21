@@ -149,11 +149,11 @@
       "filterAll": "Tutte le attività"
     },
     "tradeoffRatings": {
-      "veryPoor": "Pessimo",
+      "veryPoor": "Escludente",
       "poor": "Scarso",
       "mixed": "Misto",
       "good": "Buono",
-      "veryGood": "Ottimo"
+      "veryGood": "Decisivo"
     },
     "tradeoffGrid": {
       "fullScreen": "Schermo intero"

@@ -85,7 +85,7 @@
     "attachments": "Bijlagen",
     "subtasks": "Subtaken",
     "tags": "Tags",
-    "completed": "Klaar",
+    "completed": "Gedaan",
     "incomplete": "Te doen",
     "overdue": "Verlopen",
     "noDueDate": "Geen vervaldatum",
@@ -149,11 +149,11 @@
       "filterAll": "Alle taken"
     },
     "tradeoffRatings": {
-      "veryPoor": "Zeer slecht",
+      "veryPoor": "Diskwalificerend",
       "poor": "Slecht",
       "mixed": "Gemengd",
       "good": "Goed",
-      "veryGood": "Zeer goed"
+      "veryGood": "Doorslaggevend"
     },
     "tradeoffGrid": {
       "fullScreen": "Volledig scherm"

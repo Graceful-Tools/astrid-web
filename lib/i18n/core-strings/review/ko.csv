@@ -11,7 +11,6 @@ emptyState.today,differ,"Nothing scheduled for today! Enjoy the free time, or ad
 keyboardShortcuts.shortcuts.addComment,differ,Add a new task comment,새 작업 댓글 추가,댓글 추가,mac.shortcut.add_comment,
 keyboardShortcuts.shortcuts.postpone,differ,Postpone task by one week,작업을 일주일 미루기,작업을 일주일 연기,mac.shortcut.postpone,
 keyboardShortcuts.shortcuts.removeDueDate,differ,Remove task due date,작업 마감일 제거,마감일 제거,mac.shortcut.remove_due_date,
-listInsights.completed,conflict,Completed,완료,완료 ‖ 완료됨,list_insights.completed stats.completed tasks.completed,
 lists.membershipPanel.collaborativeHint,differ,Anyone can view and add tasks. List admins and task creators can edit tasks. Anyone can comment.,누구나 작업을 보고 추가할 수 있습니다. 목록 관리자와 작업 작성자는 작업을 편집할 수 있습니다. 누구나 댓글을 달 수 있습니다.,누구나 작업을 보고 추가할 수 있습니다. 목록 관리자와 작업 작성자는 수정할 수 있습니다. 누구나 댓글을 달 수 있습니다.,lists.public_collaborative_description,
 lists.membershipPanel.removeAgent,conflict,Remove Agent,에이전트 제거,에이전트 제거 ‖ 에이전트 삭제,lists.remove_ai_agent settings.openclaw.delete_agent,
 lists.membersManager.emailInvalid,differ,Please enter a valid email address,올바른 이메일 주소를 입력하세요,유효한 이메일 주소를 입력하세요,settings.account.invalid_email,

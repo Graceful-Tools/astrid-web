@@ -12,7 +12,6 @@ keyboardShortcuts.shortcuts.addComment,differ,Add a new task comment,タスク�
 keyboardShortcuts.shortcuts.cycleFilters,differ,Cycle through list filters/tags,リストのフィルター／タグを切り替え,リストのフィルタ／タグを切り替え,mac.shortcut.cycle_filters,
 keyboardShortcuts.shortcuts.removeDueDate,differ,Remove task due date,タスクの期限を削除,期限を削除,mac.shortcut.remove_due_date,
 keyboardShortcuts.shortcuts.togglePanel,differ,Open/close task edit panel,タスク編集パネルを開く／閉じる,タスク編集パネルの開閉,mac.shortcut.toggle_panel,
-listInsights.completed,conflict,Completed,完了,完了 ‖ 完了済み,list_insights.completed stats.completed tasks.completed,
 lists.membershipPanel.collaborativeHint,differ,Anyone can view and add tasks. List admins and task creators can edit tasks. Anyone can comment.,誰でもタスクを表示・追加できます。リストの管理者とタスクの作成者はタスクを編集できます。誰でもコメントできます。,誰でもタスクを閲覧・追加できます。リスト管理者とタスクの作成者は編集できます。コメントは誰でもできます。,lists.public_collaborative_description,
 lists.membersManager.empty,conflict,No members yet,まだメンバーがいません,メンバーはまだいません ‖ まだメンバーはいません,lists.no_members_yet mac.no_members,
 lists.publicBrowser.copyToMyLists,differ,Copy to My Lists,自分のリストにコピー,マイリストにコピー,task_edit.copy_to_lists,

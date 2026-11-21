@@ -197,11 +197,11 @@ export function ratingLabels(t: (key: string) => string): RatingLabels {
 }
 
 export const RATING_STYLE: Record<Rating, { className: string; labelKey: RatingLabelKey; label: string; rank: number }> = {
-  '--': { className: 'tradeoff-very-poor', labelKey: 'veryPoor', label: 'Very poor', rank: 0 },
+  '--': { className: 'tradeoff-very-poor', labelKey: 'veryPoor', label: 'Disqualifying', rank: 0 },
   '-': { className: 'tradeoff-poor', labelKey: 'poor', label: 'Poor', rank: 1 },
   '~': { className: 'tradeoff-mixed', labelKey: 'mixed', label: 'Mixed', rank: 2 },
   '+': { className: 'tradeoff-good', labelKey: 'good', label: 'Good', rank: 3 },
-  '++': { className: 'tradeoff-very-good', labelKey: 'veryGood', label: 'Very good', rank: 4 },
+  '++': { className: 'tradeoff-very-good', labelKey: 'veryGood', label: 'Decisive', rank: 4 },
   '🔴': { className: 'tradeoff-poor', labelKey: 'poor', label: 'Poor', rank: 1 },
   '🟡': { className: 'tradeoff-mixed', labelKey: 'mixed', label: 'Mixed', rank: 2 },
   '🟢': { className: 'tradeoff-good', labelKey: 'good', label: 'Good', rank: 3 },

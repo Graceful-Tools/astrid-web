@@ -4,7 +4,7 @@
   "ratings": {
     "--": {
       "labelKey": "veryPoor",
-      "label": "Very poor",
+      "label": "Disqualifying",
       "rank": 0
     },
     "-": {
@@ -24,7 +24,7 @@
     },
     "++": {
       "labelKey": "veryGood",
-      "label": "Very good",
+      "label": "Decisive",
       "rank": 4
     },
     "🔴": {
@@ -47,9 +47,9 @@
     {
       "name": "canonical example",
       "note": "docs/DECISIONS.md",
-      "text": "**Decision:** Where should we hold the team offsite?\n\n- **1.** Lisbon (recommended)\n- **2.** Mountain cabin\n- **3.** Stay home and order pizza\n\n| Option | Cost | Travel | Fun |\n|---|---|---|---|\n| 1. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |\n| 2. Cabin | + one rental | + 3h drive | + hiking |\n| 3. Pizza | ++ cheap | ++ none | -- same as every day |\n\n- **Cost:** what the company pays, all in.\n- **Travel:** door-to-door time for most of the team.\n- **Fun:** how much people will look forward to it.",
+      "text": "We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the team asked for most.\n\n**Decision:** Where should we hold the team offsite?\n\n- **1.** Lisbon (recommended)\n- **2.** Mountain cabin\n- **3.** Do nothing: no offsite this year\n\n| Option | Cost | Travel | Fun |\n|---|---|---|---|\n| 1. Lisbon | ~ $1,400 a person | - 9h door to door | ++ top pick in the team survey |\n| 2. Cabin | + $600 a person | + 3h drive | + hiking, small group |\n| 3. Do nothing | + $0 | + none | - no time together for a year |\n\n- **Cost:** what the company pays per person, all in.\n- **Travel:** door-to-door time for most of the team.\n- **Fun:** how much people will look forward to it.",
       "parsed": {
-        "before": "",
+        "before": "We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the team asked for most.",
         "prompt": "Where should we hold the team offsite?",
         "options": [
           {
@@ -67,11 +67,11 @@
           {
             "letter": "3",
             "number": 3,
-            "text": "Stay home and order pizza",
+            "text": "Do nothing: no offsite this year",
             "recommended": false
           }
         ],
-        "after": "| Option | Cost | Travel | Fun |\n|---|---|---|---|\n| 1. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |\n| 2. Cabin | + one rental | + 3h drive | + hiking |\n| 3. Pizza | ++ cheap | ++ none | -- same as every day |\n\n- **Cost:** what the company pays, all in.\n- **Travel:** door-to-door time for most of the team.\n- **Fun:** how much people will look forward to it."
+        "after": "| Option | Cost | Travel | Fun |\n|---|---|---|---|\n| 1. Lisbon | ~ $1,400 a person | - 9h door to door | ++ top pick in the team survey |\n| 2. Cabin | + $600 a person | + 3h drive | + hiking, small group |\n| 3. Do nothing | + $0 | + none | - no time together for a year |\n\n- **Cost:** what the company pays per person, all in.\n- **Travel:** door-to-door time for most of the team.\n- **Fun:** how much people will look forward to it."
       }
     },
     {
@@ -234,7 +234,7 @@
   "replyFormat": [
     "1 — Lisbon",
     "2 — Mountain cabin",
-    "3 — Stay home and order pizza"
+    "3 — Do nothing: no offsite this year"
   ],
   "grids": [
     {
@@ -243,21 +243,21 @@
       "rows": [
         [
           "1. Lisbon",
-          "~ flights for everyone",
-          "- a long day",
-          "++ food, sun, city"
+          "~ $1,400 a person",
+          "- 9h door to door",
+          "++ top pick in the team survey"
         ],
         [
           "2. Cabin",
-          "+ one rental",
+          "+ $600 a person",
           "+ 3h drive",
-          "+ hiking"
+          "+ hiking, small group"
         ],
         [
-          "3. Pizza",
-          "++ cheap",
-          "++ none",
-          "-- same as every day"
+          "3. Do nothing",
+          "+ $0",
+          "+ none",
+          "- no time together for a year"
         ]
       ],
       "isGrid": true,
@@ -265,21 +265,21 @@
         [
           {
             "rating": "~",
-            "rest": "flights for everyone"
+            "rest": "$1,400 a person"
           },
           {
             "rating": "-",
-            "rest": "a long day"
+            "rest": "9h door to door"
           },
           {
             "rating": "++",
-            "rest": "food, sun, city"
+            "rest": "top pick in the team survey"
           }
         ],
         [
           {
             "rating": "+",
-            "rest": "one rental"
+            "rest": "$600 a person"
           },
           {
             "rating": "+",
@@ -287,28 +287,28 @@
           },
           {
             "rating": "+",
-            "rest": "hiking"
+            "rest": "hiking, small group"
           }
         ],
         [
           {
-            "rating": "++",
-            "rest": "cheap"
+            "rating": "+",
+            "rest": "$0"
           },
           {
-            "rating": "++",
+            "rating": "+",
             "rest": "none"
           },
           {
-            "rating": "--",
-            "rest": "same as every day"
+            "rating": "-",
+            "rest": "no time together for a year"
           }
         ]
       ],
       "rowNames": [
         "Lisbon",
         "Cabin",
-        "Pizza"
+        "Do nothing"
       ]
     },
     {

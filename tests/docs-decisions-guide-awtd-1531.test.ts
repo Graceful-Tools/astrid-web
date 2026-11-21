@@ -37,7 +37,7 @@ describe('Decision guide (AWTD-1531)', () => {
     const tool = OAUTH_MCP_TOOLS.find(t => t.name === 'add_comment')!
     expect(tool.description).toContain('**Decision:**')
     expect(tool.description).toContain('(recommended)')
-    expect(tool.description).toMatch(/\+\+ very good/)
+    expect(tool.description).toMatch(/\+\+ decisive/)
     expect(tool.description).toContain('AGENT-HANDBACK')
   })
 })

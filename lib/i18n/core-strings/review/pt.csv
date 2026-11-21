@@ -13,7 +13,6 @@ keyboardShortcuts.shortcuts.dueEarlier,differ,Make due date one day earlier,Ante
 keyboardShortcuts.shortcuts.dueLater,differ,Make due date one day later,Adiar a data de vencimento em um dia,Adiar o prazo em um dia,mac.shortcut.due_date_later,
 keyboardShortcuts.shortcuts.removeDueDate,differ,Remove task due date,Remover a data de vencimento da tarefa,Remover o prazo da tarefa,mac.shortcut.remove_due_date,
 keyboardShortcuts.shortcuts.togglePanel,differ,Open/close task edit panel,Abrir/fechar o painel de edição da tarefa,Abrir/fechar o painel de edição,mac.shortcut.toggle_panel,
-listInsights.completed,conflict,Completed,Concluídas,Concluídas ‖ Concluída,list_insights.completed stats.completed tasks.completed,
 lists.membershipPanel.collaborativeHint,differ,Anyone can view and add tasks. List admins and task creators can edit tasks. Anyone can comment.,Qualquer pessoa pode ver e adicionar tarefas. Os administradores da lista e os criadores das tarefas podem editá-las. Qualquer pessoa pode comentar.,Qualquer pessoa pode ver e adicionar tarefas. Os administradores e quem criou a tarefa podem editá-la. Qualquer pessoa pode comentar.,lists.public_collaborative_description,
 lists.membershipPanel.removeAgent,conflict,Remove Agent,Remover agente,Remover agente ‖ Remover Agente,lists.remove_ai_agent settings.openclaw.delete_agent,
 lists.membersManager.emailInvalid,differ,Please enter a valid email address,Digite um endereço de e-mail válido,"Por favor, insira um endereço de e-mail válido",settings.account.invalid_email,

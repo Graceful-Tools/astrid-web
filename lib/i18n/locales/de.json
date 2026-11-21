@@ -86,7 +86,7 @@
     "subtasks": "Teilaufgaben",
     "tags": "Tags",
     "completed": "Erledigt",
-    "incomplete": "Offen",
+    "incomplete": "Zu erledigen",
     "overdue": "Überfällig",
     "noDueDate": "Kein Fälligkeitsdatum",
     "noReminder": "Keine Erinnerung",
@@ -149,11 +149,11 @@
       "filterAll": "Alle Aufgaben"
     },
     "tradeoffRatings": {
-      "veryPoor": "Sehr schlecht",
+      "veryPoor": "Ausschlusskriterium",
       "poor": "Schlecht",
       "mixed": "Gemischt",
       "good": "Gut",
-      "veryGood": "Sehr gut"
+      "veryGood": "Entscheidend"
     },
     "tradeoffGrid": {
       "fullScreen": "Vollbild"

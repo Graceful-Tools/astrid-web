@@ -85,7 +85,7 @@
     "attachments": "附件",
     "subtasks": "子任務",
     "tags": "標籤",
-    "completed": "完成",
+    "completed": "已完成",
     "incomplete": "待辦",
     "overdue": "已逾期",
     "noDueDate": "無截止日期",
@@ -149,11 +149,11 @@
       "filterAll": "所有任務"
     },
     "tradeoffRatings": {
-      "veryPoor": "很差",
+      "veryPoor": "一票否決",
       "poor": "差",
       "mixed": "普通",
       "good": "好",
-      "veryGood": "很好"
+      "veryGood": "決定性"
     },
     "tradeoffGrid": {
       "fullScreen": "全螢幕"

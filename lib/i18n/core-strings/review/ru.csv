@@ -14,7 +14,7 @@ keyboardShortcuts.shortcuts.addComment,differ,Add a new task comment,Добав�
 keyboardShortcuts.shortcuts.cycleFilters,differ,Cycle through list filters/tags,Переключать фильтры/теги списков,Переключать фильтры/теги списка,mac.shortcut.cycle_filters,
 keyboardShortcuts.shortcuts.removeDueDate,differ,Remove task due date,Убрать срок задачи,Убрать срок выполнения,mac.shortcut.remove_due_date,
 keyboardShortcuts.shortcuts.togglePanel,differ,Open/close task edit panel,Открыть/закрыть панель редактирования задачи,Открыть/закрыть панель задачи,mac.shortcut.toggle_panel,
-listInsights.completed,conflict,Completed,Выполненные,Выполненные ‖ Завершено,list_insights.completed stats.completed tasks.completed,
+listInsights.completed,conflict,Completed,Выполненные,Выполненные ‖ Завершено,list_insights.completed stats.completed,
 lists.membershipPanel.collaborativeHint,differ,Anyone can view and add tasks. List admins and task creators can edit tasks. Anyone can comment.,Любой может просматривать и добавлять задачи. Изменять задачи могут администраторы списка и авторы задач. Комментировать может любой.,Любой может смотреть и добавлять задачи. Администраторы и авторы задач могут их редактировать. Комментировать может любой.,lists.public_collaborative_description,
 lists.membershipPanel.removeAgent,conflict,Remove Agent,Удалить агента,Убрать агента ‖ Удалить агента,lists.remove_ai_agent settings.openclaw.delete_agent,
 lists.membersManager.emailInvalid,differ,Please enter a valid email address,Введите действительный адрес электронной почты,"Пожалуйста, введите действительный адрес электронной почты",settings.account.invalid_email,
