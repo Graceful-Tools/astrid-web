@@ -15,6 +15,7 @@
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { canUserManageProject, getUserRoleInProject, hasExplicitListRole, PROJECT_ACCESS_INCLUDE } from '@/lib/list-permissions'
+import { getListMemberIds } from '@/lib/list-member-utils'
 import {
   EMPTY_GOALS_AND_GUARDRAILS,
   hasGoalsOrGuardrails,
@@ -58,7 +59,7 @@ function loadProject(projectId: string) {
 /** The project's owner and members, and the people on its lists. */
 function worksInProject(project: LoadedProject, userId: string): boolean {
   if (getUserRoleInProject({ id: userId }, project)) return true
-  return project.lists.some(list => list.ownerId === userId || list.listMembers.some(member => member.userId === userId))
+  return project.lists.some(list => getListMemberIds(list as never).includes(userId))
 }
 
 function projectView(project: LoadedProject, userId: string, value?: GoalsAndGuardrails): ProjectGoalsView {
