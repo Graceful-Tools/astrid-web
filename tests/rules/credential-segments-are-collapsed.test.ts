@@ -88,6 +88,7 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   chat: 'opaque-id', // app/api/v1/agent/chat/[channelId]
   clients: 'opaque-id', // OAuth client_id — public by design, not a secret
   comments: 'opaque-id',
+  decisions: 'opaque-id', // app/api/v1/projects/[id]/decisions/[taskId] — a task id (ADEV-180)
   fields: 'opaque-id', // app/api/v1/tasks/[id]/fields/[fieldId] — a ProjectField cuid (AWTD-1209)
   '[kind]': 'opaque-id', // see "nested dynamic segments" below
   list: 'opaque-id',
