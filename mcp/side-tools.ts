@@ -12,6 +12,7 @@ import { callListTool, isListTool } from "./list-tools"
 import { callAttachmentTool, isAttachmentTool } from "./task-attachments"
 import { callClaimTaskTool } from "./claim-task-tool"
 import { callOrchestrationTool, isOrchestrationTool } from "./orchestration-policy-tool"
+import { callDecisionEvidenceTool, isDecisionEvidenceTool } from "./decision-evidence-tool"
 import { callProjectGoalsTool, isProjectGoalsTool } from "./project-goals-tool"
 import type { ChatRequester } from "./list-chat"
 import type { OAuthAPIClient } from "./oauth-api-client"
@@ -28,6 +29,7 @@ export async function callSideTool(
   if (isBlockerTool(name)) return callBlockerTool(client, name, args)
   if (isListTool(name)) return callListTool(client, name, args)
   if (isOrchestrationTool(name)) return callOrchestrationTool(client, name, args)
+  if (isDecisionEvidenceTool(name)) return callDecisionEvidenceTool(client, args)
   if (isProjectGoalsTool(name)) return callProjectGoalsTool(client, name, args)
   if (isAttachmentTool(name)) return callAttachmentTool(client as Parameters<typeof callAttachmentTool>[0], args, signature)
   return null
