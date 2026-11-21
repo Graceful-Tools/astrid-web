@@ -85,8 +85,8 @@
     "attachments": "첨부 파일",
     "subtasks": "하위 작업",
     "tags": "태그",
-    "completed": "완료됨",
-    "incomplete": "미완료",
+    "completed": "완료",
+    "incomplete": "할 일",
     "overdue": "기한 초과",
     "noDueDate": "기한 없음",
     "noReminder": "알림 없음",
@@ -149,11 +149,11 @@
       "filterAll": "모든 작업"
     },
     "tradeoffRatings": {
-      "veryPoor": "매우 나쁨",
+      "veryPoor": "탈락",
       "poor": "나쁨",
       "mixed": "보통",
       "good": "좋음",
-      "veryGood": "매우 좋음"
+      "veryGood": "결정적"
     },
     "tradeoffGrid": {
       "fullScreen": "전체 화면"
@@ -1898,15 +1898,15 @@
       "priority": "우선순위",
       "date": "날짜",
       "who": "담당자",
-      "completed": "완료됨",
-      "incomplete": "미완료",
+      "completed": "완료 먼저",
+      "incomplete": "할 일 먼저",
       "manual": "수동"
     },
     "show": {
       "allTasks": "모든 작업",
-      "completedOnly": "완료된 항목만",
-      "incompleteOnly": "미완료 항목만",
-      "default": "미완료 + 최근 완료됨"
+      "completedOnly": "완료 항목만",
+      "incompleteOnly": "할 일만",
+      "default": "할 일 + 최근 완료"
     },
     "priority": {
       "all": "모든 우선순위",

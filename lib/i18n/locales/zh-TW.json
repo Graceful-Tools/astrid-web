@@ -86,7 +86,7 @@
     "subtasks": "子任務",
     "tags": "標籤",
     "completed": "已完成",
-    "incomplete": "未完成",
+    "incomplete": "待辦",
     "overdue": "已逾期",
     "noDueDate": "無截止日期",
     "noReminder": "無提醒",
@@ -149,11 +149,11 @@
       "filterAll": "所有任務"
     },
     "tradeoffRatings": {
-      "veryPoor": "很差",
+      "veryPoor": "一票否決",
       "poor": "差",
       "mixed": "普通",
       "good": "好",
-      "veryGood": "很好"
+      "veryGood": "決定性"
     },
     "tradeoffGrid": {
       "fullScreen": "全螢幕"
@@ -1898,15 +1898,15 @@
       "priority": "優先順序",
       "date": "日期",
       "who": "負責人",
-      "completed": "已完成",
-      "incomplete": "未完成",
+      "completed": "完成優先",
+      "incomplete": "待辦優先",
       "manual": "手動"
     },
     "show": {
       "allTasks": "所有工作",
-      "completedOnly": "僅已完成",
-      "incompleteOnly": "僅未完成",
-      "default": "未完成 + 最近完成"
+      "completedOnly": "僅完成",
+      "incompleteOnly": "僅待辦",
+      "default": "待辦 + 最近完成"
     },
     "priority": {
       "all": "所有優先順序",

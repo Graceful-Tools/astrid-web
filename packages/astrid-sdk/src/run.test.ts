@@ -108,6 +108,23 @@ describe('astrid-agent run (AWTD-1696)', () => {
     expect(buildPrompt({ id: 'x', title: 'T' }, 'claude')).toContain('Task id: x')
     expect(harnessArgv('copilot', 'p')).toEqual(['copilot', '-p', 'p'])
   })
+
+  it("ADEV-186: the prompt carries the list instructions and project goals of the task's list", () => {
+    const task = { id: 'x', title: 'T', listIds: ['l1'] }
+    const prompt = buildPrompt(task, 'claude', {
+      listInstructions: [{ listId: 'other', instructions: 'OTHER' }, { listId: 'l1', instructions: 'LIST-RULES' }],
+      projectGoals: [{ listId: 'l1', instructions: 'GOALS' }],
+    })
+    expect(prompt).toContain('LIST-RULES')
+    expect(prompt).toContain('GOALS')
+    expect(prompt).not.toContain('OTHER')
+    expect(prompt.indexOf('LIST-RULES')).toBeLessThan(prompt.indexOf('Task id: x'))
+  })
+
+  it('ADEV-186: the prompt is unchanged when neither is present', () => {
+    const task = { id: 'x', title: 'T', listIds: ['l1'] }
+    expect(buildPrompt(task, 'claude', { listInstructions: [], projectGoals: undefined })).toBe(buildPrompt(task, 'claude'))
+  })
 })
 
 describe('astrid-agent status (AWTD-1696)', () => {

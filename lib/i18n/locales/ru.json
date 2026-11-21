@@ -85,8 +85,8 @@
     "attachments": "Вложения",
     "subtasks": "Подзадачи",
     "tags": "Теги",
-    "completed": "Завершено",
-    "incomplete": "Не завершено",
+    "completed": "Сделано",
+    "incomplete": "К выполнению",
     "overdue": "Просрочено",
     "noDueDate": "Без срока",
     "noReminder": "Без напоминания",
@@ -149,11 +149,11 @@
       "filterAll": "Все задачи"
     },
     "tradeoffRatings": {
-      "veryPoor": "Очень плохо",
+      "veryPoor": "Исключающее",
       "poor": "Плохо",
       "mixed": "Неоднозначно",
       "good": "Хорошо",
-      "veryGood": "Очень хорошо"
+      "veryGood": "Решающее"
     },
     "tradeoffGrid": {
       "fullScreen": "Во весь экран"
@@ -1898,15 +1898,15 @@
       "priority": "Приоритет",
       "date": "Дата",
       "who": "Кто",
-      "completed": "Завершено",
-      "incomplete": "Не завершено",
+      "completed": "Сначала готовые",
+      "incomplete": "Сначала к выполнению",
       "manual": "Вручную"
     },
     "show": {
       "allTasks": "Все задачи",
-      "completedOnly": "Только завершённые",
-      "incompleteOnly": "Только незавершённые",
-      "default": "Не завершено + Недавно завершено"
+      "completedOnly": "Только готовые",
+      "incompleteOnly": "Только к выполнению",
+      "default": "К выполнению + Недавно готовые"
     },
     "priority": {
       "all": "Все приоритеты",

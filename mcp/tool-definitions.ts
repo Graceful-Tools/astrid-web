@@ -32,7 +32,9 @@ import { PROJECT_GOALS_TOOLS } from "./project-goals-tool"
 const DECISION_FORMAT_HINT =
   "To ask a person to choose, write a Decision: a paragraph starting **Decision:**, then a list whose items start with a bold number (- **1.** Ship today (recommended) / - **2.** Wait). " +
   "The apps draw cards numbered 1, 2, 3; a tap posts \"1 — Ship today\" as the reply. Recommend exactly one option, keep option text short, and use it for any question with 2–5 discrete answers. " +
-  "To weigh options, add a trade-off grid: a table with options as rows (numbered to match, \"1. Lisbon\") and 3–5 criteria as columns, which the apps letter A, B, C; every cell is a rating (-- very poor, - poor, ~ mixed, + good, ++ very good) plus a few words of reason, e.g. \"+ 3h drive\". " +
+  "To weigh options, add a trade-off grid (a traffic light): a table with options as rows (numbered to match, \"1. Lisbon\") and 3–5 criteria as columns, which the apps letter A, B, C; every cell is a rating (-- disqualifying, - poor, ~ mixed or unknown, + good, ++ decisive) plus a concrete reason, a number or duration where you can, e.g. \"+ 3h drive\". " +
+  "++ decisive means that cell alone is a reason to choose the option and -- disqualifying means it alone rules the option out: both are a high bar, so use them rarely. " +
+  "Always include a \"Do nothing\" option, honestly assessed. Put the recommendation first, in one sentence naming the option number and the trade-off accepted (\"We recommend #2, accepting …\"). Never add a score or total column or count colours: the grid shows the trade-off, the person decides. " +
   "Define each criterion in a bold-term list under the table. Put examples of the format in a code block. End a handback with the AGENT-HANDBACK: <mailbox> line."
 
 export const OAUTH_MCP_TOOLS = [
