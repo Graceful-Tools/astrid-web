@@ -112,7 +112,9 @@ astrid-agent run --agent <mailbox> [--list <listId>] [--task <taskId>] [--includ
 ```
 
 One call for a whole run: reads the queue, claims the first task a peer has not
-taken, starts the harness with the task as its prompt, renews the claim lease
+taken, starts the harness with the task as its prompt (preceded by the task's list instructions
+and project goals from the queue, each already wrapped as untrusted guidance by the server; with
+`--task` the queue is not read, so neither is included), renews the claim lease
 every third of the lease while it works, and, if the harness fails, comments the
 reason and releases the claim so the next run can take the task.
 

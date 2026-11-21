@@ -205,7 +205,9 @@ the caller, so a typo fails loudly.
 
 Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
 `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
-it, plus `held.scheduled` for anything not due yet. `agent` never defaults — guessing
+it, plus `held.scheduled` for anything not due yet, and `listInstructions` / `projectGoals` for
+the queued tasks' lists (untrusted guidance: read the entries for your task's list before
+starting). `agent` never defaults — guessing
 would claim another harness's work — and a typo fails loudly rather than answering "nothing".
 
 The predicates are `lib/ready-queue-scope.ts`, the same ones `scripts/ready-tasks.ts` uses, so
@@ -343,6 +345,18 @@ the agent to include unassigned Ready tasks, atomically claim before work, heart
 working, skip conflicts, and resume its own Doing claim after restart. It does not reject
 existing `update_task` or assignment paths. The local queue workflow below still uses the
 OAuth claim script (`/claim-fixall`, no lease) until the loops move to the general route.
+
+**A claim made with MCP `claim_task` holds that lease, in an interactive session too.** Send
+`claim_task { action: "heartbeat" }` every five minutes while you work (ten at most). A silent
+session's claim expires in 15 minutes; the next cron tick puts the task back in Ready, and a
+scheduled loop takes it, so the work is done twice (2026-11-21: two tasks were rebuilt in
+parallel this way). A session that cannot heartbeat should claim with `claim-fixall-task.ts`
+instead (no lease). Cloud runs need not do this by hand: `agent-run.yml` runs
+`scripts/heartbeat-held-claims.ts --agent <mailbox> --list <board>` every five minutes with
+`ASTRID_RUN_STARTED_AT` set to the run's start, renewing only leases taken since then. Without
+that variable the script renews nothing, so it is not for interactive sessions. Before merging,
+read the task's comments too: `claim_task resume` can answer `already_yours` after a loop has
+worked the task.
 
 **Starting → claim it**, before the strategy comment, so the window where the board is
 wrong is as small as possible:
@@ -657,8 +671,9 @@ The human can answer on that task without reassigning it.
 **Write the question in the Decision format** ([DECISIONS.md](./DECISIONS.md), the full guide): a bold
 `**Decision:**` paragraph, then numbered options `- **1.** …`, with `(recommended)` on the one you
 would pick. The apps draw it as tappable cards, and a tap posts `1 — <option>` as the reply that
-resumes you (a reply in the old letter form still counts). When weighing options, put a trade-off grid (rating tokens `--` `-` `~` `+` `++`)
-in the same comment. Keep the `AGENT-HANDBACK: <mailbox>` line last.
+resumes you (a reply in the old letter form still counts). When weighing options, put a trade-off grid in the same comment (rating tokens `--` `-` `~` `+` `++`,
+a `Do nothing` row, `++`/`--` only when one cell decides it, recommendation first, never a score
+column; [DECISIONS.md](./DECISIONS.md) → *The method*). Keep the `AGENT-HANDBACK: <mailbox>` line last.
 
 On a named board, `attention.tasks[].resume` appears only when the **current human
 assignee** has replied after the question, the task is incomplete and still in the

@@ -96,6 +96,10 @@ existing task updates or assignments, and the claim route works on every board e
   - `astrid-agent claim <taskId>`: exit 0 claimed, 2 conflict, 1 error.
   - `astrid-agent heartbeat <taskId>`: exit 0 renewed, 2 claim gone, 1 error.
   - `claim --fixall`: still calls `/claim-fixall`.
+- Astrid's cloud runner (`agent-run.yml`) renews every lease the run took with
+  `scripts/heartbeat-held-claims.ts` every five minutes; it needs `ASTRID_RUN_STARTED_AT` and
+  renews only leases taken since then (ADEV-37). An interactive session has no such loop and must
+  heartbeat itself (MCP `claim_task { action: "heartbeat" }`).
 
 ## Rollback
 
