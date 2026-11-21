@@ -101,7 +101,7 @@ describe('a snap carousel item is sized by its scroller (AWTD-1305)', () => {
     // keeps the scroller's width and `w-full` on a column resolves against
     // THAT — which is the whole point.
     const source = boardSource()
-    const marker = 'className={`flex h-full gap-3'
+    const marker = 'className={`board-row flex h-full'
     const start = source.indexOf(marker)
     expect(start, 'the column row className moved — update this test').toBeGreaterThan(-1)
 

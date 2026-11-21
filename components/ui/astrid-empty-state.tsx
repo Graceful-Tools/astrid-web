@@ -18,6 +18,10 @@ interface AstridEmptyStateProps {
    * empathy frame (ADEV-144). Until then, and if it fails, the brand icon stays.
    */
   characterSrc?: string | null
+  /** The art's width. A board column passes its token size (register DS36); elsewhere a third. */
+  artClassName?: string
+  /** The bubble's padding, 16 unless a board column passes its density's. */
+  bubblePaddingClassName?: string
 }
 
 /**
@@ -33,6 +37,8 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
   className = '',
   message: messageOverride,
   characterSrc,
+  artClassName = 'w-1/3',
+  bubblePaddingClassName = 'p-4',
 }) => {
   const { t } = useTranslations()
   const [loadedCharacterSrc, setLoadedCharacterSrc] = useState<string | null>(null)
@@ -96,7 +102,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
       {/* Astrid with Speech Bubble - matching push notification style */}
       <div className="flex items-start space-x-4 max-w-lg w-full animate-in fade-in slide-in-from-bottom-2 duration-panel">
         {/* Astrid Icon - 1/3 of width, matching popover */}
-        <div className="flex-shrink-0 w-1/3">
+        <div className={cn('flex-shrink-0', artClassName)}>
           <img
             src={shownCharacterSrc}
             alt={BRAND.appName}
@@ -107,7 +113,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
 
         {/* Speech Bubble - matching popover style exactly */}
         <div className="flex-1">
-          <div className="relative theme-bg-secondary rounded-2xl p-4 border-2 theme-border shadow-lg z-0">
+          <div className={cn('relative theme-bg-secondary rounded-2xl border-2 theme-border shadow-lg z-0', bubblePaddingClassName)}>
             <SpeechBubbleTail />
             <p className="text-base font-semibold theme-text-primary leading-relaxed">
               {message}
