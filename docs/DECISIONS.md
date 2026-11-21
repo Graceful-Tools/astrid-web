@@ -119,6 +119,9 @@ What makes a grid worth reading (ADEV-178, from the Extreme Clarity training):
 7. **The grid does not decide.** Never add a score, weight or total column, and never rank by
    counting colours. A choice against the colours is fine when it is said out loud, pointing at the
    cell being accepted ("we take #3 knowing it is red on B").
+8. **When the project states goals, use them.** Its goals make good criteria, and an option that
+   breaks a guardrail is `--` on that column ([API_CONTRACT.md](./API_CONTRACT.md) →
+   `/api/v1/projects/{id}/goals`, MCP `get_project_goals`).
 
 ## Explaining the criteria
 

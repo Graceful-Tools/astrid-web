@@ -483,6 +483,20 @@ Once configured, AI assistants can use these tools:
     --data-binary @'./01-menu.png' 'https://www.astrid.cc/api/v1/attachment-uploads'
   ```
 
+- `add_comment` also teaches the Decision and trade-off grid format in its description ([DECISIONS.md](../DECISIONS.md))
+
+### Agent workflow
+- `get_agent_queue` - Ready work and unanswered replies for an agent mailbox, with each list's instructions and its project's goals
+- `claim_task` - Atomically claim, resume, release or heartbeat a task (15-minute lease; heartbeat every five minutes)
+- `handoff_task` - Hand a task to a person or another agent
+- `add_blocker` / `remove_blocker` - Make a task wait on another task
+- `get_orchestration_policy` - What this board lets an agent do (merge, deploy, migrate, release, spend)
+- `get_project_goals` - The goals and guardrails of the project a list or task is in (`listId`, `projectId` or `taskId`); read-only
+
+### Lists and chat
+- `create_list` / `update_list` - Create or change a list
+- `get_list_messages` - Read a list's chat
+
 ### Resources
 - `lists://all` - Browse all accessible lists
 

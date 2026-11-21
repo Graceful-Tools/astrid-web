@@ -19,7 +19,7 @@ contention is per machine.
 |---|---|
 | **Cloud (`agent-run.yml`)** | The Claude Code web workers: N in parallel per run (repo variable `ASTRID_AGENT_WORKERS`, default 3; see *Parallel workers* below), each on its own task. A run in which any worker finishes or advances a task starts the next one (up to `ASTRID_AGENT_MAX_CHAIN`, default 8), and the :05/:35 schedule restarts an ended chain; it shares the Web board's atomic claims with other web harnesses. The Mac's web loop, the Copilot app's web-queue cron and the `astrid-web` self-hosted runner were retired 2026-10-28 (AWTD-1363) |
 | **GitHub's built-in Copilot coding agent** | Additional web changes and independent reviews of Claude changes, scoped to the Web board and `copilot` mailbox. `native-copilot-bridge.yml` bridges Astrid to GitHub's issue-assigned agent; `copilot-setup-steps.yml` prepares its worker. This is not Copilot CLI in Actions |
-| **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios |
+| **Dedicated Apple device** | Keep the existing Claude Code iOS/Mac loop, Xcode and TestFlight work in astrid-ios; the same Claude loop also works the Astrid Code To-do (`5975ee1d-dc76-44b8-b09d-75bd97c7e30b`: the Code-OSS fork and astrid-vscode, ADEV-113) |
 | **Windows device** | Keep its existing Claude Code worker and `fixall-loop.ps1`; `windows-latest` continues builds/unit tests |
 | **Android host/VM** | Android's own worker and toolchain; the coordinating Mac is an available host. Do not silently move or install it as part of a web PR |
 
@@ -32,7 +32,7 @@ Astrid boards, and **task assignment is the message**:
 
 | To get work done by… | Do this |
 |---|---|
-| **Any agent on that platform** | Put the task on that platform's board (Web, iOS, Windows, Android), **unassigned**, in Ready. Whichever loop claims it first owns it (`claim-fixall-task.ts`). |
+| **Any agent on that platform** | Put the task on that platform's board (Web, iOS, Windows, Android, Astrid Code), **unassigned**, in Ready. Whichever loop claims it first owns it (`claim-fixall-task.ts`). |
 | **A specific agent** | Assign it to that agent's mailbox (`claude`, `copilot`, `codex`). Only that harness's queue returns it. |
 | **A human, to review or decide** | Hand it back to **Jon (the default human)**: the Inbox, assigned to him, with the question written on the task (`assign-task.ts <id> <email> --handback`). Waiting is only for a date or another task (FIXALL_WORKFLOW.md → *Waiting carries its condition*). Agents never wait silently on a person. |
 

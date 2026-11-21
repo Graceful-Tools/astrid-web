@@ -91,6 +91,17 @@ on every poll. No shipped skill or loop recipe reads the field yet. Existing `em
 are unchanged. Older servers omit `runnable`; clients should then retain their
 existing `empty`-based behavior.
 
+**Guidance for the queued tasks.** Additive, and absent when empty:
+- `listInstructions[]`: `{ listId, listName, instructions, truncated }`, one per queued task's first
+  list. `instructions` is the list description (at most 4000 characters) wrapped as untrusted
+  guidance (AWTD-1689).
+- `projectGoals[]`: `{ listId, projectId, projectName, goals, guardrails, instructions }`, one per
+  queued task's first list whose project states goals or guardrails (ADEV-179, keyed by list since
+  ADEV-190, the same way as `listInstructions`). `instructions` is the same statement as markdown
+  wrapped as untrusted guidance. A failed read leaves the field out rather than failing the poll.
+- `orchestrationPolicy[]`: the named board's effective policy as this agent sees it (ADEV-36); only
+  with `listId`.
+
 **Explicit business runtime bindings (AWTD-1667).** Inert unless the server sets
 `ASTRID_RUNTIME_BINDING_RESOLVER=true`. Even then, a response for a board with no
 binding, or for a request with no `listId`, is unchanged byte for byte. When the
@@ -637,7 +648,7 @@ project's. Shape and rules: `lib/goals-guardrails.ts`, the one place they are re
     { "id": "r1", "statement": "No more than 20% in one position", "kind": "enforced" }
   ],
   "canEdit": true,
-  "meta": { "apiVersion": "v1" }
+  "meta": { "apiVersion": "v1", "authSource": "oauth" }
 }
 ```
 `stated` guardrails are judged by whoever reads them; `enforced` ones are meant for a program to

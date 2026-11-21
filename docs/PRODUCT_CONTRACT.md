@@ -381,7 +381,7 @@ asker wrote (letters case-insensitive), followed by end/space/punctuation, that 
 chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
 
 **Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
-with a rating token followed by whitespace or end: `--` disqualifying, `-` poor, `~` mixed, `+` good,
+with a rating token followed by whitespace or end: `--` disqualifying, `-` poor, `~` mixed or unknown, `+` good,
 `++` decisive, or 🔴 poor / 🟡 mixed / 🟢 good (the two bright ones mean one cell alone rules the
 option out or is reason to choose it; ADEV-178, [DECISIONS.md](./DECISIONS.md) → The method). Not a grid if any such cell lacks a token, or if
 every rated cell is a bare `-`. Each cell draws on its colour with the remaining words
