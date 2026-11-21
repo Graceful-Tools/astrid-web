@@ -37,6 +37,10 @@ and stack versions with `npm run check:docs`.
 - **[Retiring the core-rules TypeScript fallbacks](./architecture/CORE_RULES_FALLBACK_RETIREMENT.md)** - AWTD-1591: how the core/TypeScript comparison is sampled, how to read `/api/health`, and the dated checklist for each fallback
 - **[Business Runtime Binding: partner and agent guide](./architecture/RUNTIME_BINDING_PARTNER_GUIDE.md)** - ⭐ AWTD-1671: start here. Built and parked (inert behind two flags); file map, enrollment, denial reasons, gaps before activation
 - **[Business Runtime Binding RFC](./architecture/BUSINESS_RUNTIME_BINDING_RFC.md)** - AWTD-1564 design (phases 1–5 built, inert): explicit admin-managed runtimes with additive personal compatibility, enrollment, scope, billing and rollback
+- **[Event-driven wake for polling agents](./architecture/AGENT_EVENT_WAKE.md)** - AWTD-1556, implemented and inert until enrolled: an opt-in wake so a polling agent need not wait for its next poll; polling stays the reconciliation path
+- **[Refactoring Priorities](./architecture/REFACTORING_PROPOSAL.md)** - Current refactoring direction; the 2024 proposal and its 2026 review are archived
+- **[Date Handling Specification](./DATE_HANDLING_SPECIFICATION.md)** - Implemented: how task due dates, all-day tasks and time zones are stored and shown
+- **[Performance budgets](./PERFORMANCE_BUDGETS.md)** - Release-gate budgets for the task and list paths used by web and incremental sync
 
 ### 🎨 Whitelabeling
 - **[Whitelabeling Guide](./WHITELABELING.md)** - ⭐ Deploy under a different brand, with a different set of back-end services, entirely through build-time configuration
@@ -61,6 +65,10 @@ and stack versions with `npm run check:docs`.
 - **[Cloudflare Proxy](./setup/CLOUDFLARE_PROXY.md)** - Which hosts are proxied, why, the dashboard checklist, and how to roll back
 - **[Vercel Setup](./setup/VERCEL_SETUP.md)** - Deployment to Vercel
 - **[Deployment Guide](./setup/DEPLOYMENT_GUIDE.md)** - General deployment instructions
+- **[Vercel deployment via GitHub Actions](./deployment/VERCEL_GITHUB_ACTIONS.md)** - Why and how production and preview deploys run from Actions rather than Vercel's Git integration
+- **[MCP OAuth Setup](./setup/MCP_OAUTH_SETUP.md)** - Connect Claude Desktop, ChatGPT and other assistants to Astrid's MCP server with OAuth
+- **[ChatGPT Actions](./setup/CHATGPT_INTEGRATION.md)** - Let a custom GPT read, create and complete tasks through the OAuth API
+- **[Astrid workflow for a development project](./setup/ASTRID_WORKFLOW_SETUP.md)** - Integrate Astrid task management with AI coding agents in your own repository
 
 ### 🤖 AI Agents & Automation
 - **[AI Workflow Review](./AI_WORKFLOW_REVIEW.md)** - Recommended paved paths for Claude Code, GitHub Copilot, Codex, server-run agents, and Custom Agents
@@ -72,6 +80,12 @@ and stack versions with `npm run check:docs`.
 - **[Fixall on the Web Board](./FIXALL_WEB.md)** - the web board's specifics (deploy rule, done, claim, gates), read by every harness
 - **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
 - **[Agent Task Claim API](./AGENT_CLAIM_API.md)** - opt-in atomic claim, resume, and release contract for authenticated harnesses
+- **[List descriptions as agent instructions](./LIST_DESCRIPTION_AS_AGENT_INSTRUCTIONS.md)** - a list's description is the instruction file every agent on it reads; project goals and guardrails sit beside it
+- **[GitHub Copilot SDK integration](./COPILOT_SDK_INTEGRATION_PLAN.md)** - implemented: the `@github/copilot-sdk` runtime and the OAuth app it needs
+- **[SDK channel restart recovery](./SDK_CHANNEL_RECOVERY.md)** - AWTD-1565: opt-in session recovery for SDK channels after a restart
+- **[Agent integration benchmark](./benchmarks/AGENT_INTEGRATION.md)** - AWTD-1551: what Astrid adds to an agent run versus Claude Code or Codex directly, measured
+- **[Testing the GitHub coding agent locally](./guides/testing-github-agent-locally.md)** - run the GitHub agent workflow on your machine
+- **[Weekly deep review](./WEEKLY_DEEP_REVIEW.md)** - the weekly eight-lens review over astrid-web and astrid-ios
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history
 
 ### 🧪 Testing & Quality
@@ -81,12 +95,16 @@ and stack versions with `npm run check:docs`.
 - **[Playwright Auth Guide](./testing/PLAYWRIGHT_AUTH_GUIDE.md)** - Authentication testing with Playwright
 - **[MCP Servers](../mcp/README.md)** - Standalone MCP server implementations and build scripts
 - **[Development Guidelines](./guides/development-guidelines.md)** - Code quality and development standards
+- **[Code reuse and cross-platform consistency](./CODE_REUSE_AND_CONSISTENCY.md)** - ⭐ the reuse contract behind `npm run check:reuse`: permission helpers, i18n keys, shared components
+- **[Predeploy testing and quality gates](./guides/PREDEPLOY_TESTING.md)** - what `npm run predeploy` runs and how to read it; commands are owned by CLI operations §4
+- **[Parallel development with worktrees](./guides/PARALLEL_DEVELOPMENT.md)** - work several tasks at once, one git worktree each
 
 ### 🏛️ System Context
 - **[Stack Overview](./context/stack.md)** - Technology stack and dependencies
 - **[Active Script Inventory](./SCRIPT_INVENTORY.md)** - Reproducible ownership/caller classification for top-level scripts
 - **[Conventions](./context/conventions.md)** - Code and naming conventions
 - **[Quick Reference](./context/quick-reference.md)** - Common commands and patterns
+- **[API contract notes](./context/api_contracts.md)** - Pointer notes; the contract itself is [API_CONTRACT.md](./API_CONTRACT.md)
 - **[Testing Strategy](./context/testing.md)** - Testing approach and tools
 - **[Task Defaults System](./context/task-defaults-system.md)** - Task default values and behavior
 
@@ -97,6 +115,8 @@ and stack versions with `npm run check:docs`.
 - **[Spec: prod Pointers for Dependency Repos](./specs/PROD_POINTERS_FOR_DEPENDENCIES.md)** - Decided (AWTD-1015): astrid-core and other non-deploying repos get `<app>-prod` branches and `<app>-v<version>` tags, moved by the consuming app's release
 - **[Spec: GitHub Projects White Label](./specs/GITHUB_PROJECTS_WHITELABEL.md)** - Proposal, decisions made (not implemented): Astrid as a multi-org white-label client for GitHub Projects v2 — write-path consolidation, login-provider registry, one GitHub App, GitHub-authoritative replica; lists five verified defects to fix first
 - **[Spec: Task Identifiers](./specs/TASK_IDENTIFIERS.md)** - Decided (AWTD-1010): short ids like `AWTD-1007` / `#1007` — uniqueness across astrid.cc, typing, visibility, where each client shows them
+- **[Task Cost Intelligence](./product/TASK_COST_INTELLIGENCE.md)** - Phases 0–1 built behind the `task_cost` flag (schema, `POST /api/v1/tasks/:id/cost`); estimates, rollups and UI not built
+- **[Astrid vs Linear](./product/ASTRID_VS_LINEAR.md)** - Re-review of 2026-08-19: where Astrid stands against Linear, row by row
 
 ### 🎨 UI & Design
 - **[Spec: The Astrid Design System](./specs/DESIGN_SYSTEM.md)** - Decided, partly built: one token source in astrid-core with iOS and Mac as the reference, generated per platform; themes as data; component specs; what a platform may do differently
@@ -117,6 +137,7 @@ The native iOS app is maintained in a separate repository:
 - **[Security Policy](../SECURITY.md)** - Vulnerability reporting and engineering requirements
 - **[Authentication System](./AUTHENTICATION.md)** - Authentication-specific implementation details
 - **[Spec: Encrypting Contact Emails](./specs/ENCRYPT_CONTACT_EMAILS.md)** - Proposal (not implemented): what encrypting `AddressBookContact.email` would cost, and why search is the deciding constraint
+- **[Secure file upload examples](./examples/SECURE_UPLOAD_EXAMPLE.md)** - Client and server examples for the secure upload path
 
 ### 🤖 AI Prompts
 - **[Planning Mode](./prompts/01-plan.md)** - AI planning prompts
@@ -126,6 +147,7 @@ The native iOS app is maintained in a separate repository:
 - **[Bug Hunt](./prompts/05-bug-hunt.md)** - Bug finding and fixing prompts
 
 ### 🔧 Fixes & Troubleshooting
+- **[Cloud AI workflow fixes](./fixes/README.md)** - Index of the fixes that made the cloud coding workflow reliable
 - **[iOS Timezone Date Handling Fix](./fixes/IOS_TIMEZONE_DATE_HANDLING_FIX.md)** - ⚠️ **Critical**: API date/time handling patterns for mobile clients
 - **[Insecure Connection Warnings Fix](./fixes/INSECURE-CONNECTION-WARNINGS-FIX.md)** - Resolving HTTPS connection warnings
 - **[Local Testing Guide](./fixes/LOCAL_TESTING_GUIDE.md)** - Guide for testing locally
