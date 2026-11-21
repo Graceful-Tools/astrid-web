@@ -85,8 +85,8 @@
     "attachments": "Allegati",
     "subtasks": "Attività secondarie",
     "tags": "Tag",
-    "completed": "Completata",
-    "incomplete": "Incompleto",
+    "completed": "Fatto",
+    "incomplete": "Da fare",
     "overdue": "In ritardo",
     "noDueDate": "Nessuna scadenza",
     "noReminder": "Nessun promemoria",
@@ -149,11 +149,11 @@
       "filterAll": "Tutte le attività"
     },
     "tradeoffRatings": {
-      "veryPoor": "Pessimo",
+      "veryPoor": "Escludente",
       "poor": "Scarso",
       "mixed": "Misto",
       "good": "Buono",
-      "veryGood": "Ottimo"
+      "veryGood": "Decisivo"
     },
     "tradeoffGrid": {
       "fullScreen": "Schermo intero"
@@ -1876,15 +1876,15 @@
       "priority": "Priorità",
       "date": "Data",
       "who": "Chi",
-      "completed": "Completata",
-      "incomplete": "Incompleto",
+      "completed": "Fatte prima",
+      "incomplete": "Da fare prima",
       "manual": "Manuale"
     },
     "show": {
       "allTasks": "Tutte le attività",
-      "completedOnly": "Solo completate",
-      "incompleteOnly": "Solo non completate",
-      "default": "Incomplete + Completate di recente"
+      "completedOnly": "Solo fatte",
+      "incompleteOnly": "Solo da fare",
+      "default": "Da fare + Fatte di recente"
     },
     "priority": {
       "all": "Tutte le priorità",

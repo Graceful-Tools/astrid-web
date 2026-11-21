@@ -63,10 +63,10 @@ export const SORT_BY_OPTIONS: readonly FilterOption[] = [
 
 /** Which tasks are shown at all. */
 export const COMPLETION_FILTER_OPTIONS: readonly FilterOption[] = [
-  { value: "default", labelKey: "listSettings.show.default", label: "Incomplete + Recently completed" },
+  { value: "default", labelKey: "listSettings.show.default", label: "To-do + Done recently" },
   { value: "all", labelKey: "listSettings.show.allTasks", label: "All tasks" },
-  { value: "completed", labelKey: "listSettings.show.completedOnly", label: "Completed only" },
-  { value: "incomplete", labelKey: "listSettings.show.incompleteOnly", label: "Incomplete only" },
+  { value: "completed", labelKey: "listSettings.show.completedOnly", label: "Done only" },
+  { value: "incomplete", labelKey: "listSettings.show.incompleteOnly", label: "To-do only" },
 ]
 
 /**

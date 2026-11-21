@@ -85,8 +85,8 @@
     "attachments": "Anhänge",
     "subtasks": "Teilaufgaben",
     "tags": "Tags",
-    "completed": "Abgeschlossen",
-    "incomplete": "Unvollständig",
+    "completed": "Erledigt",
+    "incomplete": "Zu erledigen",
     "overdue": "Überfällig",
     "noDueDate": "Kein Fälligkeitsdatum",
     "noReminder": "Keine Erinnerung",
@@ -149,11 +149,11 @@
       "filterAll": "Alle Aufgaben"
     },
     "tradeoffRatings": {
-      "veryPoor": "Sehr schlecht",
+      "veryPoor": "Ausschlusskriterium",
       "poor": "Schlecht",
       "mixed": "Gemischt",
       "good": "Gut",
-      "veryGood": "Sehr gut"
+      "veryGood": "Entscheidend"
     },
     "tradeoffGrid": {
       "fullScreen": "Vollbild"
@@ -1876,15 +1876,15 @@
       "priority": "Priorität",
       "date": "Datum",
       "who": "Wer",
-      "completed": "Abgeschlossen",
-      "incomplete": "Unvollständig",
+      "completed": "Erledigt zuerst",
+      "incomplete": "Offen zuerst",
       "manual": "Manuell"
     },
     "show": {
       "allTasks": "Alle Aufgaben",
       "completedOnly": "Nur erledigte",
       "incompleteOnly": "Nur offene",
-      "default": "Unvollständig + Kürzlich abgeschlossen"
+      "default": "Offen + Kürzlich erledigt"
     },
     "priority": {
       "all": "Alle Prioritäten",

@@ -85,8 +85,8 @@
     "attachments": "Attachments",
     "subtasks": "Subtasks",
     "tags": "Tags",
-    "completed": "Completed",
-    "incomplete": "Incomplete",
+    "completed": "Done",
+    "incomplete": "To-do",
     "overdue": "Overdue",
     "noDueDate": "No due date",
     "noReminder": "No reminder",
@@ -149,11 +149,11 @@
       "filterAll": "All tasks"
     },
     "tradeoffRatings": {
-      "veryPoor": "Very poor",
+      "veryPoor": "Disqualifying",
       "poor": "Poor",
       "mixed": "Mixed",
       "good": "Good",
-      "veryGood": "Very good"
+      "veryGood": "Decisive"
     },
     "tradeoffGrid": {
       "fullScreen": "Full screen"
@@ -1876,15 +1876,15 @@
       "priority": "Priority",
       "date": "Date",
       "who": "Who",
-      "completed": "Completed",
-      "incomplete": "Incomplete",
+      "completed": "Done First",
+      "incomplete": "To-do First",
       "manual": "Manual"
     },
     "show": {
       "allTasks": "All tasks",
-      "completedOnly": "Completed only",
-      "incompleteOnly": "Incomplete only",
-      "default": "Incomplete + Recently completed"
+      "completedOnly": "Done only",
+      "incompleteOnly": "To-do only",
+      "default": "To-do + Done recently"
     },
     "priority": {
       "all": "All priorities",

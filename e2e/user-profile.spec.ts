@@ -54,7 +54,7 @@ test.describe('User profiles (AWTD-1419)', () => {
     // The stats are the API's.
     const profile = (await (await request.get(`/api/v1/users/${member.id}/profile`)).json()) as ApiProfile
     for (const [label, value] of [
-      ['Completed', profile.stats.completed],
+      ['Done', profile.stats.completed],
       ['Inspired', profile.stats.inspired],
       ['Supported', profile.stats.supported],
     ] as const) {
