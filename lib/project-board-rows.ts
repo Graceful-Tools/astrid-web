@@ -17,7 +17,6 @@ import { isDomainList } from '@/lib/list-flavors'
 import { getTaskProjectColumnId, type ProjectBoardColumn } from '@/lib/project-status'
 import {
   DEFAULT_RECENTLY_COMPLETED_WINDOW,
-  isTaskRecentlyCompleted,
   type RecentlyCompletedWindow,
 } from '@/lib/recently-completed-window'
 import { contrast } from '@/lib/design/contrast'
@@ -87,24 +86,19 @@ export interface BoardSwimlane {
 
 /**
  * Group cards into rows × columns. A card on two row lists shows in both rows.
- * Done keeps to each row list's "recently completed" window, as the list's own
- * board does.
+ * Done is bounded by the board's Done period, not the row list's "recently
+ * completed" window (ADEV-191).
  */
 export function buildSwimlanes(
   rows: TaskList[],
   tasks: Task[],
   columns: ProjectBoardColumn[],
-  options: { now?: Date; liveFilters?: BoardLiveFilters & { sortBy?: string } } = {},
+  options: { liveFilters?: BoardLiveFilters & { sortBy?: string } } = {},
 ): BoardSwimlane[] {
-  const now = options.now ?? new Date()
   return rows.map(list => {
-    const window = (list.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
     // The Sort & Filters set on the board apply to every row, as on a list's own board (ADEV-145).
     const inRow = applyBoardLiveFilters(
-      tasks.filter(task =>
-        task.lists?.some(member => member.id === list.id) &&
-        (!task.completed || isTaskRecentlyCompleted(task, window, now)),
-      ),
+      tasks.filter(task => task.lists?.some(member => member.id === list.id)),
       options.liveFilters,
     )
     const manualOrder = Array.isArray(list.manualSortOrder)

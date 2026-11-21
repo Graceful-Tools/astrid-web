@@ -10,10 +10,6 @@ import { applyBoardLiveFilters, type BoardLiveFilters } from "@/lib/board-live-f
 import { sortDoneColumnTasks } from "@/lib/board-done-column"
 import { useDoneSince } from "@/hooks/use-done-since"
 import { filterDoneSince } from "@/lib/board-done-since"
-import {
-  isTaskRecentlyCompleted,
-  type RecentlyCompletedWindow,
-} from "@/lib/recently-completed-window"
 import type { Task, TaskList, User } from "@/types/task"
 import {
   type ProjectBoardColumn,
@@ -142,14 +138,9 @@ export function ProjectStatusBoard({
       ? projectTasks.filter(task => task.lists?.some(l => l.id === selectedList.id))
       : projectTasks
 
-    // Drop completed tasks that fall outside the list's "Recently completed"
-    // window (null → legacy 24h default). The virtual Done column is the
-    // unbounded one — this is the bounded view of it. Incomplete tasks (which
-    // populate Inbox / Ready / Doing / Waiting) always show.
-    const window = (selectedList?.recentlyCompletedWindow ?? null) as RecentlyCompletedWindow | null
-    const now = new Date()
+    // Done is bounded by the Done period (filterDoneSince at render), not the
+    // list's recently-completed window, which capped it at 24h (ADEV-191).
     const trimmed = scoped.filter(task =>
-      (!task.completed || isTaskRecentlyCompleted(task, window, now)) &&
       // Applied once the values are in; until then the board shows unfiltered.
       (!fieldValues || matchesProjectFieldFilter(projectFieldValuesOf(task, fieldValues), fieldFilter)),
     )

@@ -220,8 +220,9 @@ Agents must not create a task that is `completed = true` while still attached to
 
 Each list now carries a `recentlyCompletedWindow` JSON config that decides
 which completed tasks stay visible under the default completion filter.
-The same setting also bounds the virtual Done column on the board, so the
-two views never disagree.
+It does not bound the board's virtual Done column: that is bounded by the
+Done period picker (ADEV-133, `lib/board-done-since.ts`), so "This week" and
+"All time" can reach past the window (ADEV-191).
 
 Stored shape (`TaskList.recentlyCompletedWindow`, nullable):
 

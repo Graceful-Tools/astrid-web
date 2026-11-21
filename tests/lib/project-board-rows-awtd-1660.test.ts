@@ -126,7 +126,7 @@ describe('grouping cards into swimlanes (AWTD-1660)', () => {
       task('c', ['web']),
       task('d', ['ios'], { completed: true, completedAt: new Date() } as Partial<Task>),
       task('e', ['groceries'], { statusRole: 'ready' }),
-    ], columns, { now: new Date() })
+    ], columns)
 
     const [web, ios] = lanes
     expect(web.cells.doing.map(t => t.id)).toEqual(['a'])
@@ -144,14 +144,13 @@ describe('grouping cards into swimlanes (AWTD-1660)', () => {
     expect(lanes[1].cells.ready.map(t => t.id)).toEqual(['shared'])
   })
 
-  it('keeps Done to the row list\'s recently-completed window', () => {
+  it('does not trim Done by the row list\'s recently-completed window: the Done period owns it (ADEV-191)', () => {
     const rows = [list('web', { projectId: 'p1', recentlyCompletedWindow: { kind: 'duration', amount: 24, unit: 'hour' } } as unknown as Partial<TaskList>)]
-    const now = new Date('2026-06-10T12:00:00Z')
     const lanes = buildSwimlanes(rows, [
       task('old', ['web'], { completed: true, completedAt: new Date('2026-05-01T00:00:00Z') } as Partial<Task>),
       task('new', ['web'], { completed: true, completedAt: new Date('2026-06-10T11:00:00Z') } as Partial<Task>),
-    ], columns, { now })
-    expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id)).toEqual(['new'])
+    ], columns)
+    expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id)).toEqual(['new', 'old'])
   })
 
   it('orders Done newest-completed first, whatever the row list\'s manual order (2026-11-19)', () => {
@@ -161,12 +160,11 @@ describe('grouping cards into swimlanes (AWTD-1660)', () => {
       manualSortOrder: ['oldest', 'newest', 'middle'],
       recentlyCompletedWindow: { kind: 'duration', amount: 30, unit: 'day' },
     } as unknown as Partial<TaskList>)]
-    const now = new Date('2026-06-10T12:00:00Z')
     const lanes = buildSwimlanes(rows, [
       task('oldest', ['web'], { completed: true, completedAt: new Date('2026-06-01T00:00:00Z') } as Partial<Task>),
       task('newest', ['web'], { completed: true, completedAt: new Date('2026-06-10T11:00:00Z') } as Partial<Task>),
       task('middle', ['web'], { completed: true, completedAt: new Date('2026-06-05T00:00:00Z') } as Partial<Task>),
-    ], columns, { now })
+    ], columns)
     expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id)).toEqual(['newest', 'middle', 'oldest'])
   })
 })

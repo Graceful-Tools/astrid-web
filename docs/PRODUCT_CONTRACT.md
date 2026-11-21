@@ -406,7 +406,7 @@ the person has the `project_mode` flag (`GET /api/v1/features`), from an admin g
 - **Board.** Each chosen list is a row; the project's status columns (Inbox, Ready, Doing,
   Waiting, the project's custom columns, Done) are the columns. A card's column is its
   `statusRole`, exactly as on a list's own board, and moving a card sets it the same way. A card
-  on two row lists shows in both rows. Done keeps to each list's recently-completed window.
+  on two row lists shows in both rows. Done is bounded by the board's Done period (default This week), not the list's recently-completed window (ADEV-191).
 - **Rows.** Drag a list from the sidebar onto the board, or use *Add list*, to add it; × on the
   row header removes it. The choice is the person's, per project, saved on the server
   (`GET|PUT /api/v1/projects/{id}/board-rows`, see API_CONTRACT.md) so every device shows the
