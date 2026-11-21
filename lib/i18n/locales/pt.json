@@ -85,8 +85,8 @@
     "attachments": "Anexos",
     "subtasks": "Subtarefas",
     "tags": "Tags",
-    "completed": "Concluída",
-    "incomplete": "Incompleta",
+    "completed": "Feito",
+    "incomplete": "A fazer",
     "overdue": "Atrasada",
     "noDueDate": "Sem data de vencimento",
     "noReminder": "Sem lembrete",
@@ -1876,15 +1876,15 @@
       "priority": "Prioridade",
       "date": "Data",
       "who": "Quem",
-      "completed": "Concluída",
-      "incomplete": "Incompleta",
+      "completed": "Feitas primeiro",
+      "incomplete": "A fazer primeiro",
       "manual": "Manual"
     },
     "show": {
       "allTasks": "Todas as tarefas",
-      "completedOnly": "Somente concluídas",
-      "incompleteOnly": "Somente pendentes",
-      "default": "Incompletas + Concluídas recentemente"
+      "completedOnly": "Somente feitas",
+      "incompleteOnly": "Somente a fazer",
+      "default": "A fazer + Feitas recentemente"
     },
     "priority": {
       "all": "Todas as prioridades",
