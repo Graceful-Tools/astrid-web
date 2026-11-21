@@ -91,6 +91,7 @@ roll back an enabled deployment, set the mode to `off` or revert the change.
 | **Native bridge** (`copilot-bridge` environment) | Astrid OAuth and `COPILOT_DISPATCH_TOKEN`, a separately provisioned GitHub user-to-server token | Deterministic issue assignment and comment relay, not code execution, merges or deployments |
 | **Deploy** (`production` environment, admits only `main`) | Production `DATABASE_URL`, `DATABASE_URL_DIRECT` | Migrate and deploy. Agents see only logs and pass/fail |
 | **This Mac** (`.env.local`) | `*_PROD` URLs, `VERCEL_TOKEN` | Ad-hoc read-only production queries and runtime logs |
+| **Prod pointer** (repository secret `PROD_POINTER_TOKEN`, optional, not yet provisioned) | Contents and Workflows write | Read only by the deploy's *Advance prod Branch* job, so `prod` can move past workflow-file changes (ADEV-115) |
 
 An agent that needs a production fact writes the question on the task and hands it
 back. A Mac session answers it. `tests/rules/production-secrets-are-environment-scoped.test.ts`

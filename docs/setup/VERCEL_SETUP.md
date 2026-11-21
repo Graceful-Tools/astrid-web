@@ -42,12 +42,9 @@ git commit -m "Your commit message"
 git push
 ```
 
-**Vercel will now automatically:**
-1. ✅ Generate Prisma client
-2. ✅ Run database migrations (`prisma migrate deploy`)
-3. ✅ Apply performance indexes (`prisma db push`)
-4. ✅ Build your Next.js app
-5. ✅ Deploy to production
+Pushing deploys nothing. Merge, then dispatch *Production Deployment*
+([CLI_OPERATIONS.md §0](../CLI_OPERATIONS.md)): its *Database Migration* job applies pending
+migrations, then the deploy job builds and ships.
 
 ## 🔧 How It Works
 
@@ -173,7 +170,8 @@ When you modify `prisma/schema.prisma`:
    git push
    ```
 
-3. Vercel will automatically apply migrations during build!
+3. Merge, then dispatch *Production Deployment*: its *Database Migration* job applies the
+   migration before the new code is deployed ([CLI_OPERATIONS.md §0](../CLI_OPERATIONS.md)).
 
 ### Rollback if Needed
 If deployment fails:
