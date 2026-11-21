@@ -149,11 +149,11 @@
       "filterAll": "所有任务"
     },
     "tradeoffRatings": {
-      "veryPoor": "很差",
+      "veryPoor": "一票否决",
       "poor": "差",
       "mixed": "一般",
       "good": "好",
-      "veryGood": "很好"
+      "veryGood": "决定性"
     },
     "tradeoffGrid": {
       "fullScreen": "全屏"

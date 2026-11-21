@@ -31,7 +31,9 @@ import { ORCHESTRATION_TOOLS } from "./orchestration-policy-tool"
 const DECISION_FORMAT_HINT =
   "To ask a person to choose, write a Decision: a paragraph starting **Decision:**, then a list whose items start with a bold number (- **1.** Ship today (recommended) / - **2.** Wait). " +
   "The apps draw cards numbered 1, 2, 3; a tap posts \"1 — Ship today\" as the reply. Recommend exactly one option, keep option text short, and use it for any question with 2–5 discrete answers. " +
-  "To weigh options, add a trade-off grid: a table with options as rows (numbered to match, \"1. Lisbon\") and 3–5 criteria as columns, which the apps letter A, B, C; every cell is a rating (-- very poor, - poor, ~ mixed, + good, ++ very good) plus a few words of reason, e.g. \"+ 3h drive\". " +
+  "To weigh options, add a trade-off grid: a table with options as rows (numbered to match, \"1. Lisbon\") and 3–5 criteria as columns, which the apps letter A, B, C; every cell is a rating (-- disqualifying, - poor, ~ mixed, + good, ++ decisive) plus a concrete reason (a number, duration or count), e.g. \"+ 3h drive\". " +
+  "++ means this alone is a reason to choose the option and -- means this alone rules it out; both are a high bar, so use them rarely. " +
+  "Always include a Do nothing row, honestly rated. Open with the recommendation by option number and the trade-off accepted (\"We recommend #3, accepting a 3–7 month delay\"). Never count colours or add a score column: the grid shows the trade-off and people decide. " +
   "Define each criterion in a bold-term list under the table. Put examples of the format in a code block. End a handback with the AGENT-HANDBACK: <mailbox> line."
 
 export const OAUTH_MCP_TOOLS = [

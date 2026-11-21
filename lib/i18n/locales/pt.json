@@ -85,7 +85,7 @@
     "attachments": "Anexos",
     "subtasks": "Subtarefas",
     "tags": "Tags",
-    "completed": "Concluída",
+    "completed": "Concluídas",
     "incomplete": "Incompleta",
     "overdue": "Atrasada",
     "noDueDate": "Sem data de vencimento",
@@ -149,11 +149,11 @@
       "filterAll": "Todas as tarefas"
     },
     "tradeoffRatings": {
-      "veryPoor": "Muito ruim",
+      "veryPoor": "Desqualificante",
       "poor": "Ruim",
       "mixed": "Misto",
       "good": "Bom",
-      "veryGood": "Muito bom"
+      "veryGood": "Decisivo"
     },
     "tradeoffGrid": {
       "fullScreen": "Tela cheia"
@@ -1876,7 +1876,7 @@
       "priority": "Prioridade",
       "date": "Data",
       "who": "Quem",
-      "completed": "Concluída",
+      "completed": "Concluídas",
       "incomplete": "Incompleta",
       "manual": "Manual"
     },

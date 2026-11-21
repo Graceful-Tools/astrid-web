@@ -37,7 +37,12 @@ describe('Decision guide (AWTD-1531)', () => {
     const tool = OAUTH_MCP_TOOLS.find(t => t.name === 'add_comment')!
     expect(tool.description).toContain('**Decision:**')
     expect(tool.description).toContain('(recommended)')
-    expect(tool.description).toMatch(/\+\+ very good/)
+    // ADEV-178: the Extreme Clarity method's rules ride on the hint.
+    expect(tool.description).toMatch(/-- disqualifying/)
+    expect(tool.description).toMatch(/\+\+ decisive/)
+    expect(tool.description).toMatch(/Do nothing row/)
+    expect(tool.description).toMatch(/recommendation by option number/)
+    expect(tool.description).toMatch(/score column/)
     expect(tool.description).toContain('AGENT-HANDBACK')
   })
 })

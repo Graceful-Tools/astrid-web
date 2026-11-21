@@ -85,7 +85,7 @@
     "attachments": "Archivos adjuntos",
     "subtasks": "Subtareas",
     "tags": "Etiquetas",
-    "completed": "Completada",
+    "completed": "Completadas",
     "incomplete": "Incompleta",
     "overdue": "Atrasada",
     "noDueDate": "Sin fecha límite",
@@ -149,11 +149,11 @@
       "filterAll": "Todas las tareas"
     },
     "tradeoffRatings": {
-      "veryPoor": "Muy mal",
+      "veryPoor": "Descalificante",
       "poor": "Mal",
       "mixed": "Regular",
       "good": "Bien",
-      "veryGood": "Muy bien"
+      "veryGood": "Decisivo"
     },
     "tradeoffGrid": {
       "fullScreen": "Pantalla completa"
@@ -1876,7 +1876,7 @@
       "priority": "Prioridad",
       "date": "Fecha",
       "who": "Quién",
-      "completed": "Completada",
+      "completed": "Completadas",
       "incomplete": "Incompleta",
       "manual": "Manual"
     },
