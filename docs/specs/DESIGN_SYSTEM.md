@@ -148,6 +148,20 @@ The Mac and the web do this today. It belongs wherever the list and the details 
 the screen: iPad, Windows, and two-pane Android (tablets, foldables and dual-screen
 devices). A phone's single pane does not get it (Jon, 2026-11-10; register DS7).
 
+**When the open task's card changes column** (completed into Done, marked to-do out of Done,
+or a status set from the details) on a board, the details follow it (ADEV-175, ADEV-177):
+
+1. scroll the board horizontally so the column it moved into is in view on the side the card
+   was opened on, clear of the panel (a panel on the card's right wants the column at the
+   board's left edge; a panel on the left wants it at the right edge);
+2. scroll that column to the card;
+3. re-dock the panel beside the card there. The side is decided again by core
+   `calloutPlacement`, so the arrow points at the moved card.
+
+A different task opening is not a move: only the same task changing column is. iOS and Mac:
+`BoardCardCallout.moved` / `scrollEdge`, `SelectedRowReporter.reanchorOpenedCard`. Web:
+`components/TaskManager/BoardTaskCallout.tsx`. Windows and Android follow the same rule.
+
 ## Layout and alignment
 
 The rules the iOS and Mac apps already state or test, as `layout` and `size` tokens. A
