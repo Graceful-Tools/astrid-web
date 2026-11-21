@@ -5,13 +5,15 @@ import { cn } from "@/lib/utils"
 /**
  * The board's capsule (ADEV-157): one component for a count, the Done-since
  * trigger and the completed-on date. It wears `.board-status-pill` (15% wash,
- * 40% stroke, styles/components.css) so it matches iOS. `neutral` is the
- * muted tone for counts; the others are the board states.
+ * 40% stroke, styles/components.css) so it matches iOS. `neutral` is a column
+ * header's badge, the count and the Done-since trigger: iOS's `BoardHeaderBadge`,
+ * a tertiary-surface capsule with no stroke (register DS37). The others are the
+ * board states.
  */
 export type PillTone = "neutral" | "inbox" | "ready" | "doing" | "waiting" | "done"
 
 const toneClass: Record<PillTone, string> = {
-  neutral: "",
+  neutral: "board-header-badge",
   inbox: "board-status-inbox",
   ready: "board-status-ready",
   doing: "board-status-doing",

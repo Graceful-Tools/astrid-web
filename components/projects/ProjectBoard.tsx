@@ -299,7 +299,7 @@ export function ProjectBoard({
                     {rowLabel(lane)}
                   </div>
                 )}
-                <div className="flex gap-3" role="row">
+                <div className="board-row flex" role="row">
                 {columns.map(column => {
                   const cell = lane.cells[column.id] ?? []
                   // The period filters the cards as well as the count (ADEV-133).
@@ -314,7 +314,7 @@ export function ProjectBoard({
                       testId={`project-board-cell-${lane.list.id}-${column.id}`}
                       headerTestId={`project-board-cell-header-${lane.list.id}-${column.id}`}
                       /* Fixed height, about 3–4 cards: the cards scroll inside it (ADEV-63). */
-                      bodyClassName="h-64 shrink-0 overflow-y-auto scrollbar-hide p-2"
+                      bodyClassName="board-column-body h-64 shrink-0 overflow-y-auto scrollbar-hide"
                       bodyTestId={`project-board-cell-body-${lane.list.id}-${column.id}`}
                       doneSince={doneSince}
                       onDoneSinceChange={setDoneSince}

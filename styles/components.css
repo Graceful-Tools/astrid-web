@@ -119,6 +119,24 @@
      (register DS14): 52 where there is a pointer, 76 on touch. Web has no
      density setting; the input decides, as it does for the radii above. */
   --row-min-height: var(--astrid-layout-compact-row-min-height);
+
+  /* The board (astrid-core register DS34-DS36, docs/specs/DESIGN_SYSTEM.md →
+     Board column, Board card, Empty column), compact with a pointer and
+     comfortable on touch. Compact is one surface, so it has no wall. */
+  --board-column-min-width: var(--astrid-layout-compact-board-column-min-width);
+  --board-column-gap: var(--astrid-layout-compact-board-column-gap);
+  --board-column-wall: 0;
+  --board-column-header-padding-x: var(--astrid-layout-compact-board-column-header-padding-x);
+  --board-column-header-padding-top: var(--astrid-layout-compact-board-column-header-padding-top);
+  --board-column-header-padding-bottom: var(--astrid-layout-compact-board-column-header-padding-bottom);
+  --board-column-body-padding-x: var(--astrid-layout-compact-board-column-body-padding-x);
+  --board-column-body-padding-y: var(--astrid-layout-compact-board-column-body-padding-y);
+  --board-card-gap: var(--astrid-layout-compact-board-card-gap);
+  --board-card-padding-x: var(--astrid-layout-compact-board-card-padding-x);
+  --board-card-padding-y: var(--astrid-layout-compact-board-card-padding-y);
+  --empty-art: var(--astrid-layout-compact-empty-art);
+  --empty-bubble-padding: var(--astrid-space-12);
+  --empty-column-min-height: auto;
 }
 
 @media (min-resolution: 2dppx) {
@@ -259,6 +277,15 @@ html, body {
   }
 }
 
+/* A column header's count and the Done-since trigger (register DS37): iOS's
+   BoardHeaderBadge, the tertiary surface with no stroke, 8 across and 4 down. */
+.board-status-pill.board-header-badge {
+  background: rgb(var(--astrid-bg-tertiary));
+  border: 0;
+  padding: var(--astrid-space-4) var(--astrid-space-8);
+  color: rgb(var(--astrid-text-secondary));
+}
+
 /* A task on a board is a card, and a column holds them (DS13). After
    .task-card so the card's radius wins over the row's. */
 .board-card {
@@ -267,6 +294,51 @@ html, body {
 
 .board-column {
   border-radius: var(--board-column-radius);
+}
+
+/* Columns share the board, none narrower than the token (DS34). */
+.board-column-shared {
+  min-width: var(--board-column-min-width);
+}
+
+.board-row {
+  gap: var(--board-column-gap);
+}
+
+.board-column-header {
+  padding: var(--board-column-header-padding-top) var(--board-column-header-padding-x)
+    var(--board-column-header-padding-bottom);
+}
+
+/* The well. Its foot is never tighter than its sides: the Mac's one padding
+   runs round the cards, which leaves compact 10 below and none above. */
+.board-column-body {
+  padding: var(--board-column-body-padding-y) var(--board-column-body-padding-x)
+    max(var(--board-column-body-padding-y), var(--board-column-body-padding-x));
+  margin-inline: var(--board-column-wall);
+}
+
+.board-column-cards > * + * {
+  margin-top: var(--board-card-gap);
+}
+
+/* A card pads less than a list row: the well already insets it (DS35). After
+   .task-row so the card's padding wins. */
+.board-card {
+  padding: var(--board-card-padding-y) var(--board-card-padding-x);
+}
+
+/* An empty column: the art at the token's size, not a share of the width (DS36). */
+.board-empty-art {
+  width: var(--empty-art);
+}
+
+.board-empty-bubble {
+  padding: var(--empty-bubble-padding);
+}
+
+.board-column-empty {
+  min-height: var(--empty-column-min-height);
 }
 
 .task-row-selected {
@@ -289,6 +361,31 @@ html, body {
     --board-column-radius: var(--astrid-layout-comfortable-board-column-radius);
     --detail-panel-radius: var(--astrid-layout-comfortable-detail-panel-radius);
     --row-min-height: var(--astrid-layout-comfortable-row-min-height);
+    --board-column-min-width: var(--astrid-layout-comfortable-board-column-min-width);
+    --board-column-gap: var(--astrid-layout-comfortable-board-column-gap);
+    --board-column-wall: var(--astrid-layout-comfortable-board-column-wall);
+    --board-column-header-padding-x: var(--astrid-layout-comfortable-board-column-header-padding-x);
+    --board-column-header-padding-top: var(--astrid-layout-comfortable-board-column-header-padding-top);
+    --board-column-header-padding-bottom: var(--astrid-layout-comfortable-board-column-header-padding-bottom);
+    --board-column-body-padding-x: var(--astrid-layout-comfortable-board-column-body-padding-x);
+    --board-column-body-padding-y: var(--astrid-layout-comfortable-board-column-body-padding-y);
+    --board-card-gap: var(--astrid-layout-comfortable-board-card-gap);
+    --board-card-padding-x: var(--astrid-layout-comfortable-board-card-padding-x);
+    --board-card-padding-y: var(--astrid-layout-comfortable-board-card-padding-y);
+    --empty-art: var(--astrid-layout-comfortable-empty-art);
+    --empty-bubble-padding: var(--astrid-space-16);
+    --empty-column-min-height: var(--astrid-layout-comfortable-empty-column-min-height);
+  }
+
+  /* Comfortable is a frame and a well (DS34): the column is the card surface,
+     showing as the header, a wall each side and the foot; the cards sit one
+     tier down in the well. :root outranks the theme's .theme-bg-secondary. */
+  :root .board-column.theme-bg-secondary {
+    background-color: rgb(var(--astrid-surface));
+  }
+
+  :root .board-column-body {
+    background-color: rgb(var(--theme-bg-secondary));
   }
 }
 
