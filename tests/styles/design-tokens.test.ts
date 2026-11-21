@@ -357,7 +357,7 @@ describe('the theme vocabulary: what a palette class is replaced with (AWTD-1574
       ['border-theme', 'theme-border', 'border-color'],
       ['border-theme-input', 'theme-border-input', 'border-color'],
     ]) {
-      const variable = new RegExp(`\\.light \\.${handWritten} \\{ ${property}: rgb\\(var\\(--(theme-[a-z-]+)\\)\\); \\}`).exec(light)?.[1]
+      const variable = new RegExp(`\\.light \\.${handWritten} \\{ ${property}: rgb\\(var\\(--((?:theme|astrid)-[a-z-]+)\\)\\); \\}`).exec(light)?.[1]
       expect(variable, handWritten).toBeDefined()
       const scope = themeScope('light')
       expect(resolveRgb(propertyOf(ruleFor(css, tailwind))!, scope), tailwind).toEqual(resolveRgb(variable!, scope))
@@ -365,9 +365,9 @@ describe('the theme vocabulary: what a palette class is replaced with (AWTD-1574
   })
 
   it('hover is the surface\'s hover tint, as hover:theme-bg-hover is', () => {
-    expect(ruleFor(css, 'hover:bg-theme-hover')).toContain('rgba(var(--theme-surface-hover)')
+    expect(ruleFor(css, 'hover:bg-theme-hover')).toContain('rgba(var(--astrid-surface-hover)')
     expect(read('styles', 'themes', 'hover-variants.css')).toMatch(
-      /\.hover\\:theme-bg-hover:hover \{\s*background-color: rgb\(var\(--theme-surface-hover\)\);/,
+      /\.hover\\:theme-bg-hover:hover \{\s*background-color: rgb\(var\(--astrid-surface-hover\)\);/,
     )
   })
 
@@ -521,7 +521,7 @@ describe('categories, the agent and the inverse surface read their tokens (AWTD-
     // A gradient that carries white text ends on the ink, not the lighter fill (PR #757 review).
     expect(ruleFor(css, 'to-category-purple-ink')).toContain('rgba(var(--astrid-category-purple-ink), 1)')
     expect(propertyOf(ruleFor(css, 'bg-theme-inverse'))).toBe('astrid-surface-inverse')
-    expect(propertyOf(ruleFor(css, 'border-theme-card'))).toBe('theme-surface')
+    expect(propertyOf(ruleFor(css, 'border-theme-card'))).toBe('astrid-surface')
   })
 
   it.each(THEME_NAMES)('AWTD-1612 %s: each ink is 4.5:1 on the card, the secondary surface and its own wash', (theme) => {

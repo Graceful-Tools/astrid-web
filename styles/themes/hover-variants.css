@@ -47,11 +47,11 @@
 
 /* Background on hover.
  *
- * Deliberately --theme-surface-hover, NOT --theme-bg-hover, despite the class
+ * Deliberately --astrid-surface-hover, NOT --theme-bg-hover, despite the class
  * name (AWTD-936, Jon's call). --theme-bg-hover is 255,255,255 in light —
- * identical to --theme-bg-primary and --theme-surface — so honouring the name
+ * identical to --theme-bg-primary and --astrid-surface — so honouring the name
  * literally would paint white on white and leave all 49 call sites with no
- * visible hover, merely a selector that is no longer dead. --theme-surface-hover
+ * visible hover, merely a selector that is no longer dead. --astrid-surface-hover
  * is the already-tuned hover tint (243,244,246 light / 55,65,81 dark /
  * 243,244,246 ocean) and is what .theme-surface-hover:hover — the one hover
  * convention in this codebase that never rotted — has always used.
@@ -59,7 +59,7 @@
  * The three bare `theme-bg-hover` call sites still resolve to --theme-bg-hover
  * through the per-theme base rule; this changes only the `hover:` variant. */
 :is(.light, .dark, .ocean) .hover\:theme-bg-hover:hover {
-  background-color: rgb(var(--theme-surface-hover));
+  background-color: rgb(var(--astrid-surface-hover));
 }
 
 /* Border on hover. Both call sites pair this with `border border-transparent`,

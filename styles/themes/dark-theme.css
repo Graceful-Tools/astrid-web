@@ -12,9 +12,6 @@
   /* Surface colors */
   /* Web-only surfaces (register DS9), each named once and read from a token:
      a card is the secondary grey, one step up from the page. */
-  --theme-surface: var(--astrid-surface);
-  --theme-surface-hover: var(--astrid-surface-hover);
-  --theme-surface-border: var(--astrid-surface-border);
   
   /* Border colors */
   --theme-border: var(--astrid-border);
@@ -43,13 +40,11 @@
   --theme-info: var(--astrid-info);
   
   /* Sidebar colors */
-  --theme-sidebar-bg: var(--astrid-sidebar-bg);
-  --theme-sidebar-border: var(--theme-surface-border);
+  --theme-sidebar-border: var(--astrid-surface-border);
   
   /* Task panel colors */
-  --theme-panel-bg: var(--astrid-panel-bg);
-  --theme-panel-border: var(--theme-surface-border);
-  --theme-panel-arrow: var(--theme-panel-bg);
+  --theme-panel-border: var(--astrid-surface-border);
+  --theme-panel-arrow: var(--astrid-panel-bg);
   
   /* Header colors */
   --theme-header-bg: var(--astrid-header-bg);
@@ -61,7 +56,6 @@
   --theme-input-placeholder: var(--astrid-input-placeholder);
   
   /* Comment colors */
-  --theme-comment-bg: var(--astrid-comment-bg);
   
   /* Button colors */
   --theme-button-bg: var(--astrid-button-bg);
@@ -93,14 +87,14 @@
 .dark .theme-border { border-color: rgb(var(--theme-border)); }
 .dark .theme-border-input { border-color: rgb(var(--theme-border-input)); }
 
-.dark .theme-surface { background-color: rgb(var(--theme-surface)); }
-.dark .theme-surface-hover:hover { background-color: rgb(var(--theme-surface-hover)); }
+.dark .theme-surface { background-color: rgb(var(--astrid-surface)); }
+.dark .theme-surface-hover:hover { background-color: rgb(var(--astrid-surface-hover)); }
 
 /* Speech bubble arrow fill - matches theme-bg-secondary */
 .dark .speech-bubble-arrow-fill { border-right-color: rgb(var(--theme-bg-secondary)); }
 
 .dark .theme-panel {
-  background-color: rgb(var(--theme-panel-bg));
+  background-color: rgb(var(--astrid-panel-bg));
   border-color: rgb(var(--theme-panel-border));
 }
 
@@ -110,7 +104,7 @@
 }
 
 .dark .theme-sidebar {
-  background-color: rgb(var(--theme-sidebar-bg));
+  background-color: rgb(var(--astrid-sidebar-bg));
   border-color: rgb(var(--theme-sidebar-border));
 }
 
@@ -130,7 +124,7 @@
 }
 
 .dark .theme-comment-bg {
-  background-color: rgb(var(--theme-comment-bg));
+  background-color: rgb(var(--astrid-comment-bg));
 }
 
 .dark .theme-button {
@@ -157,14 +151,14 @@
 
 /* Task cards: Solid dark gray */
 .dark .task-card {
-  background-color: rgb(var(--theme-surface));
+  background-color: rgb(var(--astrid-surface));
   border-color: rgb(var(--theme-bg-tertiary));
 }
 
 /* A quarter of the way from the card to its hover grey: the full step is the
    colour of the list badges on the card, which would vanish into it. */
 .dark .task-card:hover {
-  background-color: color-mix(in srgb, rgb(var(--theme-surface)) 75%, rgb(var(--theme-surface-hover)));
+  background-color: color-mix(in srgb, rgb(var(--astrid-surface)) 75%, rgb(var(--astrid-surface-hover)));
 }
 
 /* Selected task card: the selected surface. Its own border steps aside for the
@@ -178,31 +172,31 @@
 
 /* Mobile floating header: Solid dark */
 .dark .app-header-mobile-floating {
-  background-color: rgb(var(--theme-surface));
+  background-color: rgb(var(--astrid-surface));
   border: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* iOS drawer header: Solid dark */
 .dark .app-header-ios-drawer {
-  background-color: rgb(var(--theme-surface));
+  background-color: rgb(var(--astrid-surface));
   border: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* Mobile quick add bar: Solid dark gray */
 .dark .quick-add {
-  background-color: rgb(var(--theme-surface));
+  background-color: rgb(var(--astrid-surface));
   border: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* Comment input bar: Match quick add styling */
 .dark .chat-input-bar {
-  background-color: rgb(var(--theme-surface));
+  background-color: rgb(var(--astrid-surface));
   border-top: 1px solid rgb(var(--theme-bg-tertiary));
 }
 
 /* Mobile sidebar: Slightly lighter dark for contrast */
 .dark .app-sidebar-mobile {
-  background-color: rgb(var(--theme-surface));
+  background-color: rgb(var(--astrid-surface));
 }
 
 /* List badges on Dark: Subtle dark surface */

@@ -27,6 +27,8 @@ const css = readFileSync(join(process.cwd(), 'styles/themes/ocean-theme.css'), '
  * surfaces (`theme-surface`) in the measurement.
  */
 function rgbVar(name: string): [number, number, number] {
+  // A surface the tokens name is read straight from them (ADEV-168).
+  if (name.startsWith('astrid-')) return themeColor('ocean', name.slice('astrid-'.length))
   const token = new RegExp(`--${name}:\\s*var\\(--astrid-([a-z0-9-]+)\\);`).exec(css)
   if (token) return themeColor('ocean', token[1])
   const match = new RegExp(`--${name}:\\s*(\\d+),\\s*(\\d+),\\s*(\\d+);`).exec(css)
@@ -50,7 +52,7 @@ function contrast(a: [number, number, number], b: [number, number, number]): num
 
 const AA_BODY = 4.5
 const TEXT = ['theme-text-primary', 'theme-text-secondary', 'theme-text-muted'] as const
-const BACKGROUNDS = ['theme-bg-primary', 'theme-surface', 'theme-bg-secondary'] as const
+const BACKGROUNDS = ['theme-bg-primary', 'astrid-surface', 'theme-bg-secondary'] as const
 
 describe('Ocean theme text is readable on its own backgrounds (AWTD-1496)', () => {
   for (const text of TEXT) {

@@ -46,7 +46,7 @@
   padding: 0 var(--astrid-pill-padding-x);
   background:
     linear-gradient(rgba(var(--board-status), var(--astrid-pill-fill-opacity)), rgba(var(--board-status), var(--astrid-pill-fill-opacity))),
-    rgb(var(--theme-surface));
+    rgb(var(--astrid-surface));
   border: var(--astrid-pill-stroke-width) solid rgba(var(--board-status), var(--astrid-pill-stroke-opacity));
   color: rgb(var(--board-status-ink));
 }
@@ -685,15 +685,15 @@ html, body {
 
 /* Theme-aware active state backgrounds */
 .light .mobile-list-item:active {
-  background-color: rgba(var(--theme-surface-hover), 0.8);
+  background-color: rgba(var(--astrid-surface-hover), 0.8);
 }
 
 .dark .mobile-list-item:active {
-  background-color: rgb(var(--theme-surface-hover));
+  background-color: rgb(var(--astrid-surface-hover));
 }
 
 .ocean .mobile-list-item:active {
-  background-color: rgba(var(--theme-surface), 0.9);
+  background-color: rgba(var(--astrid-surface), 0.9);
 }
 
 /* Mobile Typography */
@@ -815,8 +815,8 @@ html, body {
 
 .ios-drawer-content-open {
   transform: translateX(min(85vw, 320px));
-  /* Shadow on left edge when drawer is open */
-  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+  /* Shadow on the left edge when the drawer is open: the panel shadow token */
+  box-shadow: var(--astrid-shadow-panel);
 }
 
 /* Overlay that appears on content when drawer is open */

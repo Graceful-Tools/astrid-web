@@ -137,8 +137,8 @@ export const themeBackgroundColors = {
   primary: token('astrid-bg-primary'),
   secondary: token('astrid-bg-secondary'),
   tertiary: token('astrid-bg-tertiary'),
-  surface: token('theme-surface'),
-  hover: token('theme-surface-hover'),
+  surface: token('astrid-surface'),
+  hover: token('astrid-surface-hover'),
   active: token('astrid-bg-active'),
   selected: token('astrid-bg-selected'),
   input: token('astrid-input-bg'),
@@ -164,14 +164,14 @@ export const themeBorderColors = {
   strong: token('astrid-border-hover'),
   focus: token('astrid-border-focus'),
   selected: token('astrid-bg-selected-border'),
-  surface: token('theme-surface-border'),
+  surface: token('astrid-surface-border'),
   button: token('astrid-button-border'),
   header: token('astrid-header-border'),
   /**
    * The card's own colour as a line: the ring that cuts one avatar out of the
    * one it overlaps. White in Light and Ocean, the dark card in Dark.
    */
-  card: token('theme-surface'),
+  card: token('astrid-surface'),
 }
 
 /**

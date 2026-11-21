@@ -13,9 +13,6 @@
      so each is named once here and reads a token: nothing below is a colour
      written out. A card is the page's white; its hover is the tertiary grey
      (--astrid-bg-hover is white on white here); its border is the border. */
-  --theme-surface: var(--astrid-surface);
-  --theme-surface-hover: var(--astrid-surface-hover);
-  --theme-surface-border: var(--astrid-surface-border);
   
   /* Border colors */
   --theme-border: var(--astrid-border);
@@ -44,13 +41,11 @@
   --theme-info: var(--astrid-info);
   
   /* Sidebar colors */
-  --theme-sidebar-bg: var(--astrid-sidebar-bg);
-  --theme-sidebar-border: var(--theme-surface-border);
+  --theme-sidebar-border: var(--astrid-surface-border);
   
   /* Task panel colors */
-  --theme-panel-bg: var(--astrid-panel-bg);
-  --theme-panel-border: var(--theme-surface-border);
-  --theme-panel-arrow: var(--theme-panel-bg);
+  --theme-panel-border: var(--astrid-surface-border);
+  --theme-panel-arrow: var(--astrid-panel-bg);
   
   /* Header colors */
   --theme-header-bg: var(--astrid-header-bg);
@@ -67,9 +62,6 @@
   --theme-button-border: var(--astrid-button-border);
   
   /* Light mode specific UI elements */
-  --theme-pill-bg: var(--astrid-pill-bg);
-  --theme-comment-bg: var(--astrid-comment-bg);
-  --theme-count-bg: var(--astrid-count-bg);
   
   /* Component shadows: the shared scale */
   --theme-shadow-sm: var(--astrid-shadow-sm);
@@ -96,14 +88,14 @@
 .light .theme-border { border-color: rgb(var(--theme-border)); }
 .light .theme-border-input { border-color: rgb(var(--theme-border-input)); }
 
-.light .theme-surface { background-color: rgb(var(--theme-surface)); }
-.light .theme-surface-hover:hover { background-color: rgb(var(--theme-surface-hover)); }
+.light .theme-surface { background-color: rgb(var(--astrid-surface)); }
+.light .theme-surface-hover:hover { background-color: rgb(var(--astrid-surface-hover)); }
 
 /* Speech bubble arrow fill - matches theme-bg-secondary */
 .light .speech-bubble-arrow-fill { border-right-color: rgb(var(--theme-bg-secondary)); }
 
 .light .theme-panel {
-  background-color: rgb(var(--theme-panel-bg));
+  background-color: rgb(var(--astrid-panel-bg));
   border-color: rgb(var(--theme-panel-border));
 }
 
@@ -113,7 +105,7 @@
 }
 
 .light .theme-sidebar {
-  background-color: rgb(var(--theme-sidebar-bg));
+  background-color: rgb(var(--astrid-sidebar-bg));
   border-color: rgb(var(--theme-sidebar-border));
 }
 
@@ -147,9 +139,9 @@
 .light .theme-shadow-lg { box-shadow: var(--theme-shadow-lg); }
 
 /* Light mode specific UI elements */
-.light .theme-pill-bg { background-color: rgb(var(--theme-pill-bg)); }
-.light .theme-comment-bg { background-color: rgb(var(--theme-comment-bg)); }
-.light .theme-count-bg { background-color: rgb(var(--theme-count-bg)); }
+.light .theme-pill-bg { background-color: rgb(var(--astrid-pill-bg)); }
+.light .theme-comment-bg { background-color: rgb(var(--astrid-comment-bg)); }
+.light .theme-count-bg { background-color: rgb(var(--astrid-count-bg)); }
 
 /* Chat bubble colors */
 .light .chat-bubble-mine { background-color: rgb(var(--theme-bg-secondary)); }
@@ -161,14 +153,14 @@
 
 /* Task cards: Glass material effect */
 .light .task-card {
-  background-color: rgba(var(--theme-surface), 0.7);
+  background-color: rgba(var(--astrid-surface), 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-color: rgba(var(--theme-surface), 0.3);
+  border-color: rgba(var(--astrid-surface), 0.3);
 }
 
 .light .task-card:hover {
-  background-color: rgba(var(--theme-surface), 0.85);
+  background-color: rgba(var(--astrid-surface), 0.85);
 }
 
 /* Selected task card: Thicker glass with accent tint */
@@ -183,7 +175,7 @@
   background-color: rgba(var(--theme-header-bg), 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(var(--theme-surface), 0.3);
+  border: 1px solid rgba(var(--astrid-surface), 0.3);
 }
 
 /* iOS drawer header: Glass material */
@@ -191,20 +183,20 @@
   background-color: rgba(var(--theme-header-bg), 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(var(--theme-surface), 0.3);
+  border: 1px solid rgba(var(--astrid-surface), 0.3);
 }
 
 /* Mobile quick add bar: Glass material */
 .light .quick-add {
-  background-color: rgba(var(--theme-surface), 0.85);
+  background-color: rgba(var(--astrid-surface), 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(var(--theme-surface), 0.4);
+  border: 1px solid rgba(var(--astrid-surface), 0.4);
 }
 
 /* Comment input bar: Match quick add styling */
 .light .chat-input-bar {
-  background-color: rgba(var(--theme-surface), 0.95);
+  background-color: rgba(var(--astrid-surface), 0.95);
   border-top: 1px solid rgba(var(--theme-border), 0.8);
 }
 
@@ -217,5 +209,5 @@
 
 /* List badges: Translucent on glass */
 .light .task-card .theme-bg-secondary {
-  background-color: rgba(var(--theme-surface), 0.4);
+  background-color: rgba(var(--astrid-surface), 0.4);
 }
