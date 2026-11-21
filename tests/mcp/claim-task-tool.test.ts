@@ -129,8 +129,9 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // AWTD-1688 adds claim_task alongside and changes none of these.
     // Re-pinned for AWTD-1686 (2026-11-16): handoff_task added beside the blocker tools.
     // Re-pinned for AWTD-1693 (2026-11-16): get_orchestration_policy appended; no existing tool changed.
+    // Re-pinned for ADEV-178 (2026-11-21): add_comment's Decision hint teaches the traffic-light method.
     expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
-      '0763fdd629f8bdde9da00f5e92627cae2123ae30150e9698654054994b63e7e4',
+      '4df90c19754808104cde6758dd6b0c513b5db31aa496edbf1d0356a300c29ea6',
     )
   })
 

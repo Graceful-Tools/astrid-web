@@ -2,6 +2,12 @@
 
 *How to ask a person to choose, so every Astrid app draws it as tappable cards and a coloured grid.*
 
+The grid is a **traffic light**, from Jon Paris's Extreme Clarity training (Appendix 5,
+[jon.paris/extremeclarity](https://jon.paris/extremeclarity)): criteria as lettered columns,
+options as numbered rows including doing nothing, a concrete assessment and a colour in every
+cell, and the recommendation stated first. *The method*, below, is the part people and agents
+most often skip.
+
 This is the one guide. The help page, the MCP tool descriptions, `/docs/mcp` and
 [FIXALL_WORKFLOW.md](./FIXALL_WORKFLOW.md) summarise it and point here. The exact recognition rules,
 which all three apps share, are in [PRODUCT_CONTRACT.md §8](./PRODUCT_CONTRACT.md). The example
@@ -11,24 +17,27 @@ tested against the same text.
 ## The complete example
 
 ```markdown
+We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the team asked for most.
+
 **Decision:** Where should we hold the team offsite?
 
 - **1.** Lisbon (recommended)
 - **2.** Mountain cabin
-- **3.** Stay home and order pizza
+- **3.** Do nothing: no offsite this year
 
 | Option | Cost | Travel | Fun |
 |---|---|---|---|
-| 1. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |
-| 2. Cabin | + one rental | + 3h drive | + hiking |
-| 3. Pizza | ++ cheap | ++ none | -- same as every day |
+| 1. Lisbon | ~ $1,400 a person | - 9h door to door | ++ top pick in the team survey |
+| 2. Cabin | + $600 a person | + 3h drive | + hiking, small group |
+| 3. Do nothing | + $0 | + none | - no time together for a year |
 
-- **Cost:** what the company pays, all in.
+- **Cost:** what the company pays per person, all in.
 - **Travel:** door-to-door time for most of the team.
 - **Fun:** how much people will look forward to it.
 ```
 
 On web, iOS and Mac this draws as:
+- the recommendation as an ordinary sentence;
 - three cards numbered 1 to 3, with Lisbon badged as recommended;
 - a grid whose rows are numbered 1 to 3 and whose criteria are lettered A to C, each cell on its
   colour;
@@ -65,11 +74,11 @@ a short reason.
 
 | Token | Meaning | Colour |
 |---|---|---|
-| `--` | Very poor | dark red, white text |
-| `-` | Poor | light red |
-| `~` | Mixed | yellow |
-| `+` | Good | light green |
-| `++` | Very good | dark green, white text |
+| `--` | Disqualifying: this alone rules the option out | dark red, white text |
+| `-` | Poor: a real cost, survivable | light red |
+| `~` | Mixed: acceptable with caveats, conditional, or unknown | yellow |
+| `+` | Good: clears the bar | light green |
+| `++` | Decisive: this alone is a reason to choose the option | dark green, white text |
 | 🔴 / 🟡 / 🟢 | Poor / Mixed / Good | as above |
 
 The exact colours are the design tokens' `palette.tradeoff`
@@ -80,7 +89,7 @@ The exact colours are the design tokens' `palette.tradeoff`
 - **Columns:** three to five criteria. The grid letters them A, B, C (then AA after Z), shown before
   each column's name, so a reply can say "1 is weak on B".
 - **A key** under the grid names each colour by its rating. Each cell also tells screen readers its
-  rating in words ("Good. one rental").
+  rating in words ("Good. $600 a person").
 - **Even rows and columns:** every option row is as tall as the tallest, and the criteria columns
   share the width equally, never narrower than their longest word. The option column can be
   wider, up to about 12rem, and wraps past that.
@@ -89,6 +98,27 @@ The exact colours are the design tokens' `palette.tradeoff`
   own. Dragging a grid that scrolls moves the grid; it never closes the task behind it.
 - **Not a grid:** a table with any unrated cell, or one where every cell is a bare `-` (a
   placeholder table). These stay ordinary tables.
+
+## The method
+
+What makes a grid worth reading (ADEV-178, from the Extreme Clarity training):
+
+1. **Name the criteria before judging the options.** Three to five, lettered A, B, C. Beyond five
+   they overlap and the grid stops fitting one screen.
+2. **List every option, including `Do nothing`.** The status quo gets an honest row of its own. A
+   choice that never names it is not a comparison.
+3. **Every cell is concrete:** a number, a duration, a count (`+ $600 a person`, `- 9h door to
+   door`), never "slightly positive" or "short". Whoever knows a criterion best fills its column.
+4. **The bright ratings are a high bar.** `++` Decisive and `--` Disqualifying are for a cell that
+   carries the decision on its own. Most cells are `+`, `~` or `-`. A row with a `--` is normally
+   out, and the recommendation should say so.
+5. **Unknown is `~`, said as unknown** (`~ no quote yet`), never a guess dressed as a rating.
+6. **The recommendation comes first,** in one sentence that names the option number and the
+   trade-off accepted: *We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the
+   team asked for most.*
+7. **The grid does not decide.** Never add a score, weight or total column, and never rank by
+   counting colours. A choice against the colours is fine when it is said out loud, pointing at the
+   cell being accepted ("we take #3 knowing it is red on B").
 
 ## Explaining the criteria
 
@@ -103,10 +133,12 @@ Put a bold-term list under the grid, one line per column:
 
 - **Any question to a person with two to five discrete answers is a Decision.** Open questions stay
   prose.
-- **Recommend exactly one option,** and say why in a sentence before the Decision.
+- **Recommend exactly one option,** and say why in a sentence before the Decision: the option
+  number and the trade-off accepted.
 - **Keep option text short.** It is posted back verbatim as the reply.
 - **Add a grid when the options trade off against several criteria.** Options as rows, numbered to
-  match; three to five criteria as columns.
+  match, with a `Do nothing` row; three to five criteria as columns. Follow *The method* above:
+  `++` and `--` are a high bar, and never add a score column.
 - **Every cell is a rating plus a concrete reason of a few words** (`- 2 days of work`), never a bare
   colour.
 - **Define each criterion** in a key list under the grid.

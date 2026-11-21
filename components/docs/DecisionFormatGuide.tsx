@@ -70,6 +70,12 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
           🔴 🟡 🟢 also work, as poor, mixed and good. Under the table, explain each criterion in a list such as{" "}
           <code className={code}>- **Cost:** what the company pays</code>.
         </p>
+        <p>
+          Decisive and Disqualifying are a high bar: that one cell alone is a reason to choose the option, or to
+          rule it out. Include a <code className={code}>Do nothing</code> row, make every reason concrete (a
+          number, a duration), and state the recommendation first. Never add a score column: the grid shows the
+          trade-off, and people decide.
+        </p>
       </div>
 
       {audience === "agents" && (
@@ -77,7 +83,7 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
           <h3 className="font-semibold theme-text-primary">When to use them</h3>
           <ul className="list-disc pl-5 space-y-1">
             <li>Any question to a person with two to five discrete answers is a Decision.</li>
-            <li>Recommend exactly one option. Keep option text short: it is posted back verbatim.</li>
+            <li>Recommend exactly one option, first, in a sentence naming its number and the trade-off accepted. Keep option text short: it is posted back verbatim.</li>
             <li>Add a grid when options trade off against several criteria: rows numbered to match (1. Lisbon), 3–5 columns, which the apps letter A, B, C.</li>
             <li>Every cell is a rating plus a concrete reason, never a bare colour.</li>
             <li>
