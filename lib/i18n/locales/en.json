@@ -149,11 +149,11 @@
       "filterAll": "All tasks"
     },
     "tradeoffRatings": {
-      "veryPoor": "Very poor",
+      "veryPoor": "Disqualifying",
       "poor": "Poor",
       "mixed": "Mixed",
       "good": "Good",
-      "veryGood": "Very good"
+      "veryGood": "Decisive"
     },
     "tradeoffGrid": {
       "fullScreen": "Full screen"

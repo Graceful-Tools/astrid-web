@@ -149,11 +149,11 @@
       "filterAll": "Все задачи"
     },
     "tradeoffRatings": {
-      "veryPoor": "Очень плохо",
+      "veryPoor": "Исключающее",
       "poor": "Плохо",
       "mixed": "Неоднозначно",
       "good": "Хорошо",
-      "veryGood": "Очень хорошо"
+      "veryGood": "Решающее"
     },
     "tradeoffGrid": {
       "fullScreen": "Во весь экран"

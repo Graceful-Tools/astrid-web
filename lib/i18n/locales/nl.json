@@ -149,11 +149,11 @@
       "filterAll": "Alle taken"
     },
     "tradeoffRatings": {
-      "veryPoor": "Zeer slecht",
+      "veryPoor": "Diskwalificerend",
       "poor": "Slecht",
       "mixed": "Gemengd",
       "good": "Goed",
-      "veryGood": "Zeer goed"
+      "veryGood": "Doorslaggevend"
     },
     "tradeoffGrid": {
       "fullScreen": "Volledig scherm"

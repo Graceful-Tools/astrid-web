@@ -128,9 +128,10 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // Re-pinned for AWTD-1560 (2026-11-14): get_agent_queue explains runnable.
     // AWTD-1688 adds claim_task alongside and changes none of these.
     // Re-pinned for AWTD-1686 (2026-11-16): handoff_task added beside the blocker tools.
-    // Re-pinned for AWTD-1693 (2026-11-16): get_orchestration_policy appended; no existing tool changed.
+    // Re-pinned for ADEV-178 (2026-11-21): the Decision hint teaches the Extreme Clarity method.
+    // Re-pinned for AWTD-1693 (2026-11-16): get_orchestration_policyappended; no existing tool changed.
     expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
-      '0763fdd629f8bdde9da00f5e92627cae2123ae30150e9698654054994b63e7e4',
+      '2fcfaffc412139bf4093ffc3a4668827e9dcf94799e9789f92f97467704aeed8',
     )
   })
 

@@ -11,19 +11,21 @@ tested against the same text.
 ## The complete example
 
 ```markdown
+We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the team asked for most.
+
 **Decision:** Where should we hold the team offsite?
 
 - **1.** Lisbon (recommended)
 - **2.** Mountain cabin
-- **3.** Stay home and order pizza
+- **3.** Do nothing: no offsite this year
 
 | Option | Cost | Travel | Fun |
 |---|---|---|---|
-| 1. Lisbon | ~ flights for everyone | - a long day | ++ food, sun, city |
-| 2. Cabin | + one rental | + 3h drive | + hiking |
-| 3. Pizza | ++ cheap | ++ none | -- same as every day |
+| 1. Lisbon | ~ $1,400 a person | - 9h door to door | ++ top pick in the team survey |
+| 2. Cabin | + $600 a person | + 3h drive | + hiking, small group |
+| 3. Do nothing | + $0 | + none | - no time together for a year |
 
-- **Cost:** what the company pays, all in.
+- **Cost:** what the company pays per person, all in.
 - **Travel:** door-to-door time for most of the team.
 - **Fun:** how much people will look forward to it.
 ```
@@ -65,11 +67,11 @@ a short reason.
 
 | Token | Meaning | Colour |
 |---|---|---|
-| `--` | Very poor | dark red, white text |
-| `-` | Poor | light red |
-| `~` | Mixed | yellow |
-| `+` | Good | light green |
-| `++` | Very good | dark green, white text |
+| `--` | Disqualifying: this alone rules the option out | dark red, white text |
+| `-` | Poor: a real but survivable cost | light red |
+| `~` | Mixed, conditional or unknown | yellow |
+| `+` | Good: clears the bar | light green |
+| `++` | Decisive: this alone is a reason to choose it | dark green, white text |
 | 🔴 / 🟡 / 🟢 | Poor / Mixed / Good | as above |
 
 The exact colours are the design tokens' `palette.tradeoff`
@@ -98,6 +100,20 @@ Put a bold-term list under the grid, one line per column:
 - **Cost:** what the company pays, all in.
 - **Travel:** door-to-door time for most of the team.
 ```
+
+## The method (Extreme Clarity)
+
+A grid follows the Extreme Clarity method (Appendix 5, jon.paris/extremeclarity):
+
+- **Always include a Do nothing row** (status quo), honestly rated. Doing nothing is an option with
+  costs of its own.
+- **Lead with the recommendation:** the first sentence names the option number and the trade-off
+  accepted ("We recommend #3, accepting a 3–7 month delay to avoid…").
+- **The extremes are a high bar.** `++` Decisive and `--` Disqualifying are rare. A row with a
+  `--` is normally out.
+- **Never count colours or add a score or weighted-total column.** The grid shows the trade-off and
+  people decide. Going against the colours is fine if said out loud, pointing at the accepted cell.
+- **Concrete cells:** a number, duration or count beats an adjective.
 
 ## Writing one well (for agents)
 

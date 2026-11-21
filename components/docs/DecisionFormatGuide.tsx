@@ -77,9 +77,9 @@ export function DecisionFormatGuide({ audience }: { audience: "people" | "agents
           <h3 className="font-semibold theme-text-primary">When to use them</h3>
           <ul className="list-disc pl-5 space-y-1">
             <li>Any question to a person with two to five discrete answers is a Decision.</li>
-            <li>Recommend exactly one option. Keep option text short: it is posted back verbatim.</li>
-            <li>Add a grid when options trade off against several criteria: rows numbered to match (1. Lisbon), 3–5 columns, which the apps letter A, B, C.</li>
-            <li>Every cell is a rating plus a concrete reason, never a bare colour.</li>
+            <li>Recommend exactly one option and lead with it by number and the trade-off accepted. Keep option text short: it is posted back verbatim.</li>
+            <li>Add a grid when options trade off against several criteria: rows numbered to match (1. Lisbon), always including a Do nothing row, 3–5 columns, which the apps letter A, B, C.</li>
+            <li>Every cell is a rating plus a concrete reason (a number, duration or count). ++ and -- are a high bar, and never add a score column.</li>
             <li>
               End a handback with the <code className={code}>AGENT-HANDBACK: &lt;mailbox&gt;</code> line, last.
             </li>

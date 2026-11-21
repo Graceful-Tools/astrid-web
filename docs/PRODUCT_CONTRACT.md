@@ -367,14 +367,14 @@ asker wrote (letters case-insensitive), followed by end/space/punctuation, that 
 chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
 
 **Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
-with a rating token followed by whitespace or end: `--` very poor, `-` poor, `~` mixed, `+` good,
-`++` very good, or 🔴 poor / 🟡 mixed / 🟢 good. Not a grid if any such cell lacks a token, or if
+with a rating token followed by whitespace or end: `--` disqualifying, `-` poor, `~` mixed, `+` good,
+`++` decisive, or 🔴 poor / 🟡 mixed / 🟢 good. Not a grid if any such cell lacks a token, or if
 every rated cell is a bare `-`. Each cell draws on its colour with the remaining words
 (five fills from red to green, white text on the two dark ones and near-black on the three light:
 the design tokens' `palette.tradeoff` and `palette.tradeoff-text`, Google Docs' palette; see
 [specs/DESIGN_SYSTEM.md](./specs/DESIGN_SYSTEM.md) → Markdown). A cell with no reason shows its token. Each cell tells
 assistive technology its rating in words ("Good. fast"), and the colour key under the grid names the
-ratings used in words (Very poor … Very good, localised), worst to best. Rows are numbered 1, 2, 3
+ratings used in words (Disqualifying … Decisive, localised), worst to best. Rows are numbered 1, 2, 3
 and lose the marker their writer put in front (`A. Lisbon`, `2) Cabin`, a lone `B`); criteria
 columns are lettered A, B, C (AA after Z) before their names. Every option row is as tall as
 the tallest, and the criteria columns share the width equally, at least 84 (pt or px) each. A
