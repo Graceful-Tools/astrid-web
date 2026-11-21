@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "Supprimer {name} ?",
     "deleteProjectDetail": "Ses listes sont conservées, hors de tout projet. Les colonnes propres au tableau sont supprimées avec lui.",
     "deleteProjectAction": "Supprimer",
-    "deleteProjectFailed": "Impossible de supprimer le projet"
+    "deleteProjectFailed": "Impossible de supprimer le projet",
+    "goals": {
+      "title": "Objectifs et garde-fous",
+      "intro": "À quoi sert ce projet, et ce qu'il ne doit pas faire. Toutes les personnes et tous les agents qui y travaillent lisent les deux, pour que les instructions restent courtes.",
+      "goalsHeading": "Objectifs",
+      "guardrailsHeading": "Garde-fous",
+      "goalPlaceholder": "Un objectif, p. ex. Maximiser le rendement à long terme",
+      "measurePlaceholder": "Mesure",
+      "targetPlaceholder": "Cible",
+      "currentPlaceholder": "Actuel",
+      "guardrailPlaceholder": "Un garde-fou, p. ex. N'enfreindre aucune loi applicable",
+      "kindLabel": "Comment il est vérifié",
+      "kindHint": "Énoncé : les personnes et les agents en jugent. Appliqué : un programme le vérifie.",
+      "kindStated": "Énoncé",
+      "kindEnforced": "Appliqué",
+      "addGoal": "Ajouter un objectif",
+      "addGuardrail": "Ajouter un garde-fou",
+      "remove": "Retirer",
+      "saveFailed": "Impossible d'enregistrer les objectifs et garde-fous. Réessayez.",
+      "counts": "Objectifs: {goals} · Garde-fous: {guardrails}",
+      "targetValue": "Cible : {value}",
+      "currentValue": "Actuel : {value}"
+    }
   },
   "viewRotator": {
     "showList": "Afficher la liste",

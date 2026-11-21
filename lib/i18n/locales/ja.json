@@ -1847,7 +1847,29 @@
     "deleteProjectConfirm": "{name}を削除しますか？",
     "deleteProjectDetail": "リストはどのプロジェクトにも属さない状態で残ります。ボード独自の列は一緒に削除されます。",
     "deleteProjectAction": "削除",
-    "deleteProjectFailed": "プロジェクトを削除できませんでした"
+    "deleteProjectFailed": "プロジェクトを削除できませんでした",
+    "goals": {
+      "title": "目標とガードレール",
+      "intro": "このプロジェクトの目的と、してはいけないこと。ここで働く人もエージェントも両方を読むので、指示は短くできます。",
+      "goalsHeading": "目標",
+      "guardrailsHeading": "ガードレール",
+      "goalPlaceholder": "目標(例: 長期的なリターンを最大化する)",
+      "measurePlaceholder": "指標",
+      "targetPlaceholder": "目標値",
+      "currentPlaceholder": "現在",
+      "guardrailPlaceholder": "ガードレール(例: 適用される法律に違反しない)",
+      "kindLabel": "確認方法",
+      "kindHint": "明示: 人とエージェントが判断します。強制: プログラムが確認します。",
+      "kindStated": "明示",
+      "kindEnforced": "強制",
+      "addGoal": "目標を追加",
+      "addGuardrail": "ガードレールを追加",
+      "remove": "削除",
+      "saveFailed": "目標とガードレールを保存できませんでした。もう一度お試しください。",
+      "counts": "目標: {goals} · ガードレール: {guardrails}",
+      "targetValue": "目標値: {value}",
+      "currentValue": "現在: {value}"
+    }
   },
   "viewRotator": {
     "showList": "リストを表示",

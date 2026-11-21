@@ -2,9 +2,9 @@
 
 /**
  * Project settings (ADEV-54): "I cannot see a way to edit project settings."
- * The board header opens this for the owner or a project admin. Rename is the
- * one project setting the API takes today (PATCH /api/v1/projects/:id { name },
- * ADEV-48); the dialog is where the next ones belong.
+ * The board header opens this for the owner or a project admin. It renames the
+ * project (PATCH /api/v1/projects/:id { name }, ADEV-48) and states its goals
+ * and guardrails (PUT /api/v1/projects/:id/goals, ADEV-179).
  */
 import React from "react"
 import { Button } from "@/components/ui/button"
@@ -19,6 +19,9 @@ import {
 import { apiPatch } from "@/lib/api"
 import { renameLoadedProject } from "@/lib/client-projects"
 import { useTranslations } from "@/lib/i18n/client"
+import { ProjectGoalsEditor, withoutDraftIds } from "@/components/projects/ProjectGoalsEditor"
+import { useProjectGoals } from "@/hooks/use-project-goals"
+import { EMPTY_GOALS_AND_GUARDRAILS, type GoalsAndGuardrails } from "@/lib/goals-guardrails"
 
 interface ProjectSettingsDialogProps {
   projectId: string
@@ -32,16 +35,27 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
   const [name, setName] = React.useState(projectName)
   const [saving, setSaving] = React.useState(false)
   const [failed, setFailed] = React.useState(false)
+  const [goalsFailed, setGoalsFailed] = React.useState(false)
+  const { state: storedGoals, save: saveGoals } = useProjectGoals(open ? projectId : null)
+  const [goals, setGoals] = React.useState<GoalsAndGuardrails>(EMPTY_GOALS_AND_GUARDRAILS)
+  const [goalsTouched, setGoalsTouched] = React.useState(false)
 
   React.useEffect(() => {
     if (open) {
       setName(projectName)
       setFailed(false)
+      setGoalsFailed(false)
+      setGoalsTouched(false)
     }
   }, [open, projectName])
 
+  // Load what is stored into the editor, until the person starts editing it.
+  React.useEffect(() => {
+    if (open && storedGoals && !goalsTouched) setGoals({ goals: storedGoals.goals, guardrails: storedGoals.guardrails })
+  }, [open, storedGoals, goalsTouched])
+
   const trimmed = name.trim()
-  const unchanged = trimmed === projectName
+  const unchanged = trimmed === projectName && !goalsTouched
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -52,15 +66,29 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
     }
     setSaving(true)
     setFailed(false)
-    try {
-      await apiPatch(`/api/v1/projects/${projectId}`, { name: trimmed })
-      renameLoadedProject(projectId, trimmed)
-      onOpenChange(false)
-    } catch {
-      setFailed(true)
-    } finally {
-      setSaving(false)
+    setGoalsFailed(false)
+    let ok = true
+    if (trimmed !== projectName) {
+      try {
+        await apiPatch(`/api/v1/projects/${projectId}`, { name: trimmed })
+        renameLoadedProject(projectId, trimmed)
+      } catch {
+        ok = false
+        setFailed(true)
+      }
     }
+    if (goalsTouched) {
+      try {
+        // Blank rows are dropped by the server (lib/goals-guardrails.ts), so half-typed rows are harmless.
+        await saveGoals(withoutDraftIds(goals) as GoalsAndGuardrails)
+        setGoalsTouched(false)
+      } catch {
+        ok = false
+        setGoalsFailed(true)
+      }
+    }
+    setSaving(false)
+    if (ok) onOpenChange(false)
   }
 
   return (
@@ -79,8 +107,21 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
               data-testid="project-settings-name"
             />
           </label>
+          <div className="max-h-96 overflow-y-auto border-t theme-border pt-3">
+            <h3 className="mb-2 text-sm font-semibold theme-text-primary">{t("projectMode.goals.title")}</h3>
+            <ProjectGoalsEditor
+              value={goals}
+              onChange={next => {
+                setGoals(next)
+                setGoalsTouched(true)
+              }}
+            />
+          </div>
           {failed && (
             <p role="alert" className="text-xs text-danger">{t("projectMode.settingsSaveFailed")}</p>
+          )}
+          {goalsFailed && (
+            <p role="alert" className="text-xs text-danger">{t("projectMode.goals.saveFailed")}</p>
           )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
