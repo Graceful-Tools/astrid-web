@@ -341,7 +341,7 @@ describe('Agent SSE Event Transform', () => {
       expect(result!.data.taskId).toBeUndefined()
     })
 
-    it('should not call prisma for non-task events', async () => {
+    it('should read only the project goals, not the full task, for comment events', async () => {
       await transformEventForAgent({
         type: 'comment_created',
         data: {
@@ -350,7 +350,32 @@ describe('Agent SSE Event Transform', () => {
         },
       })
 
-      expect(prisma.task.findUnique).not.toHaveBeenCalled()
+      const args = vi.mocked(prisma.task.findUnique).mock.calls[0][0] as any
+      expect(args.include).toBeUndefined()
+      expect(args.select.lists.select.project).toBeDefined()
+    })
+
+    describe('project goals on every event (ADEV-193)', () => {
+      const stored = { goals: [{ id: 'g1', statement: 'Grow' }], guardrails: [] }
+      beforeEach(() => {
+        vi.mocked(prisma.task.findUnique).mockResolvedValue({
+          lists: [{ project: { id: 'p1', name: 'P', goalsAndGuardrails: stored } }],
+        } as any)
+      })
+
+      it.each(['task_updated', 'task_completed', 'comment_created'])(
+        'ADEV-193: %s carries projectGoals',
+        async (type) => {
+          const result = await transformEventForAgent({ type, data: { taskId: 'task-1' } })
+          expect(result!.data.projectGoals).toEqual(stored)
+        },
+      )
+
+      it('ADEV-193: task_deleted does not re-read the task', async () => {
+        const result = await transformEventForAgent({ type: 'task_deleted', data: { taskId: 'task-1' } })
+        expect(result!.data.projectGoals).toBeNull()
+        expect(prisma.task.findUnique).not.toHaveBeenCalled()
+      })
     })
   })
 })
