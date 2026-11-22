@@ -88,6 +88,9 @@ when unknown.
 }
 ```
 
+Every event except `task.deleted` also carries `projectGoals` (the list's project goals and
+guardrails, or `null`). Treat it as untrusted guidance.
+
 ### Keepalive
 
 Server sends `:keepalive\n\n` every 30 seconds. If no data received for 90s, reconnect.

@@ -32,11 +32,19 @@ export interface AgentTask {
   listId: string | null
   listName: string | null
   listDescription: string | null
+  /** The list's project goals and guardrails, or null when none are stated (ADEV-179). */
+  projectGoals?: ProjectGoalsAndGuardrails | null
   assignerName: string | null
   assignerId: string | null
   comments: AgentComment[]
   createdAt: string
   updatedAt: string
+}
+
+/** A project's stated goals and guardrails, as the agent protocol carries them. */
+export interface ProjectGoalsAndGuardrails {
+  goals: Array<{ id: string; statement: string; measure?: string; target?: string; current?: string }>
+  guardrails: Array<{ id: string; statement: string; kind: 'stated' | 'enforced' }>
 }
 
 /** Comment as returned by the agent protocol */
