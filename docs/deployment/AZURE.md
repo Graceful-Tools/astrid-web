@@ -59,8 +59,8 @@ migrations), `REDIS_URL`, `REALTIME_BUS=redis`, `STORAGE_DRIVER=azure-blob`,
 The brand is not compiled into the image any more. Since AWTD-1587 the image reads every
 brand value when it starts, `NEXT_PUBLIC_*` included: mount a profile and point
 `BRAND_PROFILE` at it ([SELF_HOSTING.md](./SELF_HOSTING.md#your-brand-mounted-at-runtime-or-built-in)).
-That arrives in the first release after v1.3.0. Images from v1.3.0 and earlier can only
-carry a brand they were built with.
+That shipped in v1.4.0. Images from v1.3.0 and earlier can only carry a brand they were
+built with.
 
 On Azure there are two ways to give the app its brand:
 
@@ -162,6 +162,12 @@ SMOKE_BASE_URL=https://<appUrl> npx tsx scripts/self-host-smoke.ts   # NEXTAUTH_
 
 If the first run fails with a Key Vault access error on a container app, the identity's
 role assignment had not propagated yet. Run the same command again.
+
+**First admin and who may sign up.** Add `INITIAL_ADMIN_EMAIL` and, for any instance not
+meant for the public, `REGISTRATION_ALLOWED_EMAIL_DOMAINS` to `appSettings` in the
+parameters file. Unset, anyone who can reach `appUrl` can create an account. The rules, and
+the order on a federated-only deployment, are in [SELF_HOSTING.md](./SELF_HOSTING.md),
+*Sign-up and the first admin*.
 
 **Email.** The parameters file reads `EMAIL_TRANSPORT` from your shell and defaults it to
 `log`, so a first deployment starts with no relay. Every message is written to the app's

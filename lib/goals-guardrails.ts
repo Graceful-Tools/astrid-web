@@ -11,7 +11,7 @@
  * the checks themselves are ADEV-182.
  *
  * Stored as Project.goalsAndGuardrails (JSON). This module is the one place the shape is read, so the
- * API, the agent prompts, the MCP tool and contracts/fixtures/goals.json all agree. Safe for the
+ * API, the agent prompts and the MCP tool agree; clients follow docs/API_CONTRACT.md. Safe for the
  * browser: no server imports.
  */
 

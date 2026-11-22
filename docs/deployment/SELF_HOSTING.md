@@ -54,8 +54,9 @@ Then:
    its address and verify the email (see *Sign-up and the first admin* below).
 2. Check that it is healthy. `GET /api/health` reports `healthy` and the commit you built,
    and `GET /api/v1/capabilities` reports your brand and sign-in methods.
-3. Run the smoke test against it. It checks pages, the API, cron authentication and an
-   upload round-trip:
+3. Run the smoke test against it. It checks pages, the API, cron authentication, an
+   upload round-trip, and the agent surfaces (`/mcp` and its OAuth discovery documents, the
+   agent queue, the job worker's drain, and the SSE stream):
 
    ```bash
    set -a; . deploy/self-host/.env; set +a
@@ -196,6 +197,12 @@ email has no account yet. Domains match exactly, so list each subdomain you mean
 that already exist are unaffected: their owners still sign in and add passkeys.
 `INITIAL_ADMIN_EMAIL` is always admitted.
 
+On a deployment that signs in only through Google, Apple, GitHub or SSO, the order differs:
+while `INITIAL_ADMIN_EMAIL` names an address, a new provider sign-in with that address is
+refused (`lib/auth/federated-identity-linking.ts`). Create the account with the setting
+unset, then set it; the 08:00 UTC analytics cron grants admin
+([launch checklist](./WHITE_LABEL_LAUNCH_CHECKLIST.md)).
+
 With no email transport configured, nothing is sent and the verification link is written to
 the app's log instead. To bootstrap the admin on an instance like that, sign up with the
 `INITIAL_ADMIN_EMAIL` address, then find the link and open it in the same browser:
@@ -269,7 +276,7 @@ release is a pair of images:
 
 `<version>` is a semver release such as `1.4.0`. Each image carries an SBOM and a
 provenance attestation (`docker buildx imagetools inspect <image> --format '{{json .SBOM}}'`).
-Both images are multi-arch manifests for **linux/amd64 and linux/arm64** (Apple Silicon, Graviton and Ampere VMs, Raspberry Pi-class hosts), so `docker pull` picks the right one. Each platform carries its own SBOM and provenance. `:edge` is the latest build of `main`, published only when someone runs the workflow by
+From the first release after 1.4.0, both images are multi-arch manifests for **linux/amd64 and linux/arm64** (Apple Silicon, Graviton and Ampere VMs, Raspberry Pi-class hosts), so `docker pull` picks the right one, and each platform carries its own SBOM and provenance (ADEV-125). 1.3.0 and 1.4.0 are linux/amd64 only. `:edge` is the latest build of `main`, published only when someone runs the workflow by
 hand. Do not run it in production.
 
 The published images are built with **Astrid's default brand**, and they take any brand at
@@ -296,6 +303,13 @@ Releases are semver tags (`v1.4.0`) cut by hand from `main`, with `CHANGELOG.md`
 release notes. A tag triggers the workflow. The workflow then pulls the pair it just
 published and runs the smoke test against it, with nothing built locally. A major version
 means the upgrade needs something beyond the steps below, and the changelog says what.
+
+The tag this page documents (`IMAGE_TAG=` above) is checked against GHCR twice: as the
+release workflow's last job, and daily by `image-tag-published.yml`, which opens an issue
+if the tag is missing (ADEV-126). The self-host env example and
+`deploy/azure/whitelabel-partner.bicepparam` must name the same tag
+(`tests/rules/documented-image-tag-agrees.test.ts`). Bump all three in one PR, and cut the
+tag soon after.
 
 ## Upgrades
 
@@ -354,7 +368,11 @@ brand. Guide: [AZURE.md](./AZURE.md).
 
 The apps take their server from the brand profile's domain when they are built (iOS/Mac:
 `make-brand-variant.sh`, Windows: `package.ps1 -Brand`, Android: `brand.properties`).
-**Settle the domain before building them.** Release builds cannot switch servers. The
+**Settle the domain before building them.** Branded release builds cannot switch servers.
+You can also ship no apps of your own: people install the stock Astrid apps and enter your
+server's address on the sign-in screen ("Use a different server"). That needs API level 1
+or later (`meta.apiLevel` on `/api/v1/capabilities`, ADEV-124); see
+[WHITE_LABEL_COMPATIBILITY.md](./WHITE_LABEL_COMPATIBILITY.md). The
 steps per platform, the URL-scheme rule for native sign-in, and `BRAND_APPLE_APP_IDS` for
 universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, per platform*.
 
@@ -362,7 +380,7 @@ universal links are in [WHITELABELING.md](../WHITELABELING.md), *Native apps, pe
 
 - **Only one SSO provider (OIDC) per deployment.** Per-organisation SSO is a partner build:
   WHITELABELING §3.
-- **Images are published for linux/amd64 and linux/arm64.** CI (`self-host.yml`) boots and
+- **Images are published for linux/amd64 and, from the release after 1.4.0, linux/arm64.** CI (`self-host.yml`) boots and
   smoke-tests amd64 only. A release checks that both platforms are in the manifest; arm64
   is built natively but not booted.
 - **Default-locale paths do not redirect-loop in the image.** A standalone `next start`

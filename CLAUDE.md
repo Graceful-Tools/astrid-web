@@ -26,7 +26,11 @@ lives in exactly one place:
    is `workflow_dispatch` only. Deploy from the Actions tab or with
    `./scripts/deploy-preview.sh --production`.
    - **Do not report work as shipped because you pushed.** Merged code sits on
-     `main` until someone deploys it.
+     `main` until something dispatches the workflow: a person, an agent after green
+     gates (rule 3), `agent-ship.yml` after it lands an eligible agent PR
+     (`ASTRID_SHIP_ENABLED=true`), or an approved deploy card. Check
+     `gh run list --workflow=production-deployment.yml` before dispatching, and
+     verify `commitSha` on `/api/health`.
    - Prisma migrations apply during that **deploy** (`DATABASE_URL_DIRECT` is
      Production-scoped). Verify migration impact against production data before
      deploying.

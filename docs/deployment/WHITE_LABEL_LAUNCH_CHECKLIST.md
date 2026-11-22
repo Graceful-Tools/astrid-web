@@ -69,6 +69,10 @@ and release compatibility. Treat each as an operator check below. In particular,
   (`app/api/cron/analytics/route.ts`). So create and verify the account first with the
   setting unset, then set it, then run or wait for that cron before checking admin
   access. Remove the bootstrap setting afterwards if your operating procedure calls for it.
+  With passkey sign-up the grant is immediate: opening the verification link grants admin
+  (ADEV-104, `lib/email-verification.ts`). Decide who may sign up before launch:
+  `REGISTRATION_ALLOWED_EMAIL_DOMAINS` (domains and/or addresses) limits new accounts, and
+  unset means anyone who reaches the URL (`lib/auth/registration-allowlist.ts`).
 - [ ] **Configure outbound mail and sign-in.** Register the chosen identity applications
   and callback URLs, and authorize the selected sender domain with the chosen mail relay.
   See [Whitelabeling — sign-in providers](../WHITELABELING.md#sign-in-providers),
@@ -94,7 +98,9 @@ and release compatibility. Treat each as an operator check below. In particular,
   argument of the image, unlike the brand; see
   [Self-hosting](./SELF_HOSTING.md#your-brand-mounted-at-runtime-or-built-in).
 - [ ] **Native clients:** if shipping branded mobile or desktop apps, build and sign each
-  platform variant for the settled domain. A release binary cannot switch servers.
+  platform variant for the settled domain. A branded release binary cannot switch servers;
+  the stock Astrid apps can, if your server meets their API level
+  ([compatibility](./WHITE_LABEL_COMPATIBILITY.md)).
   Follow [Whitelabeling — native apps](../WHITELABELING.md#native-apps-per-platform) and
   the [compatibility matrix](./WHITE_LABEL_COMPATIBILITY.md).
 - [ ] **Azure field verification:** Azure is documented, **not field-verified**. The Bicep
