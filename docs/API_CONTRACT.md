@@ -655,6 +655,22 @@ project's. Shape and rules: `lib/goals-guardrails.ts`, the one place they are re
 check (ADEV-182). Agents get the same statement in their prompt and payloads (`projectGoals` on the
 webhook task and the agent queue), and over MCP with `get_project_goals { listId | projectId | taskId }`.
 
+### GET|POST `/api/v1/projects/{id}/decisions` and POST `…/decisions/{taskId}/decide`
+Decisions as a process (ADEV-180). **A decision is a task**: its description holds the Decision and
+the trade-off grid (docs/DECISIONS.md), so it has an id, assignee, lanes and the agent handoff.
+Anyone working in the project may use these; an agent may too (it still cannot write the goals).
+- `POST { title?, listId?, assigneeId? }` starts one from the project's goals: each goal is a
+  criterion column (lettered A, B, C…), every cell starts unrated `~`, a "Do nothing" row is always
+  there, and the guardrails are listed under the grid (an option that breaks one is rated `--`).
+  `listId` must be in the project (default: its first list). Answers 201 `{ task, criteria }`.
+- `GET` answers `{ decisions: [{ id, identifier, title, prompt, options, status: "open"|"decided",
+  chosen: { number, text } | null, … }] }`, open first. `chosen` is the `**Decided:** N — text` line
+  on the description if there is one, else the latest person's reply that picks an option.
+- `POST …/decide { option }` writes that `**Decided:** N — text` line (replacing an earlier one).
+- Editing the grid is a client edit of the description: read it with the serialiser pinned by
+  `contracts/fixtures/decision-grid.json` (`lib/decision-grid.ts`) and `PUT` the task. Never add a
+  score or total column.
+
 ---
 
 ## Board Art Endpoints
