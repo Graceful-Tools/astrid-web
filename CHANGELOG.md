@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The stock Astrid apps can sign in to a partner's server: `/auth/desktop` accepts the stock `astrid` scheme alongside the brand's own, and `GET /api/v1/capabilities` reports `meta.apiLevel` (ADEV-124).
 - A daily check, and a release's last job, confirm that the image tag SELF_HOSTING.md documents exists on GHCR (ADEV-126).
 - The SDK runner's prompt carries the task's list instructions and project goals from the queue (ADEV-186).
+- MCP `gather_decision_evidence` gives an agent the brief for filling a decision's traffic light with sourced cells, using the project's goals as criteria (ADEV-181).
 
 ### Changed
 - Trade-off grids follow the Extreme Clarity method: `++` reads **Decisive** and `--` **Disqualifying** (both a high bar), and agents are taught to lead with the recommendation, include a Do nothing row, keep cells concrete and never add a score column (ADEV-178).
