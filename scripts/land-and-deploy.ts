@@ -58,6 +58,7 @@ import {
   type CorePullRequestState,
 } from './lib/core-handoff'
 import { isAwaitingDeploy, isAwaitingMerge } from './lib/doing-release'
+import { reworkComment, reworkReason } from './lib/pr-rework'
 import { boardTasksUrl } from './lib/board-read-url'
 import { loadScriptEnv } from './lib/load-env'
 import type { OrchestrationPolicy } from '@/lib/orchestration-policy'
@@ -352,6 +353,8 @@ async function openPullRequests(): Promise<PullRequestSummary[]> {
       branch: pr.headRefName, headSha: pr.headRefOid, task,
       listId: options.listId, comments: commentsBody.comments ?? [],
     })
+    pr.handoffCurrent = isAwaitingDeploy(commentsBody.comments ?? [])
+    pr.handoffTask = { id: task.id, identifier: task.identifier, assigneeEmail: task.assignee?.email }
   }
 
   return listed.map(pr => {
@@ -417,6 +420,47 @@ async function astridAuth(): Promise<{ token: string; auth: Record<string, strin
   if (!response.ok) throw new Error(`Astrid authentication failed: HTTP ${response.status}`)
   const token = ((await response.json()) as { access_token: string }).access_token
   return { token, auth: { 'X-OAuth-Token': token } }
+}
+
+/**
+ * ADEV-200: finished agent work whose PR cannot land (it conflicts with main, or its checks
+ * finished red) goes back to its agent: a comment naming the PR, branch, head and reason,
+ * then Doing → Ready with the assignee kept. Before this, such a PR was held back on every
+ * tick while its task sat in Doing, where neither the queue nor the stale sweep looks.
+ * Returns the tasks sent back. Best effort, per task.
+ */
+async function sendBackForRework(prs: PullRequestSummary[]): Promise<string[]> {
+  const due = prs.flatMap(pr => {
+    const reason = reworkReason(pr)
+    return reason && pr.handoffTask ? [{ pr, reason, task: pr.handoffTask }] : []
+  })
+  if (!due.length) return []
+
+  const sent: string[] = []
+  let session: { token: string; auth: Record<string, string> } | null = null
+  for (const { pr, reason, task } of due) {
+    const name = task.identifier ?? task.id
+    if (options.dryRun) {
+      log(`  would send ${name} back to Ready — #${pr.number}: ${reason}`)
+      sent.push(name)
+      continue
+    }
+    const mailbox = agentMailboxFromEmail(task.assigneeEmail ?? '')
+    if (!mailbox) {
+      log(`  ⚠️  not sending ${name} back: it has no agent assignee`)
+      continue
+    }
+    session ??= await astridAuth()
+    const authorId = await resolveAgentAuthorId({ mailbox, accessToken: session.token, warn: log })
+    const api = new SweepApi(session.auth, false, (...args) => log(args.join(' ')), authorId)
+    // Comment first: it supersedes the AWAITING-DEPLOY marker, and a task that moved with
+    // no word on why is the worse failure.
+    await api.comment(task, reworkComment({ number: pr.number, branch: pr.headRefName, headSha: pr.headRefOid!, reason }))
+    await api.setStatus(task, 'ready')
+    log(`  sent ${name} back to Ready — #${pr.number}: ${reason}`)
+    sent.push(name)
+  }
+  return sent
 }
 
 interface CoreTick {
@@ -601,12 +645,21 @@ async function main() {
   const mergeHold = policyHold(policy, POLICY_AGENT, 'merge')
   if (mergeHold) log(`  not landing PRs — ${mergeHold}`)
 
-  const { land: landable, skipped } = landablePullRequests(await openPullRequests(), {
+  const open = await openPullRequests()
+  const { land: landable, skipped } = landablePullRequests(open, {
     requireRunnerMarker: !options.includeHandOpened,
     only: options.only,
   })
   const land = mergeHold ? [] : landable
   for (const skip of skipped) log(`  #${skip.number} held back — ${skip.why}`)
+
+  // ADEV-200: a PR that cannot land goes back to its agent instead of being held forever.
+  let reworked: string[] = []
+  try {
+    reworked = await sendBackForRework(open)
+  } catch (error) {
+    log(`  ⚠️  rework handback failed: ${(error as Error).message.split('\n')[0]}`)
+  }
 
   const take = land.slice(0, Math.max(0, options.maxLand))
   const deferred = land.slice(take.length).map(pr => pr.number)
@@ -860,15 +913,18 @@ async function main() {
     coreCompleted: core.completed,
     coreSkipped: core.skipped,
   })
+  const report = reworked.length
+    ? `${news}\n\nSent back to fix their PRs (conflict with main, or red checks): ${reworked.join(', ')}`
+    : news
   log('')
-  log(news)
+  log(report)
 
   if (options.listId && !options.dryRun) {
     const worthPosting = verdict.deploy || verdict.code !== 0 || completedTasks.length > 0 ||
-      core.landed.length > 0 || core.completed.length > 0
+      core.landed.length > 0 || core.completed.length > 0 || reworked.length > 0
     if (worthPosting) {
       try {
-        execFileSync('npx', ['tsx', 'scripts/post-list-message.ts', options.listId, news], {
+        execFileSync('npx', ['tsx', 'scripts/post-list-message.ts', options.listId, report], {
           cwd: options.repo,
           encoding: 'utf8',
           timeout: 60_000,

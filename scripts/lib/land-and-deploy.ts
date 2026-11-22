@@ -26,6 +26,10 @@ export interface PullRequestSummary {
   headRefOid?: string
   /** Revalidated against the current Astrid handoff, not merely a PR body. */
   cloudHandoffValid?: boolean
+  /** The handoff's AWAITING-DEPLOY marker is current: no release, redo claim or rework since (ADEV-200). */
+  handoffCurrent?: boolean
+  /** The board task an agent branch names, read with the handoff check (ADEV-200). */
+  handoffTask?: { id: string; identifier?: string | null; assigneeEmail?: string | null }
   number: number
   headRefName: string
   title?: string
