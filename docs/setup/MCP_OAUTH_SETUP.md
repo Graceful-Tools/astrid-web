@@ -492,6 +492,7 @@ Once configured, AI assistants can use these tools:
 - `add_blocker` / `remove_blocker` - Make a task wait on another task
 - `get_orchestration_policy` - What this board lets an agent do (merge, deploy, migrate, release, spend)
 - `get_project_goals` - The goals and guardrails of the project a list or task is in (`listId`, `projectId` or `taskId`); read-only
+- `gather_decision_evidence` - The brief for filling a decision task's traffic light: its criteria, options and unknown cells, the project's goals and guardrails, and the rules (`taskId`); read-only, the agent writes back with `update_task` or `add_comment`
 
 ### Lists and chat
 - `create_list` / `update_list` - Create or change a list
