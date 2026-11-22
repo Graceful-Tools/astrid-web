@@ -275,7 +275,7 @@ export function ProjectBoard({
       )}
 
       {saveFailed && (
-        <p role="alert" className="px-4 pt-2 text-xs text-destructive">{t("projectMode.boardSaveFailed")}</p>
+        <p role="alert" className="px-4 pt-2 text-xs text-danger">{t("projectMode.boardSaveFailed")}</p>
       )}
 
       <div
