@@ -208,6 +208,8 @@ export interface ProjectGoalsForAgent {
   projectId: string
   projectName: string
   value: GoalsAndGuardrails
+  /** Which of the asked-for lists are in this project, in the order asked (ADEV-190). */
+  listIds: string[]
 }
 
 /**
@@ -220,13 +222,20 @@ export async function goalsForLists(listIds: string[]): Promise<ProjectGoalsForA
   if (!ids.length) return []
   const lists = await prisma.taskList.findMany({
     where: { id: { in: ids }, projectId: { not: null } },
-    select: { project: { select: { id: true, name: true, goalsAndGuardrails: true } } },
+    select: { id: true, project: { select: { id: true, name: true, goalsAndGuardrails: true } } },
   })
+  const projectOfList = new Map(lists.map(list => [list.id, list.project]))
   const byProject = new Map<string, ProjectGoalsForAgent>()
-  for (const { project } of lists) {
-    if (!project || byProject.has(project.id)) continue
+  for (const listId of ids) {
+    const project = projectOfList.get(listId)
+    if (!project) continue
+    const known = byProject.get(project.id)
+    if (known) {
+      known.listIds.push(listId)
+      continue
+    }
     const value = storedGoalsAndGuardrails(project.goalsAndGuardrails)
-    if (hasGoalsOrGuardrails(value)) byProject.set(project.id, { projectId: project.id, projectName: project.name, value })
+    if (hasGoalsOrGuardrails(value)) byProject.set(project.id, { projectId: project.id, projectName: project.name, value, listIds: [listId] })
   }
   return [...byProject.values()]
 }

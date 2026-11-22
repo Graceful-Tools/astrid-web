@@ -37,12 +37,15 @@ under the lowercased wordmark (`mcpServerName()`).
 In the brand profile's `env` (or the server environment):
 
 - **`BRAND_ENABLED_AGENTS`** must include `copilot`, or be unset (unset means every agent).
-  It is server-only, so it needs `--env`, not only `--build-env` (WHITELABELING §1). Both
-  shipped example profiles leave Copilot out (`acme` and `github-projects` set
-  `BRAND_ENABLED_AGENTS=claude`). Without it the Copilot routes answer 404, and minting a
-  Copilot token is refused with 409 *"The requested AI agent identity is not configured"*.
-- **`NEXT_PUBLIC_BRAND_ENABLE_MCP`** must not be `false`. It defaults to on. `acme` turns
-  it off. With it off, `/mcp` is gone and the token card is hidden.
+  It is server-only, so it needs `--env`, not only `--build-env` (WHITELABELING §1). The
+  shipped reference profiles (`acme`, `github-projects`, `whitelabel-partner`) set
+  `BRAND_ENABLED_AGENTS=claude,copilot` (ADEV-97); a profile copied before that may still say
+  `claude`. Environment beats the profile, so check your deployment's settings too. Without
+  `copilot` the Copilot routes answer 404, and minting a Copilot token is refused with 409
+  *"The requested AI agent identity is not configured"*.
+- **`NEXT_PUBLIC_BRAND_ENABLE_MCP`** must not be `false`. It defaults to on, and every
+  reference profile leaves it on. With it off, `/mcp` and its OAuth well-known routes are
+  gone and the token card is hidden.
 - The agent identity is `copilot@<BRAND_AGENT_EMAIL_DOMAIN>`. The domain defaults to the
   brand domain.
 
@@ -51,15 +54,14 @@ Otherwise minting a token answers 403 *"MCP access is disabled for your account"
 
 ### `ASTRID_API_BASE_URL`
 
-The `/mcp` endpoint is a proxy. It forwards each call to the API at `ASTRID_API_BASE_URL`,
-and **defaults to `https://<NEXT_PUBLIC_BRAND_DOMAIN>`** (`mcpDefaultBaseUrl()`,
-`lib/brand/config.ts`). Set it when that default is wrong for the container:
+The `/mcp` endpoint is a proxy. It forwards each call to `ASTRID_API_BASE_URL`, else to the
+origin of `NEXTAUTH_URL`, else to the brand domain (`mcpHostedBaseUrl()`,
+`lib/brand/config.ts`; ADEV-99). A deployment served away from its brand domain therefore
+calls itself without extra configuration. Set `ASTRID_API_BASE_URL` only when the app
+container cannot reach its own public hostname (no hairpin NAT). For the compose stack that
+is `ASTRID_API_BASE_URL=http://app:3000` in `deploy/self-host/.env`.
 
-- the brand domain is not this deployment's public name; or
-- the app container cannot reach its own public hostname (no hairpin NAT). For the compose
-  stack that is `ASTRID_API_BASE_URL=http://app:3000` in `deploy/self-host/.env`.
-
-An exact operator-set value is the only backend allowed to be HTTP or a private address
+An exact operator-set `ASTRID_API_BASE_URL`, or the `NEXTAUTH_URL` origin, is the only backend allowed to be HTTP or a private address
 (`lib/security/mcp-backend.ts`). Any other backend must be public HTTPS.
 
 ## 2. Your origin must be publicly reachable
@@ -175,18 +177,18 @@ Copilot reply land. Treat it as unverified. Steps 1–5 do not depend on it.
 
 ## 8. Not usable yet: the GitHub Projects ("Lanes") brand
 
-Do not plan Copilot on `brands/github-projects.brand.json`. Its profile enables only
-Claude (`BRAND_ENABLED_AGENTS=claude`), so Copilot does not exist there. Its GitHub App is
-not registered either: the slug `lanes-for-github-projects` is a placeholder
-([LANES_GITHUB_MARKETPLACE.md](./LANES_GITHUB_MARKETPLACE.md)). Adding `copilot` to a fork
-of that profile is untested.
+Do not plan Copilot on `brands/github-projects.brand.json` yet. Its profile enables
+Copilot (`BRAND_ENABLED_AGENTS=claude,copilot`, ADEV-97), but its GitHub App is not
+registered: the slug `lanes-for-github-projects` is a placeholder
+([LANES_GITHUB_MARKETPLACE.md](./LANES_GITHUB_MARKETPLACE.md)). Copilot on that brand is
+untested.
 
 ---
 
 ## Checklist
 
 - [ ] `BRAND_ENABLED_AGENTS` includes `copilot` (or is unset); `NEXT_PUBLIC_BRAND_ENABLE_MCP` not `false`
-- [ ] `ASTRID_API_BASE_URL` set if the brand domain is not reachable from the container
+- [ ] `ASTRID_API_BASE_URL` set only if the container cannot reach its own `NEXTAUTH_URL` origin
 - [ ] `<origin>` reachable from the public internet (for Actions and the cloud agent)
 - [ ] Token minted from Settings → AI Agents → Copilot, opened on the public URL
 - [ ] Actions secret `<WORDMARK>_COPILOT_MCP_TOKEN` (and/or Agents secret `COPILOT_MCP_<WORDMARK>_TOKEN`)

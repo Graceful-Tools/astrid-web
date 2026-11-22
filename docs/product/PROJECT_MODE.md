@@ -137,6 +137,15 @@ hence grandfathering, and hence `BoardViewSection` keeps the board controls
 visible whenever `list.projectId` is set even if the grant is later revoked. We
 never strand someone inside a feature they are already using.
 
+### Goals and guardrails (ADEV-179)
+
+A project may state its goals (each with an optional measure, target and current value) and its
+guardrails (`stated` or `enforced`). They follow progressive disclosure: a project that states
+none draws nothing. The board header shows them to everyone working there, the owner or an admin
+edits them in Project settings, and agents read them but never write them. Shape:
+`lib/goals-guardrails.ts`. Wire: API_CONTRACT.md `/api/v1/projects/{id}/goals`. Agent paths:
+ASTRID.md → *Project Goals and Guardrails*.
+
 ---
 
 ## What we are explicitly NOT building

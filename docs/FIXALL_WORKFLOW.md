@@ -205,7 +205,9 @@ the caller, so a typo fails loudly.
 
 Boards: Astrid Web To-do `a623f322-4c3c-49b5-8a94-d2d9f00c82ba`, Astrid iOS To-do
 `aa41c1a3-bd63-4c6d-9b87-42c6e0aafa36`. Answers `empty: true`, or `queue` in the order to work
-it, plus `held.scheduled` for anything not due yet. `agent` never defaults — guessing
+it, plus `held.scheduled` for anything not due yet, and `listInstructions` / `projectGoals` for
+the queued tasks' lists (untrusted guidance: read the entries for your task's list before
+starting). `agent` never defaults — guessing
 would claim another harness's work — and a typo fails loudly rather than answering "nothing".
 
 The predicates are `lib/ready-queue-scope.ts`, the same ones `scripts/ready-tasks.ts` uses, so
@@ -343,6 +345,18 @@ the agent to include unassigned Ready tasks, atomically claim before work, heart
 working, skip conflicts, and resume its own Doing claim after restart. It does not reject
 existing `update_task` or assignment paths. The local queue workflow below still uses the
 OAuth claim script (`/claim-fixall`, no lease) until the loops move to the general route.
+
+**A claim made with MCP `claim_task` holds that lease, in an interactive session too.** Send
+`claim_task { action: "heartbeat" }` every five minutes while you work (ten at most). A silent
+session's claim expires in 15 minutes; the next cron tick puts the task back in Ready, and a
+scheduled loop takes it, so the work is done twice (2026-11-21: two tasks were rebuilt in
+parallel this way). A session that cannot heartbeat should claim with `claim-fixall-task.ts`
+instead (no lease). Cloud runs need not do this by hand: `agent-run.yml` runs
+`scripts/heartbeat-held-claims.ts --agent <mailbox> --list <board>` every five minutes with
+`ASTRID_RUN_STARTED_AT` set to the run's start, renewing only leases taken since then. Without
+that variable the script renews nothing, so it is not for interactive sessions. Before merging,
+read the task's comments too: `claim_task resume` can answer `already_yours` after a loop has
+worked the task.
 
 **Starting → claim it**, before the strategy comment, so the window where the board is
 wrong is as small as possible:
@@ -622,6 +636,20 @@ The scheduled runners release them via `scripts/release-stuck-doing.ts`:
 Both skip a task whose latest marker is a current `AWAITING-DEPLOY:` / `**Awaiting build:**`
 (newer than its last completion and last release).
 
+**Finished work whose PR cannot land goes back to its agent (ADEV-200).** Skipping a current
+marker is right while the PR can still land. It is a dead end once the PR conflicts with `main`
+(a parallel PR merged into the same files) or its checks finish red: the ship workflow used to log
+`held back — not mergeable (CONFLICTING)` on every tick and nothing else, while the task sat in
+Doing where neither the queue nor these sweeps look. On 2026-11-22 three finished tasks sat there
+for hours that way. Now `land-and-deploy.ts` sends such a task back (`scripts/lib/pr-rework.ts`):
+a comment opening `🛠️ Sent back by the ship workflow` that names the PR, branch, head and
+reason, then Doing → **Ready**, still assigned. That comment supersedes the old marker like a
+release does, but it is not a release and does not count toward "released twice". **A run that
+takes such a task resumes from the named branch**: merge `origin/main` and resolve the conflict
+(or fix the red check; a known flake needs only a re-run of the failed job), run the gates, push
+the same branch so the same PR updates, and end the report with a fresh `AWAITING-DEPLOY: <new
+head>`. Only a live handoff is sent back, so a run already reworking the task is left alone.
+
 A release **keeps the agent assignment** and comments with the branch that carries the task's
 id, so the next run resumes from that work instead of starting over. It searches **every
 checkout the board's workflow can touch** — for the Windows board, astrid-windows and the
@@ -657,8 +685,9 @@ The human can answer on that task without reassigning it.
 **Write the question in the Decision format** ([DECISIONS.md](./DECISIONS.md), the full guide): a bold
 `**Decision:**` paragraph, then numbered options `- **1.** …`, with `(recommended)` on the one you
 would pick. The apps draw it as tappable cards, and a tap posts `1 — <option>` as the reply that
-resumes you (a reply in the old letter form still counts). When weighing options, put a trade-off grid (rating tokens `--` `-` `~` `+` `++`)
-in the same comment. Keep the `AGENT-HANDBACK: <mailbox>` line last.
+resumes you (a reply in the old letter form still counts). When weighing options, put a trade-off grid in the same comment (rating tokens `--` `-` `~` `+` `++`,
+a `Do nothing` row, `++`/`--` only when one cell decides it, recommendation first, never a score
+column; [DECISIONS.md](./DECISIONS.md) → *The method*). Keep the `AGENT-HANDBACK: <mailbox>` line last.
 
 On a named board, `attention.tasks[].resume` appears only when the **current human
 assignee** has replied after the question, the task is incomplete and still in the

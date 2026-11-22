@@ -119,6 +119,17 @@ What makes a grid worth reading (ADEV-178, from the Extreme Clarity training):
 7. **The grid does not decide.** Never add a score, weight or total column, and never rank by
    counting colours. A choice against the colours is fine when it is said out loud, pointing at the
    cell being accepted ("we take #3 knowing it is red on B").
+8. **When the project states goals, use them.** Its goals make good criteria, and an option that
+   breaks a guardrail is `--` on that column ([API_CONTRACT.md](./API_CONTRACT.md) →
+   `/api/v1/projects/{id}/goals`, MCP `get_project_goals`).
+
+**Gathering evidence (ADEV-181).** An agent asked to research a decision calls MCP
+`gather_decision_evidence { taskId }`. It answers a plain-text brief built from the task's grid
+(`lib/decision-evidence.ts`): the criteria and options, the cells with nothing known yet, the
+project's goals and guardrails, and the rules above. The agent proposes missing options (keeping
+Do nothing), fills each cell with a concrete, sourced assessment, leaves a cell it cannot support
+as `~ unknown`, and ends with a Decision for the owner. It proposes; it does not decide, unless the
+board's orchestration policy lets it take its own recommendation.
 
 ## Explaining the criteria
 

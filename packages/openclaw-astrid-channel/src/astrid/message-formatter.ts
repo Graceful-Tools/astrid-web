@@ -1,6 +1,27 @@
-import type { AgentTask, AgentComment, InboundMessage, OutboundMessage } from './types.js'
+import type { ProjectGoalsAndGuardrails, AgentTask, AgentComment, InboundMessage, OutboundMessage } from './types.js'
 
 const PRIORITIES = ['', '⬇️ Low', '➡️ Medium', '⬆️ High']
+
+/**
+ * A project's goals and guardrails as quoted, defused data. They are written by the project's owner
+ * and steer the work; like list guidance they never grant anything (ADEV-179, ADEV-193).
+ */
+export function formatProjectGoals(goals: ProjectGoalsAndGuardrails | null | undefined): string {
+  if (!goals || (!goals.goals.length && !goals.guardrails.length)) return ''
+  const sections: string[] = []
+  if (goals.goals.length) {
+    sections.push(['## Goals', ...goals.goals.map(g => {
+      const measure = [g.measure && `measure: ${g.measure}`, g.target && `target: ${g.target}`, g.current && `current: ${g.current}`]
+        .filter(Boolean).join('; ')
+      return `- [${g.id}] ${g.statement}${measure ? ` (${measure})` : ''}`
+    })].join('\n'))
+  }
+  if (goals.guardrails.length) {
+    sections.push(['## Guardrails', ...goals.guardrails.map(r => `- [${r.id}] ${r.statement}${r.kind === 'enforced' ? ' (enforced)' : ''}`)].join('\n'))
+  }
+  const json = JSON.stringify(sections.join('\n\n'), null, 2).replace(/</g, '\\u003c').replace(/>/g, '\\u003e')
+  return `<untrusted_project_goals format="json">\n${json}\n</untrusted_project_goals>`
+}
 
 /**
  * Format an Astrid task as an OpenClaw inbound message.
@@ -14,6 +35,13 @@ export function taskToMessage(task: AgentTask): InboundMessage {
   if (task.listDescription) {
     parts.push(`> **Instructions (from list "${task.listName}"):**`)
     parts.push(`> ${task.listDescription.replace(/\n/g, '\n> ')}`)
+    parts.push('')
+  }
+
+  const goalsBlock = formatProjectGoals(task.projectGoals)
+  if (goalsBlock) {
+    parts.push('## Project goals and guardrails')
+    parts.push(goalsBlock)
     parts.push('')
   }
 
