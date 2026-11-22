@@ -636,6 +636,20 @@ The scheduled runners release them via `scripts/release-stuck-doing.ts`:
 Both skip a task whose latest marker is a current `AWAITING-DEPLOY:` / `**Awaiting build:**`
 (newer than its last completion and last release).
 
+**Finished work whose PR cannot land goes back to its agent (ADEV-200).** Skipping a current
+marker is right while the PR can still land. It is a dead end once the PR conflicts with `main`
+(a parallel PR merged into the same files) or its checks finish red: the ship workflow used to log
+`held back — not mergeable (CONFLICTING)` on every tick and nothing else, while the task sat in
+Doing where neither the queue nor these sweeps look. On 2026-11-22 three finished tasks sat there
+for hours that way. Now `land-and-deploy.ts` sends such a task back (`scripts/lib/pr-rework.ts`):
+a comment opening `🛠️ Sent back by the ship workflow` that names the PR, branch, head and
+reason, then Doing → **Ready**, still assigned. That comment supersedes the old marker like a
+release does, but it is not a release and does not count toward "released twice". **A run that
+takes such a task resumes from the named branch**: merge `origin/main` and resolve the conflict
+(or fix the red check; a known flake needs only a re-run of the failed job), run the gates, push
+the same branch so the same PR updates, and end the report with a fresh `AWAITING-DEPLOY: <new
+head>`. Only a live handoff is sent back, so a run already reworking the task is left alone.
+
 A release **keeps the agent assignment** and comments with the branch that carries the task's
 id, so the next run resumes from that work instead of starting over. It searches **every
 checkout the board's workflow can touch** — for the Windows board, astrid-windows and the
