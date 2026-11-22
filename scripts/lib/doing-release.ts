@@ -44,6 +44,14 @@ import { latestHandoff, parseAwaitingMerge } from './core-handoff'
 /** Every release comment starts with this, and counting them is how "twice" is known. */
 export const RELEASE_MARKER = '🔁 Released from Doing by the scheduled /fixall loop'
 
+/**
+ * The ship workflow sent finished work back because its PR cannot land (ADEV-200,
+ * scripts/lib/pr-rework.ts). Like a release, it starts a new attempt: the old
+ * AWAITING-DEPLOY marker is no longer current. It is not a release, so it does not
+ * count toward "released twice".
+ */
+export const REWORK_MARKER = '🛠️ Sent back by the ship workflow'
+
 /** Idle time before a Doing claim no runner holds counts as abandoned. */
 export const DEFAULT_STALE_DOING_MINUTES = 180
 
@@ -205,9 +213,10 @@ function isCurrentMarker(comments: ReleaseComment[], isMarker: (comment: Release
     Math.max(0, ...comments.filter(match).map(at))
   const marker = newest(isMarker)
   if (marker === 0) return false
-  // A completion, a release, or a redo claim (lib/fixall-claim.ts) starts a new attempt.
+  // A completion, a release, a redo claim (lib/fixall-claim.ts) or a rework (ADEV-200) starts a new attempt.
   const superseded = newest(comment => comment.systemEventType === 'COMPLETED' ||
-    (comment.content ?? '').startsWith(RELEASE_MARKER) || (comment.content ?? '').startsWith(REDO_CLAIM_MARKER))
+    (comment.content ?? '').startsWith(RELEASE_MARKER) || (comment.content ?? '').startsWith(REDO_CLAIM_MARKER) ||
+    (comment.content ?? '').startsWith(REWORK_MARKER))
   return marker > superseded
 }
 
