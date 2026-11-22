@@ -27,8 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The board reads core's board, pill and surface tokens, and both boards draw one shared card and column (ADEV-153, 156, 157, 168, 171).
 - Project boards show Waiting first and label the Inbox column "Ideas/Inbox" (ADEV-132, ADEV-137).
 
-### Known issues
-- The Done period cannot reach past the list's recently-completed window (24 hours by default), so "This week" and "All time" show at most that window.
+- The board's Done period now owns the Done column: "This week", "This month" and "All time" reach past the list's recently-completed window, which bounds the list view only (ADEV-191).
 
 ## [1.4.0] - 2026-11-18
 
