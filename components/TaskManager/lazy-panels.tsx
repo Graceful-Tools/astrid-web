@@ -154,3 +154,13 @@ export function LazyProjectBoardHost(props: React.ComponentProps<typeof ProjectB
 export function LazyListSettingsHost(props: React.ComponentProps<typeof ListSettingsHost>) {
   return <ListSettingsHost {...props} />
 }
+
+/**
+ * The board card's details callout. It shows only on a multi-column board with a task open, so
+ * a static import put its placement and column-follow code in every list route's first load
+ * (ADEV-177). The details inside it have their own loading fallback.
+ */
+export const LazyBoardTaskCallout = dynamic(
+  () => import("./BoardTaskCallout").then(module => module.BoardTaskCallout),
+  { ssr: false, loading: () => null },
+)

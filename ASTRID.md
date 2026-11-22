@@ -112,7 +112,7 @@ the fixture is regenerated in the same PR:
 | `wire-shapes.json` | `lib/tasks/v1-task-shape.ts`, `lib/lists/v1-list-shape.ts` |
 | `sync-existence.json` | `lib/sync/v1-existence.ts`, `app/api/v1/sync/existence/route.ts` |
 | `decisions.json` | `lib/comment-formats.ts`, `lib/decision-examples.ts` (guide: docs/DECISIONS.md) |
-| `agent-queue.json` | `app/api/v1/agent-queue/route.ts`, `lib/agent-queue.ts` (AWTD-1566) |
+| `agent-queue.json` | `app/api/v1/agent-queue/route.ts`, `lib/agent-queue.ts`, `lib/agent-queue-hints.ts` (AWTD-1566) |
 | `agent-modes.json` | `app/api/v1/users/me/agent-modes/route.ts` (AWTD-1566) |
 | `fixall-claim.json` | `app/api/v1/tasks/[id]/claim-fixall/route.ts` (AWTD-1566) |
 | `agent-registry.json` | `lib/brand/agent-emails.ts`, `lib/ai/harness-agents.ts` (AWTD-1566) |
@@ -286,7 +286,7 @@ Each list's **description** field serves as the instruction file for AI agents w
 
 **How it works:**
 1. User writes markdown in the list description (List Settings → Admin → Description)
-2. When an agent picks up a task, the list description is included as `## Instructions`
+2. When an agent picks up a task, the list description is included as `## List guidance`, wrapped as untrusted data (`lib/ai/prompt-trust.ts`); polling agents get it as `listInstructions` on the queue
 3. Same description works across all agent types (Claude, OpenAI, Gemini, OpenClaw)
 4. Lists without descriptions get a minimal default
 
@@ -305,8 +305,11 @@ optionally with a measure, target and current value) and **guardrails** (`stated
 reader, or `enforced`, checked by a program). Owners and admins edit them in Project settings; the
 board shows them to everyone. Every agent path carries them beside the list's guidance, wrapped as
 untrusted data: the server-run and webhook prompt (`buildAgentContextInstructions`), `projectGoals`
-on the agent task payload and the agent queue, and the MCP tool `get_project_goals`. Agents read
-them but never write them. Shape: `lib/goals-guardrails.ts`; API: docs/API_CONTRACT.md.
+on the agent task payload and the agent queue (one entry per queued list, matched by `listId`), the
+SDK runner's prompt, and the MCP tool `get_project_goals`. Agents read them but never write them.
+Gaps: the OpenClaw channel plugin does not render them yet, and on the SSE stream only
+`task.assigned` / `task.created` and the REST task reads fill `projectGoals`; other events carry
+null. Shape: `lib/goals-guardrails.ts`; API: docs/API_CONTRACT.md.
 
 ### Agent Routing
 
@@ -314,7 +317,7 @@ Tasks assigned to AI agents are automatically routed:
 1. Agent email → service (via `lib/ai/agent-config.ts`)
 2. List description loaded as agent instructions
 3. For cloud agents (Claude/OpenAI/Gemini): direct API call via `assistant-workflow`
-4. For OpenClaw: fire-and-forget POST to user's gateway via `/hooks/agent`
+4. For OpenClaw: the Astrid channel plugin connects outbound and receives the task over the agent protocol (SSE, `AgentTask`); there is no gateway URL
 5. For Claude Code Remote: signed webhook to user's self-hosted server
 
 ### Settings surfaces and credentials

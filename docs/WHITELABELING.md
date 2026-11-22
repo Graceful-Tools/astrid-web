@@ -1,8 +1,9 @@
 # Whitelabeling
 
 Astrid can be deployed under a different brand, with a different set of back-end
-services, entirely through build-time configuration. No source changes, no fork of the
-UI, no per-partner branches.
+services, entirely through configuration: a brand profile read when the server starts (or
+built into the image), plus runtime environment. No source changes, no fork of the UI, no
+per-partner branches.
 
 This document is the reference for doing that. Task `97208a72`.
 
@@ -72,6 +73,12 @@ For the operator's end-to-end launch sequence, see the
    (*Native apps, per platform* below). For **native sign-in** there are two rules, because
    the desktop hand-off (`lib/auth/desktop-handoff.ts`) returns the browser to
    `<scheme>://auth/callback`:
+   - **Or ship no apps.** The stock Astrid apps can sign in to your server ("Use a different
+     server"). `/auth/desktop` accepts their `astrid` scheme when the app names it
+     (`scheme=astrid`), as well as your own `NEXT_PUBLIC_BRAND_APP_URL_SCHEME`, and refuses
+     any other with "Unsupported app scheme". Requirements and the support window:
+     [deployment/WHITE_LABEL_COMPATIBILITY.md](./deployment/WHITE_LABEL_COMPATIBILITY.md)
+     (`meta.apiLevel`, ADEV-124).
    - **The scheme must match on both sides.** Set `NEXT_PUBLIC_BRAND_APP_URL_SCHEME` on
      the server to exactly the scheme your apps register. If they differ, sign-in
      completes in the browser and then deep-links into a different app, or into none.

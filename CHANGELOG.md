@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Projects state goals and guardrails. The board shows them to everyone, owners and admins edit them in Project settings, and every agent path carries them as untrusted guidance: prompts, the task payload, the agent queue (one entry per list) and the MCP tool `get_project_goals`. Agents cannot change them (ADEV-179, ADEV-190). One additive migration.
+- Board Done column: newest-completed first, a "✓ on Nov 19" date on each card, and a "15 ✓ This week" period picker that filters the cards and the count (ADEV-133).
+- The board follows the list's live Sort & Filters (ADEV-145).
+- The task details panel follows a card that changes column (ADEV-177).
+- Completed tasks open with their completion history showing (ADEV-129).
+- Release images are multi-arch, linux/amd64 and linux/arm64, each built natively with its own SBOM and provenance (ADEV-125). 1.4.0 and earlier are amd64 only.
+- The stock Astrid apps can sign in to a partner's server: `/auth/desktop` accepts the stock `astrid` scheme alongside the brand's own, and `GET /api/v1/capabilities` reports `meta.apiLevel` (ADEV-124).
+- A daily check, and a release's last job, confirm that the image tag SELF_HOSTING.md documents exists on GHCR (ADEV-126).
+- The SDK runner's prompt carries the task's list instructions and project goals from the queue (ADEV-186).
+- MCP `gather_decision_evidence` gives an agent the brief for filling a decision's traffic light with sourced cells, using the project's goals as criteria (ADEV-181).
+
+### Changed
+- Trade-off grids follow the Extreme Clarity method: `++` reads **Decisive** and `--` **Disqualifying** (both a high bar), and agents are taught to lead with the recommendation, include a Do nothing row, keep cells concrete and never add a score column (ADEV-178).
+- Shared labels say To-do / Done (ADEV-173, ADEV-174).
+- A completed task shows the checked checkbox whoever holds it (ADEV-147); the options sheet's "Mark as done" row shows the task's own checkbox, and confirming someone else's task is a line with Cancel and Complete (ADEV-146, 148, 158).
+- One confirm dialog replaces the hand-built confirms (ADEV-159).
+- The board reads core's board, pill and surface tokens, and both boards draw one shared card and column (ADEV-153, 156, 157, 168, 171).
+- Project boards show Waiting first and label the Inbox column "Ideas/Inbox" (ADEV-132, ADEV-137).
+
+### Known issues
+- The Done period cannot reach past the list's recently-completed window (24 hours by default), so "This week" and "All time" show at most that window.
+
 ## [1.4.0] - 2026-11-18
 
 One image, many brands: the published image reads its brand when it starts, so a partner mounts a profile instead of building their own image.
