@@ -89,6 +89,8 @@ The virtual columns:
 | Inbox | Move them to "Ready" when they are... ready! |
 | Done | Complete — congrats! |
 
+(Web labels the Inbox column "Ideas/Inbox" in English, `board.status.inbox`.)
+
 These are defaults, not a rigid methodology. Project owners can rename and reorder statuses or add custom non-Done statuses. Inbox and Done are always present as the first and last columns and cannot be removed or renamed.
 
 ## Membership Rules
@@ -212,7 +214,10 @@ Agents must not create a task that is `completed = true` while still attached to
 - `POST /api/projects` (create + seed Ready / Doing / Waiting), `GET /api/projects`, `DELETE /api/projects/[id]` (detach domain lists then cascade-delete the project and its status lists).
 - "Create Board" / "Disable Board" actions in list admin settings.
 - Board view in the task manager: virtual Inbox + real statuses + virtual Done, drag-and-drop between columns with the spec's invariants enforced server-side via `normalizeProjectStatusListIds`.
-- Board cards share `TaskRowContent` with the list view (identical row visuals), respect the list's `sortBy` / `manualSortOrder`, and use the compact `TaskHeader` (chevron-up + `…` menu, no "Task Details" label) when expanded inline.
+- Board cards and columns are one `BoardCard` / `BoardColumn` (`components/board-card.tsx`, `components/board-column.tsx`), shared by the list board and the project board (ADEV-156). A card draws `TaskRowContent`, so it looks like a list row, and uses the compact `TaskHeader` (chevron-up + `…` menu, no "Task Details" label) when expanded inline.
+- Cards follow the Sort & Filters the person has set now (priority, assignee, due date, and a sort that overrides the list's saved `sortBy` / `manualSortOrder`) through `lib/board-live-filters.ts`, the same matchers as the list view (ADEV-145). Completion is not one of them: the Done column owns it.
+- **Done** is newest-completed first (`completedAt`, else `updatedAt`) whatever the sort (`lib/board-done-column.ts`). Each Done card shows its completed day as a pill under the title, "✓ on Nov 19", with the year only when it is not this year (`components/board-completed-on-pill.tsx`).
+- **Done's header** shows its count with a period, "15 ✓ This week". It opens Today / This week / This month / This year / Pick a date… (no future days) / All time. The period filters the cards as well as the count; the week runs Monday to Sunday; the default is This week, kept per person on the device, per list on a list board and per project on a project board (`lib/board-done-since.ts`, `hooks/use-done-since.ts`, `components/board-done-since-picker.tsx`; ADEV-133).
 - Default subtitles per the approved copy: Inbox / Ready / Doing / Waiting / Done.
 - Tests: `tests/lib/project-status.test.ts`, `tests/lib/task-sort.test.ts`, `e2e/project-status-board.spec.ts`.
 
@@ -220,8 +225,10 @@ Agents must not create a task that is `completed = true` while still attached to
 
 Each list now carries a `recentlyCompletedWindow` JSON config that decides
 which completed tasks stay visible under the default completion filter.
-The same setting also bounds the virtual Done column on the board, so the
-two views never disagree.
+The same setting also bounds the virtual Done column on the board. The
+board's Done period (This week by default, ADEV-133) then narrows Done
+further, so Done shows tasks completed inside both the window and the period.
+Today the window applies first: with the default 24-hour window, "This week" and "All time" show at most the last 24 hours of Done cards (filed as a bug, 2026-11-21).
 
 Stored shape (`TaskList.recentlyCompletedWindow`, nullable):
 
@@ -305,8 +312,8 @@ boards — unscalable. Status is now a single per-user concept:
   field cannot hold two values. Retained for iOS-originated writes.
 
 ### Not Yet (tracked as follow-on work)
-1. **Project picker / first-class Project entity in the UI** — `GET /api/projects` exists but no UI lists or opens projects directly. Today a "board" is just a list that has `projectId` set.
-2. **Attach an existing project to additional regular lists** — current "Create Board" always creates a fresh project of one list.
+1. ~~**Project picker**~~ — **DONE** (AWTD-1660). The sidebar's Projects section lists the person's projects and opens a project board (`components/TaskManager/Sidebar/ProjectsSection.tsx`, `components/projects/ProjectBoard.tsx`). See PRODUCT_CONTRACT §9.
+2. ~~**Attach an existing project to additional regular lists**~~ — **DONE** (ADEV-61). A sidebar list's menu offers Move to Project ▸ / Remove from Project, and a list dropped on a project header moves into it.
 3. ~~**Project-level membership**~~ — **DONE** (task 6c20d125, 2026-08-01).
    `getUserRoleInList` resolves through `ProjectMember` alongside list
    membership, higher role wins (since 2026-10-04 in both directions: a plain
@@ -314,11 +321,8 @@ boards — unscalable. Status is now a single per-user concept:
    visibility and role agree. The project owner resolves to `admin`, not
    `owner`, so owning a project does not grant deleting a list somebody else
    owns.
-4. **Project-level views** — e.g. "all Ready across the project," "all iOS tasks that are Ready." Board today only scopes to the selected list.
-5. **Rename / reorder / add-custom statuses UI** — no editor surfaces them.
-   Note the storage moved: custom states are now `Project.customStates` config
-   (AWTD-562), not `statusRole`/`statusOrder` columns on `TaskList`. An editor
-   should write that config, and custom states are Project-Mode only.
-6. **Edit project metadata** — `name`, `description`, `color`, `imageUrl` on `Project` are seeded once from the originating list and never updated.
+4. ~~**Project-level views**~~ — **DONE** as the project board: each chosen list is a row across the project's columns (AWTD-1660).
+5. ~~**Rename / reorder / add-custom statuses UI**~~ — **DONE**: List settings → Statuses (`components/list-admin/ManageStatusesPanel.tsx`) writes `Project.customStates` (AWTD-562) and offers the preset columns. Custom states are Project-Mode only.
+6. **Edit project metadata** — the name is editable in Project settings (ADEV-48), and so are goals and guardrails (ADEV-179). `description`, `color` and `imageUrl` are still seeded once from the originating list and never updated.
 
 These can ship incrementally after the v1 board lands.

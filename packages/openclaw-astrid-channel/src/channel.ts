@@ -8,6 +8,8 @@
 
 import { AstridChannel as SDKChannel } from './astrid/index.js';
 import type { AstridChannelConfig } from './types.js';
+import { formatProjectGoals } from './astrid/message-formatter.js';
+import type { ProjectGoalsAndGuardrails } from './astrid/types.js';
 
 /** Legacy plugin API shape (v1 compat) */
 export interface LegacyChannelAPI {
@@ -30,6 +32,7 @@ export interface LegacyInboundMessage {
     type: 'task' | 'comment';
     listName?: string;
     listDescription?: string;
+    projectGoals?: ProjectGoalsAndGuardrails | null;
     priority?: number;
     dueDateTime?: string;
     [key: string]: any;
@@ -192,7 +195,9 @@ ${taskData?.description || ''}
 **Priority:** ${this.formatPriority(taskData?.priority)}
 ${taskData?.dueDateTime ? `**Due:** ${new Date(taskData.dueDateTime).toLocaleDateString()}` : ''}
 
-${taskData?.listDescription ? `## Instructions\n${taskData.listDescription}` : ''}`;
+${taskData?.listDescription ? `## Instructions\n${taskData.listDescription}` : ''}
+
+${formatProjectGoals(taskData?.projectGoals) ? `## Project goals and guardrails\n${formatProjectGoals(taskData?.projectGoals)}` : ''}`;
     }
 
     const message: LegacyInboundMessage = {
@@ -207,6 +212,7 @@ ${taskData?.listDescription ? `## Instructions\n${taskData.listDescription}` : '
         type: messageType,
         listName: sdkMessage.metadata?.listName,
         listDescription: sdkMessage.metadata?.listDescription,
+        projectGoals: sdkMessage.metadata?.projectGoals,
         priority: sdkMessage.metadata?.priority,
         dueDateTime: sdkMessage.metadata?.dueDateTime,
       },

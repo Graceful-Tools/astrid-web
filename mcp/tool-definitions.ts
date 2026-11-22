@@ -23,6 +23,7 @@ import { BLOCKER_TOOLS } from "./blockers"
 import { ATTACHMENT_TOOLS } from "./task-attachments"
 import { LIST_TOOLS } from "./list-tools"
 import { ORCHESTRATION_TOOLS } from "./orchestration-policy-tool"
+import { DECISION_EVIDENCE_TOOLS } from "./decision-evidence-tool"
 import { PROJECT_GOALS_TOOLS } from "./project-goals-tool"
 
 /**
@@ -385,6 +386,7 @@ export const OAUTH_MCP_TOOLS = [
       ...LIST_TOOLS,
       ...ORCHESTRATION_TOOLS,
       ...PROJECT_GOALS_TOOLS,
+      ...DECISION_EVIDENCE_TOOLS,
 ] as const
 
 const CLAIM_TASK_TOOL = {

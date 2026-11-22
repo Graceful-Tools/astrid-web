@@ -164,6 +164,11 @@ token without the chat scopes reports a skipped read on every poll. Older server
 should fall back to their existing `empty`-based behavior. `empty` itself still
 describes only the Ready queue.
 
+The response also carries the guidance a run needs before it starts: `listInstructions` (each
+queued list's description), `projectGoals` (each queued list's project goals and guardrails,
+ADEV-179) and, with `listId`, `orchestrationPolicy`. All are wrapped as untrusted guidance; shapes
+in [API_CONTRACT.md](./API_CONTRACT.md) → *Polling agent lifecycle*.
+
 The generated GitHub Actions gates (`lib/agent-skill/loop-recipes.ts`) wake on `ready`, or on a
 reply key (task comment id or chat message id) they have not already woken for, kept in a bounded
 seen set carried by `actions/cache`. They never wake on `incomplete` alone (Jon, 2026-11-13,

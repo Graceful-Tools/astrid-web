@@ -158,6 +158,9 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   `AWAITING-DEPLOY` ancestry, and the merge is pinned to its inspected head.
   A destructive pending migration still stops shipping; additive ones ship (AWTD-1680). A commit with an in-flight/successful
   deploy is not dispatched again; two failed attempts require human investigation.
+  An agent PR that conflicts with `main` or whose checks finished red is not held forever: its
+  task goes back to Ready, still assigned, with a comment naming the branch to resume from
+  (ADEV-200, FIXALL_WORKFLOW.md → *Doing must not be a dead end*).
   It runs on its schedule and whenever an agent PR's CI finishes, and only while
   `ASTRID_SHIP_ENABLED=true` (set 2026-10-31).
 

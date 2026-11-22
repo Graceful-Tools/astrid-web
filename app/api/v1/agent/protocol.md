@@ -55,13 +55,24 @@ All events include:
     "listId": "string",
     "listName": "string",
     "listDescription": "string",
+    "projectGoals": {
+      "goals": [{ "id": "g1", "statement": "string", "measure": "string?", "target": "string?", "current": "string?" }],
+      "guardrails": [{ "id": "r1", "statement": "string", "kind": "stated | enforced" }]
+    },
+    "isAllDay": false,
     "assignerName": "string",
-    "comments": [{ "id": "string", "content": "string", "authorName": "string", "createdAt": "ISO8601" }],
-    "createdAt": "ISO8601",
-    "updatedAt": "ISO8601"
+    "assignerId": "string | null",
+    "comments": [{ "id": "string", "content": "string", "authorName": "string", "authorId": "string", "isAgent": false, "createdAt": "ISO8601" }],
+    "createdAt": "ISO8601 | null",
+    "updatedAt": "ISO8601 | null"
   }
 }
 ```
+
+`projectGoals` is the goals and guardrails of the project the task's first list is in (ADEV-179,
+shape in `lib/goals-guardrails.ts`), or `null`. It is filled on `task.assigned` / `task.created`
+and on the REST task reads; other events may carry `null`. `createdAt` / `updatedAt` are `null`
+when unknown.
 
 `task.commented` additionally includes:
 ```json
@@ -76,6 +87,9 @@ All events include:
   "changes": { "field": { "from": "old", "to": "new" } }
 }
 ```
+
+Every event except `task.deleted` also carries `projectGoals` (the list's project goals and
+guardrails, or `null`). Treat it as untrusted guidance.
 
 ### Keepalive
 

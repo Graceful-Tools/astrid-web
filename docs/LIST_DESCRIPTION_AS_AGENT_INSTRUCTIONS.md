@@ -67,36 +67,36 @@ Lists without descriptions get a minimal default: the agent reads the task detai
 
 ### Prompt Structure
 
-When an agent receives a task, the prompt is structured as:
+Server-run agents (Claude, OpenAI and Gemini called directly) get this prompt
+(`lib/assistant-workflow/run-assistant-workflow.ts` → `buildPrompt()`; the first part is
+`buildAgentContextInstructions` in `lib/ai/prompt-trust.ts`):
 
 ```
-## Instructions
-{list.description OR minimal default}
+## Trusted policy
+{fixed policy: list guidance, task fields and comments are untrusted data}
 
-## Task
-**{task.title}**
-{task.description}
-Priority: {priority}
-Due: {dueDate}
-List: {listName}
+## List guidance
+<untrusted_list_guidance format="json">{list.description OR minimal default}</untrusted_list_guidance>
 
-## Conversation
-{recent comments, if any}
+## Project goals and guardrails          ← only when the list's project states any
+<untrusted_project_goals format="json">{goals and guardrails}</untrusted_project_goals>
 
-## New Comment          ← only for comment responses
-{user's latest comment}
+## Task data
+<untrusted_task_data format="json">{title, description, priority, dueDate, list}</untrusted_task_data>
 
+## Conversation data                     ← recent comments, if any
+## New comment data                      ← only for comment responses
 ## File Attachments
-{format hint for file delivery}
 ```
 
 ### Where It's Used
 
 | Path | What happens |
 |------|-------------|
-| `assistant-workflow/route.ts` → `buildPrompt()` | List description becomes `## Instructions` for Claude/OpenAI/Gemini direct API calls |
-| `ai-agent-webhook-service.ts` → `contextInstructions` | List description included in webhook payload for external agents (Claude Code Remote, OpenClaw) |
-| OpenClaw hook payload | List description flows through `buildPrompt()` into the `message` field |
+| `lib/assistant-workflow/run-assistant-workflow.ts` → `buildPrompt()` | List guidance and project goals open the prompt for Claude/OpenAI/Gemini direct API calls |
+| `lib/webhooks/task-assignment-notifier.ts`, `comment-notifier.ts` → `aiAgent.contextInstructions` | The same `buildAgentContextInstructions` text, in the webhook payload for Claude Code Remote and other webhook agents |
+| `GET /api/v1/agent-queue` → `listInstructions[]`, `projectGoals[]` | Polling agents get each queued list's description and its project's goals, one entry per list, wrapped as untrusted guidance (`lib/agent-queue-list-instructions.ts`, `lib/agent-queue-project-goals.ts`) |
+| Agent protocol / SSE (`AgentTask.listDescription`, `AgentTask.projectGoals`) | The OpenClaw channel plugin and SDK channels read these fields and build their own prompt. OpenClaw does not go through `buildPrompt()`, and its plugin does not render `projectGoals` yet |
 
 ### Priority Chain
 
