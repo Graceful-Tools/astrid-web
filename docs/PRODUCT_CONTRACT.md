@@ -412,8 +412,8 @@ the person has the `project_mode` flag (`GET /api/v1/features`), from an admin g
 - **Board.** Each chosen list is a row; the project's status columns (Inbox, Ready, Doing,
   Waiting, the project's custom columns, Done) are the columns. A card's column is its
   `statusRole`, exactly as on a list's own board, and moving a card sets it the same way. A card
-  on two row lists shows in both rows. Done keeps to each list's recently-completed window, then
-  to the board's Done period: the Done header reads "15 ✓ This week" and opens Today / This week /
+  on two row lists shows in both rows. Done is bounded by the board's Done period alone, not the list's
+  recently-completed window (ADEV-191): the Done header reads "15 ✓ This week" and opens Today / This week /
   This month / This year / Pick a date… / All time. The period filters the cards as well as the
   count, the week is Monday to Sunday, and the default is This week, kept per person and per
   project on the device (ADEV-133). Done is newest-completed first whatever the sort, and each Done

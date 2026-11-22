@@ -225,10 +225,9 @@ Agents must not create a task that is `completed = true` while still attached to
 
 Each list now carries a `recentlyCompletedWindow` JSON config that decides
 which completed tasks stay visible under the default completion filter.
-The same setting also bounds the virtual Done column on the board. The
-board's Done period (This week by default, ADEV-133) then narrows Done
-further, so Done shows tasks completed inside both the window and the period.
-Today the window applies first: with the default 24-hour window, "This week" and "All time" show at most the last 24 hours of Done cards (filed as a bug, 2026-11-21).
+The setting bounds the list view only. The board's Done column is bounded by
+the board's Done period alone (This week by default, ADEV-133), so "This
+week", "This month" and "All time" reach past the window (ADEV-191).
 
 Stored shape (`TaskList.recentlyCompletedWindow`, nullable):
 

@@ -65,21 +65,19 @@ describe("ProjectStatusBoard's Done column honors the list's Recently Completed 
     expect(queryByText('old-done')).toBeNull()
   })
 
-  it('with a 14-day window, the 10-day-old completed task shows in Done', () => {
+  it('with the default 24h window and All time, the 10-day-old completed task shows in Done (ADEV-191)', () => {
     const domain = makeList({
       id: 'domain-14d',
       name: 'Astrid Web (14d)',
       projectId,
       listType: 'regular',
-      recentlyCompletedWindow: { kind: 'duration', amount: 14, unit: 'day' } as unknown,
     })
     const tasks = [
       makeTask({ ...oldCompleted, lists: [domain] }),
       makeTask({ ...recentCompleted, lists: [domain] }),
     ]
 
-    // The Done period (ADEV-133) defaults to This week; this test is about the
-    // list's window, so it asks for All time.
+    // The Done period (ADEV-133) owns Done; All time must reach past the list's window.
     window.localStorage.setItem(doneSinceStorageKey(null, domain.id), JSON.stringify({ kind: 'all_time' }))
 
     const { getByTestId } = render(
