@@ -77,6 +77,8 @@
   "openclaw/agents/route.ts": "handler-auth",
   "openclaw/register/route.ts": "handler-auth",
   "projects/[id]/board-rows/route.ts": "all:projects:read,projects:write",
+  "projects/[id]/decisions/[taskId]/decide/route.ts": "all:projects:write",
+  "projects/[id]/decisions/route.ts": "all:projects:read,projects:write",
   "projects/[id]/fields/route.ts": "all:projects:read",
   "projects/[id]/goals/route.ts": "all:projects:read,projects:write",
   "projects/[id]/orchestration-policy/route.ts": "all:projects:read,projects:write",
