@@ -248,7 +248,7 @@
     "jsdom": "^30.1.1",
     "lint-staged": "^17.6.1",
     "playwright": "^1.56.0",
-    "postal-mime": "^2.7.6",
+    "postal-mime": "^4.2.1",
     "postcss": "^8.5.33",
     "prisma": "^7.10.1",
     "tailwindcss": "^3.4.17",
