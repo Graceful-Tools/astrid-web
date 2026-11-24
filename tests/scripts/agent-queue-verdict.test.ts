@@ -176,3 +176,45 @@ describe('wakeKeys', () => {
     expect(wakeKeys(snapshot())).toEqual([])
   })
 })
+
+describe('decideQueueVerdict — Inbox ideas (ADEV-227)', () => {
+  const ideas: NonNullable<QueueSnapshot['inbox']> = {
+    ideas: [{ id: 'note-1', identifier: 'ADEV-1', title: 'Dark mode for the widget', updatedAt: '2026-11-23T09:00:00.000Z' }],
+    truncated: false,
+  }
+
+  it('an unclarified Inbox note on an empty queue is work, so a quiet board with new ideas starts a run', () => {
+    const verdict = decideQueueVerdict({ snapshot: snapshot({ inbox: ideas }), seen: new Set() })
+    expect(verdict.work).toBe(true)
+    expect(verdict.reason).toBe('ideas')
+    expect(verdict.line).toBe('QUEUE: empty — 1 unclarified Inbox idea (ADEV-1)')
+    expect(verdict.keys).toEqual(['idea:note-1:2026-11-23T09:00:00.000Z'])
+  })
+
+  it('a note with an open agent question is not in inbox.ideas, so a board holding only that is idle', () => {
+    // The server leaves it out (lib/inbox-ideas.ts); the verdict must not invent work from nothing.
+    const verdict = decideQueueVerdict({ snapshot: snapshot({ inbox: { ideas: [], truncated: false } }), seen: new Set() })
+    expect(verdict.work).toBe(false)
+  })
+
+  it('an idea wakes one run; the same unchanged note does not wake another', () => {
+    const first = decideQueueVerdict({ snapshot: snapshot({ inbox: ideas }), seen: new Set() })
+    const second = decideQueueVerdict({ snapshot: snapshot({ inbox: ideas }), seen: new Set(first.keys) })
+    expect(second.work).toBe(false)
+    expect(second.line).toMatch(/1 unanswered item already woke a run/)
+  })
+
+  it('an edited note is a new key and wakes again', () => {
+    const first = decideQueueVerdict({ snapshot: snapshot({ inbox: ideas }), seen: new Set() })
+    const edited = { ...ideas, ideas: [{ ...ideas.ideas[0], updatedAt: '2026-11-24T09:00:00.000Z' }] }
+    expect(decideQueueVerdict({ snapshot: snapshot({ inbox: edited }), seen: new Set(first.keys) }).work).toBe(true)
+  })
+
+  it('the Ready queue still comes first', () => {
+    const verdict = decideQueueVerdict({
+      snapshot: snapshot({ empty: false, queue: [{ id: 't', title: 'x' }], inbox: ideas }),
+      seen: new Set(),
+    })
+    expect(verdict.reason).toBe('queue')
+  })
+})
