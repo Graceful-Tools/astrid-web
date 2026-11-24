@@ -303,6 +303,12 @@ scripts/push-agent-env.sh             # → GitHub `agent` environment (secrets 
 
 The script refuses a file that names a production key or value, or a key it doesn't know.
 
+**Renewing only the Claude token?** Set it on the `agent` environment:
+`gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo Graceful-Tools/astrid-web --env agent`. The
+environment's copy overrides a repo-level secret of the same name, so setting the repo one changes
+nothing. On 2026-11-24 it was renewed twice that way while the runs kept reading the revoked
+2026-10-25 environment copy (ADEV-235).
+
 - `AGENT_GH_TOKEN` (in `.env.cloud`): a fine-grained token over the Graceful-Tools app repos
   (astrid-web, astrid-core, astrid-ios, astrid-android, astrid-windows, gracefultools.com),
   with **Contents**, **Pull requests** and **Workflows** read/write, no org permissions and
