@@ -14,7 +14,8 @@ Copilot and Codex read the same two files. This one holds only what is particula
   `ASTRID_FIXALL_EPHEMERAL=1` (an `agent-run.yml` runner). In the Bash tool, `$PPID` is the
   `claude` process. `$$` is a shell that exits at once, which records a dead pid.
 - **Queue:** `get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba", includeUnassigned: true }`.
-  Never poll as `copilot`.
+  Never poll as `copilot`. Its `inbox.ideas` are the Inbox notes to clarify after the queue
+  (FIXALL_WORKFLOW.md → *Clarifying Inbox ideas*), handed back with `--agent claude`.
 - **Claim:** `npx tsx scripts/claim-fixall-task.ts <taskId> ready --agent claude`. Omitting
   `--agent` assigns the task to Copilot.
 - **One task per scheduled run:** stop after `ASTRID_FIXALL_MAX_TASKS` tasks when it is set.
