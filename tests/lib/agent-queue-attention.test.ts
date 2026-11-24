@@ -349,3 +349,35 @@ describe('buildAgentQueue attention — cost (AWTD-963)', () => {
     expect(mockPrisma.chatMessage.findFirst).not.toHaveBeenCalled()
   })
 })
+
+describe('buildAgentQueue attention — one agent asking another (AWTD-1695)', () => {
+  const COPILOT = { id: 'agent-copilot', name: 'Copilot', isAIAgent: true }
+  const question = comment({ id: 'q', authorId: COPILOT.id, author: COPILOT,
+    content: 'Does iOS read this field?\nAGENT-HANDBACK: copilot' })
+
+  it('AWTD-1695: another agent\'s recorded question on a task this agent holds is attention', async () => {
+    mockPrisma.task.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([attentionTask({ comments: [question] })])
+    const result = await buildAgentQueue({ agent: 'claude', userId: JON.id })
+    expect(result.attention.tasks.map(task => task.id)).toEqual(['task-9'])
+  })
+
+  it('AWTD-1695: another agent\'s remark that asks nothing is not', async () => {
+    mockPrisma.task.findMany.mockResolvedValueOnce([])
+      .mockResolvedValueOnce([attentionTask({ comments: [{ ...question, content: 'Reviewed, looks fine.' }] })])
+    const result = await buildAgentQueue({ agent: 'claude', userId: JON.id })
+    expect(result.attention.tasks).toEqual([])
+  })
+
+  it('AWTD-1695: another agent answering this agent\'s question surfaces on the named board', async () => {
+    const asked = comment({ id: 'mine', authorId: AGENT.id, author: AGENT,
+      content: 'Which endpoint?\nAGENT-HANDBACK: claude', createdAt: new Date('2026-09-19T09:00:00Z'),
+      updatedAt: new Date('2026-09-19T09:00:00Z') })
+    const answer = comment({ id: 'ans', authorId: COPILOT.id, author: COPILOT, content: '/api/v1/tasks' })
+    mockPrisma.task.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([]).mockResolvedValueOnce([])
+      .mockResolvedValueOnce([attentionTask({ id: 'task-ios', comments: [answer, asked] })])
+    const result = await buildAgentQueue({ agent: 'claude', userId: JON.id, listId: 'list-9' })
+    expect(result.attention.tasks).toEqual([
+      expect.objectContaining({ id: 'task-ios', lastComment: expect.objectContaining({ id: 'ans' }) }),
+    ])
+  })
+})

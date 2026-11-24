@@ -1913,7 +1913,10 @@
       "saveFailed": "Impossibile salvare obiettivi e vincoli. Riprova.",
       "counts": "Obiettivi: {goals} · Vincoli: {guardrails}",
       "targetValue": "Traguardo: {value}",
-      "currentValue": "Ora: {value}"
+      "currentValue": "Ora: {value}",
+      "progressValue": "{percent}% dell'obiettivo",
+      "targetMet": "Obiettivo raggiunto",
+      "workServed": "{count} attività hanno servito questo obiettivo"
     },
     "decisions": {
       "title": "Decisioni",

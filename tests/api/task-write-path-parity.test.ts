@@ -421,6 +421,8 @@ describe.each(NAMES)('%s task-write surface — opt-in agent wake (AWTD-1556)', 
     expect(wakeAgentsForTaskWrite).toHaveBeenCalledWith({
       before: expect.objectContaining({ id: 'task-1', statusRole: null }),
       after: expect.objectContaining({ id: 'task-1', statusRole: 'ready' }),
+      // Who wrote it: an agent's own write never wakes itself (AWTD-1695).
+      actor: expect.objectContaining({ type: expect.stringMatching(/^(user|agent)$/) }),
     })
     // The write itself is untouched: the hook never throws and queues at most a job.
     if (res && typeof res === 'object' && 'status' in res) expect((res as Response).status).toBeLessThan(400)

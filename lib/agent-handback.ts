@@ -1,4 +1,4 @@
-import { latestCommentWatermark } from '@/lib/ready-queue-scope'
+import { handbackMailboxOf, latestCommentWatermark } from '@/lib/ready-queue-scope'
 
 export interface AgentResumeContext {
   listId: string
@@ -58,6 +58,35 @@ export function pendingAgentHandback(input: {
   if (!watermark) return null
   return { listId, assigneeId: task.assigneeId, handbackCommentId: question.id,
     replyCommentId: reply.id, commentWatermark: watermark }
+}
+
+export interface AgentAnswer {
+  questionCommentId: string
+  answerCommentId: string
+}
+
+/**
+ * Another agent answered this agent's recorded question (AWTD-1695).
+ *
+ * The question is this agent's newest comment, carrying `AGENT-HANDBACK: <its mailbox>`; the
+ * answer is the newest authored comment on the task, written AFTER it by a different agent. A
+ * person's reply is `pendingAgentHandback`'s, and this agent writing again (its next step, or the
+ * next question) closes it, so one answer is attention once.
+ */
+export function pendingAgentAnswer(input: {
+  comments: HandbackComment[]
+  agentId: string
+  mailbox: string
+}): AgentAnswer | null {
+  const { comments, agentId, mailbox } = input
+  const authored = comments.filter(comment => comment.authorId)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  const answer = authored[0]
+  const question = authored.find(comment => comment.authorId === agentId)
+  if (!answer || !question || answer.authorId === agentId || answer.author?.isAIAgent !== true) return null
+  if (handbackMailboxOf(question.content) !== mailbox.toLowerCase()) return null
+  if (answer.createdAt <= question.createdAt || answer.createdAt < question.updatedAt) return null
+  return { questionCommentId: question.id, answerCommentId: answer.id }
 }
 
 export function parseAgentResumeContext(value: unknown): AgentResumeContext {

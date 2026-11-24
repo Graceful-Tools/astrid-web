@@ -551,7 +551,8 @@ harness (Claude Code, Copilot CLI, Codex, OpenClaw) does the work. Registered ag
 default models are the server's: [ASTRID.md](../ASTRID.md) → "AI Agent System" and
 `lib/ai/agent-config.ts`. Usage: `packages/astrid-sdk/README.md`. Pushes to `main` that
 touch `packages/astrid-sdk/src/` publish it (`.github/workflows/publish-astrid-sdk.yml`)
-unless the head commit says `[skip-publish]`.
+unless the head commit says `[skip-publish]`. The version bump that follows a publish lands
+as a PR that merges itself once CI is green, because `protect_main` requires CI (ADEV-254).
 
 ---
 

@@ -61,7 +61,7 @@ export async function broadcastTaskUpdated(args: {
   // The board's polling worker hears about it too, when the board opted in
   // (AWTD-1556): entering Ready, or a hand-off to a polling agent while Ready,
   // wakes it now instead of at its next poll. Never throws; inert unless enrolled.
-  await wakeAgentsForTaskWrite({ before: existingTask, after: task })
+  await wakeAgentsForTaskWrite({ before: existingTask, after: task, actor: { id: actorId, type: args.actorType ?? 'user' } })
   // An agent is never sent its own write, so its writes are never tagged.
   const originClientId = args.actorType === 'agent' ? null : args.originClientId
   try {

@@ -63,6 +63,7 @@ import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { taskEventSnapshot } from '@/lib/task-event-snapshot'
 import { enqueueTaskUpdatedEffects } from './task-update-deferred-effects'
 import { broadcastTaskCreated } from './task-create-broadcast'
+import type { WakeActor } from '@/lib/agent-wake'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
 import { TASK_CREATE_INCLUDE, TASK_UPDATE_EXISTING_INCLUDE, type CreatedTask } from '@/services/task-includes'
 import { taskBackendFor, listsBeforeAndAfter } from '@/lib/backends/resolve'
@@ -308,8 +309,10 @@ export async function createTaskWithSideEffects(args: {
    * rule everywhere would delete that feature rather than unify a behaviour.
    */
   requireAssigneeListMembership?: boolean
+  /** Who caused it, when not `actorId` as a person: the agent wake's loop guard (AWTD-1695). */
+  wakeActor?: WakeActor
 }): Promise<CreateTaskResult> {
-  const { input, actorId, actorName, platform, requireAssigneeListMembership } = args
+  const { input, actorId, actorName, platform, requireAssigneeListMembership, wakeActor } = args
 
   const title = typeof input.title === 'string' ? input.title.trim() : ''
   if (!title) {
@@ -544,7 +547,7 @@ export async function createTaskWithSideEffects(args: {
   // waitOnTaskId: attached now the task exists — or, if that fails and it was the only condition, Inbox.
   if (waiting.attachBlockerId) Object.assign(task, await (await import('@/services/task-waiting')).attachCreatedBlocker(task, waiting.attachBlockerId, actorId))
 
-  await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds })
+  await runCreateSideEffects({ task, actorId, actorName, platform, connectListIds, wakeActor })
 
   return { ok: true, task, idempotent: false }
 }
@@ -563,8 +566,9 @@ async function runCreateSideEffects(args: {
   actorName?: string
   platform?: AnalyticsPlatformValue
   connectListIds: string[]
+  wakeActor?: WakeActor
 }): Promise<void> {
-  const { task, actorId, actorName, platform, connectListIds } = args
+  const { task, actorId, actorName, platform, connectListIds, wakeActor } = args
   const anyTask = task as unknown as Record<string, any>
   const creatorName =
     actorName || anyTask.creator?.name || anyTask.creator?.email || 'Someone'
@@ -593,11 +597,7 @@ async function runCreateSideEffects(args: {
   try {
     const reminders: ReminderScheduleEntry[] = []
     if (task.reminderTime) {
-      reminders.push({
-        scheduledFor: task.reminderTime,
-        type: 'due_reminder',
-        source: 'explicit',
-      })
+      reminders.push({ scheduledFor: task.reminderTime, type: 'due_reminder', source: 'explicit' })
     } else if (task.dueDateTime) {
       reminders.push(...computeAutomaticReminders(new Date(task.dueDateTime), 'automatic'))
     }
@@ -616,7 +616,7 @@ async function runCreateSideEffects(args: {
   }
 
   // task_assigned to the assignee, task_created to the rest of the lists.
-  const memberIds = await broadcastTaskCreated({ task, actorId, creatorName })
+  const memberIds = await broadcastTaskCreated({ task, actorId, creatorName, wakeActor })
 
   // An AI agent has to be told, or the one feature agent assignment exists for
   // never starts. Same helper as the update path.

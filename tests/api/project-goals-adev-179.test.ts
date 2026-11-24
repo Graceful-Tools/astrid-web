@@ -14,6 +14,7 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { findUnique: vi.fn(), findMany: vi.fn() },
     project: { findUnique: vi.fn(), update: vi.fn() },
+    comment: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
@@ -77,7 +78,7 @@ describe('GET /api/v1/projects/:id/goals (ADEV-179)', () => {
     const response = await getProject(req(`/api/v1/projects/${PROJECT_ID}/goals`), projectParams)
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
-      projectId: PROJECT_ID, projectName: 'Fund', ...STATED, canEdit: true,
+      projectId: PROJECT_ID, projectName: 'Fund', ...STATED, workByGoal: {}, canEdit:true,
       meta: { apiVersion: 'v1', authSource: 'session' },
     })
   })

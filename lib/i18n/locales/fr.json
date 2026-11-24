@@ -1913,7 +1913,10 @@
       "saveFailed": "Impossible d'enregistrer les objectifs et garde-fous. Réessayez.",
       "counts": "Objectifs: {goals} · Garde-fous: {guardrails}",
       "targetValue": "Cible : {value}",
-      "currentValue": "Actuel : {value}"
+      "currentValue": "Actuel : {value}",
+      "progressValue": "{percent} % de l'objectif",
+      "targetMet": "Objectif atteint",
+      "workServed": "{count} tâches ont servi cet objectif"
     },
     "decisions": {
       "title": "Décisions",

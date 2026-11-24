@@ -109,6 +109,8 @@ export async function handoffTask(input: HandoffInput): Promise<HandoffResult> {
     actorId,
     platform,
     requireAssigneeListMembership: true,
+    // The half's wake is the receiving agent's (AWTD-1695); the agent handing off is who caused it.
+    wakeActor: { id: authorId, type: actorType },
   })
   if (!created.ok) return created
   const half = created.task

@@ -109,4 +109,20 @@ describe('the token renewal task (ADEV-236)', () => {
     expect(text).toContain('gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo o/r')
     expect(text).toContain('https://github.com/o/r/actions/runs/1')
   })
+
+  // ADEV-235: agent-run.yml's jobs run in the `agent` environment, whose own
+  // CLAUDE_CODE_OAUTH_TOKEN overrides the repo secret. Jon renewed the repo
+  // secret twice and the runs kept reading the revoked environment copy.
+  it('ADEV-235: tells the owner to set the agent environment secret, not the repo one', async () => {
+    const { renewalDescription } = await import('@/scripts/lib/harness-start')
+    const text = renewalDescription({ runUrl: 'https://github.com/o/r/actions/runs/1', repo: 'o/r' })
+    expect(text).toContain('gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo o/r --env agent')
+  })
+
+  it('ADEV-235: agent-run.yml really reads the token from the agent environment', async () => {
+    const { readFileSync } = await import('node:fs')
+    const workflow = readFileSync('.github/workflows/agent-run.yml', 'utf8')
+    expect(workflow).toMatch(/^\s+environment:\s*agent\s*$/m)
+    expect(workflow).toContain('secrets.CLAUDE_CODE_OAUTH_TOKEN')
+  })
 })

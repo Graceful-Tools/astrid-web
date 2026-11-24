@@ -1913,7 +1913,10 @@
       "saveFailed": "Не удалось сохранить цели и ограничения. Попробуйте ещё раз.",
       "counts": "Цели: {goals} · Ограничения: {guardrails}",
       "targetValue": "Цель: {value}",
-      "currentValue": "Сейчас: {value}"
+      "currentValue": "Сейчас: {value}",
+      "progressValue": "{percent}% от цели",
+      "targetMet": "Цель достигнута",
+      "workServed": "Задач, служивших этой цели: {count}"
     },
     "decisions": {
       "title": "Решения",

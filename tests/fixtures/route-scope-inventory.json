@@ -80,6 +80,7 @@
   "projects/[id]/decisions/[taskId]/decide/route.ts": "all:projects:write",
   "projects/[id]/decisions/route.ts": "all:projects:read,projects:write",
   "projects/[id]/fields/route.ts": "all:projects:read",
+  "projects/[id]/goals/[goalId]/measure/route.ts": "all:projects:write",
   "projects/[id]/goals/route.ts": "all:projects:read,projects:write",
   "projects/[id]/orchestration-policy/route.ts": "all:projects:read,projects:write",
   "projects/[id]/route.ts": "all:projects:delete,projects:write",
