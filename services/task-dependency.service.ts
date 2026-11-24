@@ -49,6 +49,7 @@ import { enrichTaskForAgent } from '@/lib/agent-protocol'
 import { getTaskForUser } from '@/services/task.service'
 import { cancelActiveCodingWorkflow } from '@/lib/tasks/cancel-active-coding-workflow'
 import { dispatchAgentAssignment } from '@/services/agent-assignment-dispatch'
+import { wakeAgentsForTaskWrite } from '@/lib/agent-wake'
 
 const log = createLogger('services.task-dependency')
 
@@ -200,6 +201,8 @@ async function moveLane(args: {
    * task's date — a concurrent date change makes the decision stale (the scheduled job).
    */
   expectDueDateTime?: Date | null
+  /** A blocker completed (AWTD-1695): the agent wake wakes the holder even when it is the actor. */
+  wakeReason?: 'unblocked'
 }): Promise<boolean> {
   const {
     taskId,
@@ -254,6 +257,13 @@ async function moveLane(args: {
   const event = events[0] ?? { kind, from, to }
   await recordTaskEvents({ taskId, actorId, actorType, events })
   await announceTaskChange({ taskId, actorId, event, broadcast: true, formerAssigneeId: clearAssignee ? formerAssigneeId : null })
+  // These moves skip the update broadcast, so entering Ready wakes the board's worker here (AWTD-1695).
+  await wakeAgentsForTaskWrite({
+    before: { id: taskId, statusRole: from },
+    after: { id: taskId, statusRole: to },
+    actor: { id: actorId, type: actorType },
+    reason: args.wakeReason,
+  })
   return true
 }
 
@@ -597,6 +607,7 @@ async function promoteIfUnblocked(args: {
     clearAssignee: settlement.assignee === 'clear',
     formerAssigneeId: state.task.assigneeId,
     returnAssigneeId: settlement.assignee === 'return' ? settlement.returnAssigneeId : undefined,
+    wakeReason: 'unblocked',
   })
 }
 

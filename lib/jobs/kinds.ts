@@ -73,7 +73,12 @@ export interface AgentWakePayload {
   mailbox: string
   /** The task that triggered the wake. A hint only: the worker reads its own queue. */
   taskId: string
-  reason: 'ready' | 'assigned' | 'reply' | 'handback-reply'
+  /**
+   * A person's events (AWTD-1556): `ready`, `assigned`, `reply`, `handback-reply`. An agent's
+   * (AWTD-1695): `unblocked` (a blocker completed and the waiting task is Ready again),
+   * `agent-question` (another agent asked the holder) and `agent-answer` (the asker's answer).
+   */
+  reason: 'ready' | 'assigned' | 'reply' | 'handback-reply' | 'unblocked' | 'agent-question' | 'agent-answer'
   /** When the event happened, so a run can report its wake latency. */
   eventAt: string
 }
