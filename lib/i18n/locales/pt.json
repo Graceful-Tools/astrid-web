@@ -280,6 +280,21 @@
       "preview": "Pré-visualização",
       "post": "Publicar",
       "add": "Adicionar"
+    },
+    "decisionGridEditor": {
+      "edit": "Editar tabela",
+      "title": "Editar a tabela de compensações",
+      "criteria": "Critérios",
+      "options": "Opções",
+      "remove": "Remover",
+      "recommend": "Recomendar esta opção",
+      "save": "Salvar",
+      "saveFailed": "Não foi possível salvar a tabela. Tente novamente.",
+      "optionsAreRowsHint": "Estas são as opções da decisão: renomear, adicionar ou remover uma também muda a pergunta.",
+      "tooFewOptions": "Mantenha pelo menos duas opções.",
+      "noCriteria": "Mantenha pelo menos um critério.",
+      "unnamed": "Dê nome a cada opção e critério.",
+      "noRating": "Avalie pelo menos uma célula."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "Objetivos: {goals} · Limites: {guardrails}",
       "targetValue": "Meta: {value}",
       "currentValue": "Agora: {value}"
+    },
+    "decisions": {
+      "title": "Decisões",
+      "intro": "As decisões deste projeto. Cada uma é uma tarefa com a pergunta e sua tabela de compensações; abra uma para preenchê-la.",
+      "new": "Nova decisão",
+      "newFailed": "Não foi possível iniciar a decisão. Tente novamente.",
+      "openCount": "Decisões: {count} abertas",
+      "openHeading": "Abertas",
+      "decidedHeading": "Decididas",
+      "noneOpen": "Nenhuma decisão aberta.",
+      "chose": "Escolhida: {option}",
+      "decide": "Decidir",
+      "confirmTitle": "Registrar esta escolha?",
+      "confirmChoose": "Escolher {option}",
+      "decideFailed": "Não foi possível registrar a escolha. Tente novamente."
     }
   },
   "viewRotator": {

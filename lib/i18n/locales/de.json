@@ -280,6 +280,21 @@
       "preview": "Vorschau",
       "post": "Posten",
       "add": "Hinzufügen"
+    },
+    "decisionGridEditor": {
+      "edit": "Tabelle bearbeiten",
+      "title": "Abwägungstabelle bearbeiten",
+      "criteria": "Kriterien",
+      "options": "Optionen",
+      "remove": "Entfernen",
+      "recommend": "Diese Option empfehlen",
+      "save": "Speichern",
+      "saveFailed": "Die Tabelle konnte nicht gespeichert werden. Versuche es erneut.",
+      "optionsAreRowsHint": "Das sind die Optionen der Entscheidung: Umbenennen, Hinzufügen oder Entfernen ändert auch die Frage.",
+      "tooFewOptions": "Behalte mindestens zwei Optionen.",
+      "noCriteria": "Behalte mindestens ein Kriterium.",
+      "unnamed": "Benenne jede Option und jedes Kriterium.",
+      "noRating": "Bewerte mindestens eine Zelle."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "Ziele: {goals} · Leitplanken: {guardrails}",
       "targetValue": "Zielwert: {value}",
       "currentValue": "Aktuell: {value}"
+    },
+    "decisions": {
+      "title": "Entscheidungen",
+      "intro": "Die Entscheidungen dieses Projekts. Jede ist eine Aufgabe mit der Frage und ihrer Abwägungstabelle; öffne eine, um sie auszufüllen.",
+      "new": "Neue Entscheidung",
+      "newFailed": "Die Entscheidung konnte nicht angelegt werden. Versuche es erneut.",
+      "openCount": "Entscheidungen: {count} offen",
+      "openHeading": "Offen",
+      "decidedHeading": "Entschieden",
+      "noneOpen": "Keine offenen Entscheidungen.",
+      "chose": "Gewählt: {option}",
+      "decide": "Entscheiden",
+      "confirmTitle": "Diese Wahl festhalten?",
+      "confirmChoose": "{option} wählen",
+      "decideFailed": "Die Wahl konnte nicht gespeichert werden. Versuche es erneut."
     }
   },
   "viewRotator": {
