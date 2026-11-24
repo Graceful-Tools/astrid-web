@@ -20,6 +20,7 @@ import { DecisionCards } from "@/components/task-detail/DecisionCards"
 import { approvalRequestCard } from "@/components/task-detail/ApprovalCard"
 import { APPROVAL_REQUEST } from "@/lib/approvals"
 import { parseDecision, chosenNumber } from "@/lib/comment-formats"
+import { decisionAnswer } from "@/lib/decision-thread"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 import { nestComments, updateComment, removeComment, settleOptimisticComment } from "@/lib/comment-stream"
 import { useSharedEditingSession } from "@/hooks/use-editing-session"
@@ -516,7 +517,7 @@ export function CommentSection({
         </div>
       )
     }
-    // Decision cards (AWTD-1524): inert on your own question and once someone else has answered.
+    // Decision cards (AWTD-1524): inert once answered — by someone else, or by the asker picking an option.
     const decision = isSystem || comment.systemEventType === APPROVAL_REQUEST ? null : parseDecision(comment.content || '')
     let decisionContent: React.ReactNode = undefined
     // Approval cards (AWTD-1694): only the server-made kind, decided only through the endpoint.
@@ -525,11 +526,9 @@ export function CommentSection({
     })
     if (decision) {
       const flat = (task.comments || []).flatMap((c: any) => [c, ...(c.replies || [])])
-      const answer = flat
-        .filter((c: any) => !isSystemComment(c) && c.id !== comment.id && c.authorId !== comment.authorId &&
-          new Date(c.createdAt).getTime() > new Date(comment.createdAt).getTime())
-        .sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())[0]
-      const canAnswer = !readOnly && !isCurrentUser && !answer
+      const answer = decisionAnswer(comment, flat, decision.options)
+      // Your own decision is choosable too (ADEV-248, iOS ADEV-232).
+      const canAnswer = !readOnly && !answer
       decisionContent = (
         <DecisionCards
           decision={decision}
