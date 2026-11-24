@@ -255,6 +255,31 @@
       "tapRowHint": "Tik op een optie om die te kiezen.",
       "confirmTitle": "Je keuze plaatsen?",
       "chooseOption": "{option} kiezen"
+    },
+    "decisionComposer": {
+      "title": "Om een beslissing vragen",
+      "question": "Vraag",
+      "questionPlaceholder": "Wat moet er beslist worden?",
+      "options": "Opties",
+      "optionPlaceholder": "Optie",
+      "addOption": "Optie toevoegen",
+      "needsTwoOptions": "Schrijf minstens twee opties.",
+      "recommendHint": "Tik op de ster om er één aan te bevelen.",
+      "criteria": "Afwegingen (optioneel)",
+      "criterionPlaceholder": "Criterium, bijv. Kosten",
+      "criterionDetailPlaceholder": "Wat het betekent (optioneel)",
+      "addCriterion": "Criterium toevoegen",
+      "criteriaHint": "Beoordeel elke optie per criterium van rood tot groen. Er is geen score: jij beslist.",
+      "reasonPlaceholder": "Notitie (optioneel), bijv. 2 dagen werk",
+      "reasonNeedsColour": "Kies een kleur voor elke reden die je schrijft.",
+      "postTo": "Plaatsen in",
+      "asComment": "Opmerking",
+      "inDescription": "Beschrijving",
+      "commentHint": "Geplaatst als opmerking. Tikken op een optie beantwoordt die in de draad.",
+      "descriptionHint": "Toegevoegd aan het einde van de beschrijving.",
+      "preview": "Voorbeeld",
+      "post": "Plaatsen",
+      "add": "Toevoegen"
     }
   },
   "assignee": {

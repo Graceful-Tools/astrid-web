@@ -255,6 +255,31 @@
       "tapRowHint": "Touchez une option pour la choisir.",
       "confirmTitle": "Publier votre choix ?",
       "chooseOption": "Choisir {option}"
+    },
+    "decisionComposer": {
+      "title": "Demander une décision",
+      "question": "Question",
+      "questionPlaceholder": "Que faut-il décider ?",
+      "options": "Options",
+      "optionPlaceholder": "Option",
+      "addOption": "Ajouter une option",
+      "needsTwoOptions": "Écrivez au moins deux options.",
+      "recommendHint": "Touchez l’étoile pour en recommander une.",
+      "criteria": "Compromis (facultatif)",
+      "criterionPlaceholder": "Critère, p. ex. Coût",
+      "criterionDetailPlaceholder": "Ce que cela signifie (facultatif)",
+      "addCriterion": "Ajouter un critère",
+      "criteriaHint": "Notez chaque option du rouge au vert pour chaque critère. Pas de score : c’est vous qui décidez.",
+      "reasonPlaceholder": "Note (facultatif), p. ex. 2 jours de travail",
+      "reasonNeedsColour": "Choisissez une couleur pour chaque raison écrite.",
+      "postTo": "Publier dans",
+      "asComment": "Commentaire",
+      "inDescription": "Description",
+      "commentHint": "Publié en commentaire. Toucher une option y répond dans le fil.",
+      "descriptionHint": "Ajouté à la fin de la description.",
+      "preview": "Aperçu",
+      "post": "Publier",
+      "add": "Ajouter"
     }
   },
   "assignee": {

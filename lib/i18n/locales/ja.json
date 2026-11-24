@@ -255,6 +255,31 @@
       "tapRowHint": "選択肢をタップして選びます。",
       "confirmTitle": "選択を投稿しますか？",
       "chooseOption": "{option} を選ぶ"
+    },
+    "decisionComposer": {
+      "title": "決定を依頼",
+      "question": "質問",
+      "questionPlaceholder": "何を決めますか？",
+      "options": "選択肢",
+      "optionPlaceholder": "選択肢",
+      "addOption": "選択肢を追加",
+      "needsTwoOptions": "選択肢を2つ以上入力してください。",
+      "recommendHint": "星をタップしておすすめを1つ選びます。",
+      "criteria": "比較（任意）",
+      "criterionPlaceholder": "基準（例：費用）",
+      "criterionDetailPlaceholder": "意味（任意）",
+      "addCriterion": "基準を追加",
+      "criteriaHint": "各基準で各選択肢を赤から緑で評価します。点数はありません。決めるのはあなたです。",
+      "reasonPlaceholder": "メモ（任意）例：作業2日",
+      "reasonNeedsColour": "入力した理由ごとに色を選んでください。",
+      "postTo": "投稿先",
+      "asComment": "コメント",
+      "inDescription": "説明",
+      "commentHint": "コメントとして投稿します。選択肢をタップするとスレッドで回答できます。",
+      "descriptionHint": "説明の最後に追加します。",
+      "preview": "プレビュー",
+      "post": "投稿",
+      "add": "追加"
     }
   },
   "assignee": {

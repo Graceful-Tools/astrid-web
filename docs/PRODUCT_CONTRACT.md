@@ -391,6 +391,17 @@ draws the grid after them. The markdown is unchanged: writers keep both the list
 Strings: `decision.tap_row_hint`, `decision.confirm_title`, `decision.choose_option` (web
 `tasks.decision.tapRowHint`, `confirmTitle`, `chooseOption`).
 
+**Writing a decision** (iOS/Mac ADEV-189 and ADEV-231, web ADEV-240). Task details offer "Ask
+for a decision": iOS/Mac in the comment bar's "+" menu, web as a button beside the paperclip. It
+takes a question, two or more options (one may be starred as recommended), and up to five optional
+criteria, each with an optional meaning. Each option is rated per criterion in the five lights
+`-- - ~ +` `++` (tap again to clear) with an optional note; a note with no light blocks posting. It
+posts as a comment, or appends to the description for someone who may edit the task, and shows a
+live preview drawn by the thread's renderer. The markdown is byte for byte what iOS's
+`DecisionDraft.markdown` writes: the Decision paragraph, the numbered options with
+`(recommended)`, the grid once a cell has a light, then the key (`- **Cost:** meaning`) for the
+criteria that have one. Strings: `decision_composer.*` (web `tasks.decisionComposer.*`).
+
 **Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
 with a rating token followed by whitespace or end: `--` disqualifying, `-` poor, `~` mixed or unknown, `+` good,
 `++` decisive, or 🔴 poor / 🟡 mixed / 🟢 good (the two bright ones mean one cell alone rules the

@@ -1398,7 +1398,7 @@ function TaskDetailComponent({ task, currentUser, availableLists = [], available
           currentUser={currentUser}
           onUpdate={onUpdate}
           onLocalUpdate={onLocalUpdate}
-          onTimerClick={() => setShowTimer(true)}
+          onTimerClick={() => setShowTimer(true)} canEditDescription={!readOnly}
           lists={availableLists}
           tasks={availableTasks}
           newComment={newComment}
