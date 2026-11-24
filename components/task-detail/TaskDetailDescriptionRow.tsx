@@ -162,9 +162,9 @@ export function TaskDetailDescriptionRow({
           {t('tasks.decisionGridEditor.edit')}
         </button>
       )}
-      {canEditGrid && (
+      {canEditGrid && gridEditorOpen && (
         <DecisionGridEditor
-          open={gridEditorOpen}
+          open
           description={task.description || ''}
           onClose={() => setGridEditorOpen(false)}
           onSave={text => handleSaveDescription(text)}

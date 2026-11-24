@@ -7,7 +7,7 @@
  * prose around it stays as written. There is no score or total column: the person decides.
  * When the Decision's options are the grid's rows, an option edited here is edited in the question.
  */
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Plus, Star, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -25,6 +25,7 @@ import {
 } from '@/lib/decision-grid'
 
 interface DecisionGridEditorProps {
+  /** Mount it when opening: it reads the description once, so a live update never drops an edit. */
   open: boolean
   description: string
   onClose: () => void
@@ -49,14 +50,6 @@ export function DecisionGridEditor({ open, description, onClose, onSave }: Decis
   const [state, setState] = useState<EditableDecision | null>(() => editableDecision(description))
   const [saving, setSaving] = useState(false)
   const [saveFailed, setSaveFailed] = useState(false)
-
-  // Start from the description each time the editor opens.
-  useEffect(() => {
-    if (open) {
-      setState(editableDecision(description))
-      setSaveFailed(false)
-    }
-  }, [open, description])
 
   if (!state) return null
   const { grid, recommended, optionsAreRows } = state
