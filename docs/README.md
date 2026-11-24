@@ -81,7 +81,8 @@ and stack versions with `npm run check:docs`.
 - **[Agent Fleet](./AGENT_FLEET.md)** - which machine and harness runs what, and why agents never hold production keys
 - **[Agent Task Claim API](./AGENT_CLAIM_API.md)** - atomic claim, resume, release and heartbeat on every board; a claim holds a 15-minute lease
 - **[List descriptions as agent instructions](./LIST_DESCRIPTION_AS_AGENT_INSTRUCTIONS.md)** - a list's description is the instruction file every agent on it reads; project goals and guardrails sit beside it
-- **[GitHub Copilot SDK integration](./COPILOT_SDK_INTEGRATION_PLAN.md)** - implemented: the `@github/copilot-sdk` runtime and the OAuth app it needs
+- **[GitHub Copilot SDK integration](./COPILOT_SDK_INTEGRATION_PLAN.md)** - plan: the SDK in the agent runner, and server-run Copilot behind a hosted gateway
+- **[Copilot Local](./COPILOT_LOCAL_PLAN.md)** - for later (December): Copilot working tasks on your own Mac or Windows PC as a `copilot-local@` agent, through the Rust SDK
 - **[SDK channel restart recovery](./SDK_CHANNEL_RECOVERY.md)** - AWTD-1565: opt-in session recovery for SDK channels after a restart
 - **[Agent integration benchmark](./benchmarks/AGENT_INTEGRATION.md)** - AWTD-1551: what Astrid adds to an agent run versus Claude Code or Codex directly, measured
 - **[Testing the GitHub coding agent locally](./guides/testing-github-agent-locally.md)** - run the GitHub agent workflow on your machine
