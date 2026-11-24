@@ -26,7 +26,9 @@ const eslintConfig = [
       "coverage/**",
       "public/**",
       // wasm-bindgen output, vendored from astrid-core by scripts/build-astrid-rules.sh.
-      "packages/astrid-rules/**"
+      "packages/astrid-rules/**",
+      // Its own package with its own deps and tsconfig (ADEV-244); linted by tsc there.
+      "services/copilot-gateway/**"
     ]
   },
   ...nextCoreWebVitals,
