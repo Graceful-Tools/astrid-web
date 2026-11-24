@@ -35,7 +35,7 @@ import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListIns
 import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
 import { collectProjectGoals, type AgentProjectGoals } from '@/lib/agent-queue-project-goals'
 import { emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
-import { pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
+import { pendingAgentAnswer, pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 
 /**
  * How much unanswered conversation one poll reports.
@@ -604,6 +604,8 @@ async function buildAttention({
     .filter(task => awaitsAgentReply({
       comment: task.comments?.[0],
       completedAt: task.completedAt,
+      // Another agent's recorded question on a task this agent holds is its to answer (AWTD-1695).
+      readerId: agentId,
     }))
     .map(task => {
       const last = task.comments[0]
@@ -661,12 +663,41 @@ async function buildAttention({
     })
   }
 
+  // Another agent answered this agent's recorded question (AWTD-1695):
+  // the agent wake's `agent-answer`, so the run it starts finds what it was woken for.
+  const asked = listId ? await prisma.task.findMany({
+    where: {
+      lists: listScope,
+      comments: { some: { authorId: agentId, content: { contains: `AGENT-HANDBACK: ${mailbox}` } } },
+    },
+    select: {
+      id: true, identifier: true, title: true, statusRole: true, completed: true,
+      comments: {
+        where: { authorId: { not: null } }, orderBy: { createdAt: 'desc' }, take: 20,
+        select: { id: true, authorId: true, content: true, createdAt: true, updatedAt: true,
+          author: { select: { name: true, isAIAgent: true } } },
+      },
+    },
+    orderBy: { updatedAt: 'desc' }, take: ATTENTION_LIMIT,
+  }) : []
+  for (const task of asked) {
+    const answer = pendingAgentAnswer({ comments: task.comments ?? [], agentId, mailbox })
+    if (!answer || tasks.some(listed => listed.id === task.id)) continue
+    const last = task.comments.find(comment => comment.id === answer.answerCommentId)!
+    tasks.push({
+      id: task.id, identifier: task.identifier, title: task.title,
+      statusRole: task.statusRole, completed: task.completed, url: getTaskUrl(task.id),
+      lastComment: { id: last.id, authorId: last.authorId, authorName: last.author?.name ?? null,
+        createdAt: last.createdAt.toISOString(), excerpt: excerpt(last.content) },
+    })
+  }
+
   return {
     tasks,
     messages,
     // `>=`, not `===`: the page is what came back, and a row count at or over
     // the limit means there is more behind it either way.
-    truncated: candidates.length >= ATTENTION_LIMIT || handbacks.length >= ATTENTION_LIMIT,
+    truncated: candidates.length >= ATTENTION_LIMIT || handbacks.length >= ATTENTION_LIMIT || asked.length >= ATTENTION_LIMIT,
     skipped,
   }
 }
