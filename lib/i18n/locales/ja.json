@@ -280,6 +280,21 @@
       "preview": "プレビュー",
       "post": "投稿",
       "add": "追加"
+    },
+    "decisionGridEditor": {
+      "edit": "表を編集",
+      "title": "トレードオフ表を編集",
+      "criteria": "基準",
+      "options": "選択肢",
+      "remove": "削除",
+      "recommend": "この選択肢を推奨",
+      "save": "保存",
+      "saveFailed": "表を保存できませんでした。もう一度お試しください。",
+      "optionsAreRowsHint": "これらは意思決定の選択肢です。名前の変更・追加・削除は質問にも反映されます。",
+      "tooFewOptions": "選択肢は2つ以上必要です。",
+      "noCriteria": "基準は1つ以上必要です。",
+      "unnamed": "すべての選択肢と基準に名前を付けてください。",
+      "noRating": "少なくとも1つのセルを評価してください。"
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "目標: {goals} · ガードレール: {guardrails}",
       "targetValue": "目標値: {value}",
       "currentValue": "現在: {value}"
+    },
+    "decisions": {
+      "title": "意思決定",
+      "intro": "このプロジェクトの意思決定です。それぞれが質問とトレードオフ表を持つタスクです。開いて記入してください。",
+      "new": "新しい意思決定",
+      "newFailed": "意思決定を開始できませんでした。もう一度お試しください。",
+      "openCount": "意思決定: 未決 {count} 件",
+      "openHeading": "未決",
+      "decidedHeading": "決定済み",
+      "noneOpen": "未決の意思決定はありません。",
+      "chose": "選択: {option}",
+      "decide": "決定",
+      "confirmTitle": "この選択を記録しますか？",
+      "confirmChoose": "{option} を選ぶ",
+      "decideFailed": "選択を記録できませんでした。もう一度お試しください。"
     }
   },
   "viewRotator": {

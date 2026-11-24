@@ -280,6 +280,21 @@
       "preview": "미리보기",
       "post": "게시",
       "add": "추가"
+    },
+    "decisionGridEditor": {
+      "edit": "표 편집",
+      "title": "트레이드오프 표 편집",
+      "criteria": "기준",
+      "options": "옵션",
+      "remove": "삭제",
+      "recommend": "이 옵션 추천",
+      "save": "저장",
+      "saveFailed": "표를 저장할 수 없습니다. 다시 시도하세요.",
+      "optionsAreRowsHint": "이 항목들은 결정의 옵션입니다. 이름 변경, 추가, 삭제는 질문에도 반영됩니다.",
+      "tooFewOptions": "옵션은 두 개 이상 있어야 합니다.",
+      "noCriteria": "기준은 하나 이상 있어야 합니다.",
+      "unnamed": "모든 옵션과 기준에 이름을 붙이세요.",
+      "noRating": "하나 이상의 칸을 평가하세요."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "목표: {goals} · 가드레일: {guardrails}",
       "targetValue": "목표치: {value}",
       "currentValue": "현재: {value}"
+    },
+    "decisions": {
+      "title": "결정",
+      "intro": "이 프로젝트의 결정입니다. 각각은 질문과 트레이드오프 표가 담긴 작업입니다. 열어서 채우세요.",
+      "new": "새 결정",
+      "newFailed": "결정을 시작할 수 없습니다. 다시 시도하세요.",
+      "openCount": "결정: 미결 {count}건",
+      "openHeading": "미결",
+      "decidedHeading": "결정됨",
+      "noneOpen": "미결 결정이 없습니다.",
+      "chose": "선택: {option}",
+      "decide": "결정하기",
+      "confirmTitle": "이 선택을 기록할까요?",
+      "confirmChoose": "{option} 선택",
+      "decideFailed": "선택을 기록할 수 없습니다. 다시 시도하세요."
     }
   },
   "viewRotator": {

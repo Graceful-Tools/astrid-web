@@ -90,8 +90,17 @@ function fenceOpener(line: string): string | null {
   return m[1]
 }
 
-/** Parse a comment body as a Decision, or null when it is not exactly that shape. */
-export function parseDecision(content: string): ParsedDecision | null {
+/** A Decision found in markdown, with the lines its option list takes: `[optionsStart, optionsEnd)`. */
+interface ScannedDecision {
+  lines: string[]
+  headIndex: number
+  promptLines: string[]
+  options: DecisionOption[]
+  optionsStart: number
+  optionsEnd: number
+}
+
+function scanDecision(content: string): ScannedDecision | null {
   if (!content) return null
   const lines = content.split('\n')
   const code = codeLineIndexes(lines)
@@ -108,6 +117,7 @@ export function parseDecision(content: string): ParsedDecision | null {
   }
   while (i < lines.length && lines[i].trim() === '') i++
 
+  const optionsStart = i
   const options: DecisionOption[] = []
   // Options drawn as code are an example, not answers (AWTD-1531).
   while (i < lines.length && !code.has(i) && /^\s*(?:[-*+]|\d+[.)])\s/.test(lines[i])) {
@@ -120,7 +130,14 @@ export function parseDecision(content: string): ParsedDecision | null {
     i++
   }
   if (options.length < 2) return null
+  return { lines, headIndex, promptLines, options, optionsStart, optionsEnd: i }
+}
 
+/** Parse a comment body as a Decision, or null when it is not exactly that shape. */
+export function parseDecision(content: string): ParsedDecision | null {
+  const scanned = scanDecision(content)
+  if (!scanned) return null
+  const { lines, headIndex, promptLines, options, optionsEnd: i } = scanned
   return {
     before: lines.slice(0, headIndex).join('\n').trim(),
     prompt: promptLines.join(' ').trim(),
@@ -130,10 +147,23 @@ export function parseDecision(content: string): ParsedDecision | null {
 }
 
 /**
+ * The markdown with its Decision's option list rewritten as `- **1.** text`, one line per option,
+ * `(recommended)` on the one marked (ADEV-188, the grid editor). Everything else stays as written.
+ * Null when the markdown holds no Decision.
+ */
+export function replaceDecisionOptions(content: string, options: Array<{ text: string; recommended: boolean }>): string | null {
+  const scanned = scanDecision(content)
+  if (!scanned) return null
+  const { lines, optionsStart, optionsEnd } = scanned
+  const written = options.map((o, i) => `- **${i + 1}.** ${o.text.replace(/\s+/g, ' ').trim()}${o.recommended ? ' (recommended)' : ''}`)
+  return [...lines.slice(0, optionsStart), ...written, ...lines.slice(optionsEnd)].join('\n')
+}
+
+/**
  * The comment a click on a card posts. Options are numbered in order, whatever marker the asker
  * wrote, and the reply leads with the number (AWTD-1533, as iOS AITD-585).
  */
-export function decisionReply(option: DecisionOption): string {
+export function decisionReply(option: Pick<DecisionOption, 'number' | 'text'>): string {
   return option.text ? `${option.number} — ${option.text}` : `${option.number}`
 }
 

@@ -280,6 +280,21 @@
       "preview": "Aperçu",
       "post": "Publier",
       "add": "Ajouter"
+    },
+    "decisionGridEditor": {
+      "edit": "Modifier le tableau",
+      "title": "Modifier le tableau de compromis",
+      "criteria": "Critères",
+      "options": "Options",
+      "remove": "Retirer",
+      "recommend": "Recommander cette option",
+      "save": "Enregistrer",
+      "saveFailed": "Impossible d'enregistrer le tableau. Réessayez.",
+      "optionsAreRowsHint": "Ce sont les options de la décision : en renommer, ajouter ou retirer une modifie aussi la question.",
+      "tooFewOptions": "Gardez au moins deux options.",
+      "noCriteria": "Gardez au moins un critère.",
+      "unnamed": "Nommez chaque option et chaque critère.",
+      "noRating": "Évaluez au moins une cellule."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "Objectifs: {goals} · Garde-fous: {guardrails}",
       "targetValue": "Cible : {value}",
       "currentValue": "Actuel : {value}"
+    },
+    "decisions": {
+      "title": "Décisions",
+      "intro": "Les décisions de ce projet. Chacune est une tâche contenant la question et son tableau de compromis ; ouvrez-en une pour la compléter.",
+      "new": "Nouvelle décision",
+      "newFailed": "Impossible de lancer la décision. Réessayez.",
+      "openCount": "Décisions : {count} ouvertes",
+      "openHeading": "Ouvertes",
+      "decidedHeading": "Tranchées",
+      "noneOpen": "Aucune décision ouverte.",
+      "chose": "Choix : {option}",
+      "decide": "Décider",
+      "confirmTitle": "Enregistrer ce choix ?",
+      "confirmChoose": "Choisir {option}",
+      "decideFailed": "Impossible d'enregistrer le choix. Réessayez."
     }
   },
   "viewRotator": {

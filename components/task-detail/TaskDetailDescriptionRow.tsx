@@ -12,10 +12,12 @@
  * mutate and arrive as props, so nothing about WHEN a description is written
  * moved with the markup.
  */
-import { useState } from "react"
-import { FileText as FileTextIcon, Maximize2 } from "lucide-react"
+import { useMemo, useState } from "react"
+import { FileText as FileTextIcon, Maximize2, Table2 } from "lucide-react"
 import { TaskFieldRow } from "./TaskFieldRow"
 import { TaskDescriptionReader } from "./TaskDescriptionReader"
+import { DecisionGridEditor } from "./DecisionGridEditor"
+import { editableDecision } from "@/lib/decision-grid"
 import type { DescriptionReaderEntry } from "@/lib/description-reader"
 import { useTranslations } from "@/lib/i18n/client"
 import { useTradeoffGridViewer } from "@/components/shared/TradeoffGridViewer"
@@ -63,6 +65,9 @@ export function TaskDetailDescriptionRow({
     else openInline()
   }
   const gridViewer = useTradeoffGridViewer()
+  // A decision task's grid gets its own editor (ADEV-188), for whoever may edit the description.
+  const [gridEditorOpen, setGridEditorOpen] = useState(false)
+  const canEditGrid = useMemo(() => !readOnly && editableDecision(task.description || '') !== null, [readOnly, task.description])
   const identifiers = useIdentifierLinkContext((task.lists ?? []).map(list => list.id))
 
   return (
@@ -145,6 +150,25 @@ export function TaskDetailDescriptionRow({
             <Maximize2 className="w-4 h-4" />
           </button>
         </div>
+      )}
+      {canEditGrid && !editingDescription && (
+        <button
+          type="button"
+          className="mt-1 ml-3 inline-flex items-center gap-1 text-xs text-brand"
+          data-testid="decision-grid-edit"
+          onClick={() => setGridEditorOpen(true)}
+        >
+          <Table2 className="w-3.5 h-3.5" aria-hidden="true" />
+          {t('tasks.decisionGridEditor.edit')}
+        </button>
+      )}
+      {canEditGrid && gridEditorOpen && (
+        <DecisionGridEditor
+          open
+          description={task.description || ''}
+          onClose={() => setGridEditorOpen(false)}
+          onSave={text => handleSaveDescription(text)}
+        />
       )}
       {reader && (
         <TaskDescriptionReader

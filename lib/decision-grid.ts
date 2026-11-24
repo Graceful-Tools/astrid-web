@@ -20,6 +20,7 @@ import {
   chosenNumber,
   parseDecision,
   parseRating,
+  replaceDecisionOptions,
   rowName,
   isTradeoffGrid,
   type Rating,
@@ -168,6 +169,56 @@ export function replaceGrid(markdown: string, grid: DecisionGrid): string | null
   const found = parseGrid(markdown)
   if (!found) return null
   return [found.before, serializeGrid(grid), found.after].filter(part => part !== '').join('\n')
+}
+
+// ── Editing a decision's grid (ADEV-188) ──────────────────────────────────
+
+/** A decision task's description as the grid editor holds it. */
+export interface EditableDecision {
+  grid: DecisionGrid
+  /** The row (from 0) whose option is `(recommended)`, or null. */
+  recommended: number | null
+  /** The Decision has one option per grid row, so the grid is the choice and edits rename options too. */
+  optionsAreRows: boolean
+}
+
+/** A description holding both a Decision and a trade-off grid, ready to edit; null otherwise. */
+export function editableDecision(markdown: string): EditableDecision | null {
+  const decision = parseDecision(markdown)
+  const found = parseGrid(markdown)
+  if (!decision || !found) return null
+  const optionsAreRows = decision.options.length === found.grid.options.length
+  const recommended = decision.options.findIndex(o => o.recommended)
+  return { grid: found.grid, recommended: recommended >= 0 ? recommended : null, optionsAreRows }
+}
+
+/**
+ * The description with the edited grid in place of the old one. When the Decision's options were the
+ * grid's rows, its option list is rewritten from the rows (names, count, and the star on
+ * `recommended`), so the grid stays the choice. Null when the description holds no grid to replace.
+ */
+export function applyDecisionEdit(markdown: string, grid: DecisionGrid, recommended: number | null): string | null {
+  const before = editableDecision(markdown)
+  const withGrid = replaceGrid(markdown, grid)
+  if (!before || withGrid === null) return withGrid
+  if (!before.optionsAreRows) return withGrid
+  return replaceDecisionOptions(
+    withGrid,
+    grid.options.map((o, i) => ({ text: o.name, recommended: i === recommended })),
+  ) ?? withGrid
+}
+
+export type GridEditProblem = 'tooFewOptions' | 'noCriteria' | 'unnamed' | 'reasonWithoutRating' | 'noRating'
+
+/** Why an edited grid cannot be saved, or null. Each problem would stop the table reading as a grid. */
+export function gridEditProblem(grid: DecisionGrid): GridEditProblem | null {
+  if (grid.options.length < 2) return 'tooFewOptions'
+  if (grid.criteria.length < 1) return 'noCriteria'
+  if ([...grid.criteria, ...grid.options.map(o => o.name)].some(name => name.trim() === '')) return 'unnamed'
+  const cells = grid.options.flatMap(o => grid.criteria.map((_, c) => o.cells[c] ?? { rating: null, text: '' }))
+  if (cells.some(cell => cell.rating === null && cell.text.trim() !== '')) return 'reasonWithoutRating'
+  if (!cells.some(cell => cell.rating !== null)) return 'noRating'
+  return null
 }
 
 // ── Starting a decision from a project's goals ────────────────────────────
