@@ -30,6 +30,8 @@ jobs:
       !contains(github.event.head_commit.message, 'chore: bump @gracefultools/astrid-sdk')
     permissions:
       contents: write
+      # The version bump lands through a PR (ADEV-254), since protect_main requires CI.
+      pull-requests: write
       # npm trusted publishing (OIDC). The repo has never had an NPM_TOKEN secret,
       # which is why every publish since February failed with ENEEDAUTH
       # (AWTD-1691). Trusted publishing needs no stored token: configure it once
@@ -44,7 +46,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # AGENT_GH_TOKEN, not GITHUB_TOKEN, so the bump PR this job opens runs CI:
+          # events made with GITHUB_TOKEN start no workflows, and protect_main
+          # requires "Typecheck, Lint & Unit Tests" to pass before it merges (ADEV-254).
+          token: ${{ secrets.AGENT_GH_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 2  # Need history to check for changes
 
       - name: Check for source changes
@@ -140,13 +145,25 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Commit version bump
+      # protect_main requires CI, so the bump can't be pushed to main directly (ADEV-254).
+      # It goes to a branch, a PR, and auto-merge once the required check is green. The
+      # merge touches only package.json, outside this workflow's src/** path filter, so
+      # it does not publish again.
+      - name: Open version bump PR
         if: steps.changes.outputs.has_changes == 'true' && env.BUMPED == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           cd ../..
+          BRANCH="chore/astrid-sdk-v${NEW_VERSION}"
+          TITLE="chore: bump @gracefultools/astrid-sdk to v${NEW_VERSION} [skip-publish]"
+          git checkout -b "$BRANCH"
           git add packages/astrid-sdk/package.json packages/astrid-sdk/package-lock.json
-          git commit -m "chore: bump @gracefultools/astrid-sdk to v${{ env.NEW_VERSION }} [skip-publish]"
-          git push
+          git commit -m "$TITLE"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" --title "$TITLE" \
+            --body "Published @gracefultools/astrid-sdk v${NEW_VERSION} to npm; this records the version in package.json. Merges itself once CI is green."
+          gh pr merge "$BRANCH" --auto --merge || echo "::warning::auto-merge could not be enabled; merge the bump PR by hand"
 
       - name: Create GitHub Release
         if: steps.changes.outputs.has_changes == 'true'
