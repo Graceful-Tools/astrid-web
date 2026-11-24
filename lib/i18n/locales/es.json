@@ -250,7 +250,12 @@
       "completedOn": "Completada el {date}",
       "completedPill": "✓ el {date}"
     },
-    "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea"
+    "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea",
+    "decision": {
+      "tapRowHint": "Toca una opción para elegirla.",
+      "confirmTitle": "¿Publicar tu elección?",
+      "chooseOption": "Elegir {option}"
+    }
   },
   "assignee": {
     "clear": "Desasignar"

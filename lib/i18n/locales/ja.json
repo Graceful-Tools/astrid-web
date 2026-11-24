@@ -250,7 +250,12 @@
       "completedOn": "{date}に完了",
       "completedPill": "✓ {date}"
     },
-    "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
+    "dropToPlaceFirst": "ここにドロップして最初のタスクを配置",
+    "decision": {
+      "tapRowHint": "選択肢をタップして選びます。",
+      "confirmTitle": "選択を投稿しますか？",
+      "chooseOption": "{option} を選ぶ"
+    }
   },
   "assignee": {
     "clear": "割り当てを解除"

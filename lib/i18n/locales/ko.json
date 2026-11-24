@@ -250,7 +250,12 @@
       "completedOn": "{date}에 완료",
       "completedPill": "✓ {date}"
     },
-    "dropToPlaceFirst": "여기에 놓아 첫 번째 작업 배치"
+    "dropToPlaceFirst": "여기에 놓아 첫 번째 작업 배치",
+    "decision": {
+      "tapRowHint": "선택지를 탭해 고르세요.",
+      "confirmTitle": "선택을 게시할까요?",
+      "chooseOption": "{option} 선택"
+    }
   },
   "assignee": {
     "clear": "할당 해제"

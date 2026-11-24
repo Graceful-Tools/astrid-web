@@ -380,6 +380,17 @@ description, on your own question, and once someone other than the asker has rep
 asker wrote (letters case-insensitive), followed by end/space/punctuation, that card shows as
 chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
 
+**A grid that is the choice** (iOS/Mac ADEV-229, web ADEV-230). When a trade-off grid follows the
+options, before the next Decision, with exactly as many body rows as options, the decision draws as
+the question and the grid only, with no cards; row n is option n. While open, a hint above the grid
+("Tap an option to choose it.") and every cell of a row choose that row, through a confirmation
+("Post your choice?", confirm "Choose 2 — Cabin") that posts the same `<number> — <option text>`
+reply. Once answered, the chosen row is ringed with a ✓ and the others dimmed; `(recommended)`
+badges its row ★. Inert in the same cases as cards. Any other grid, or none, keeps the cards and
+draws the grid after them. The markdown is unchanged: writers keep both the list and the grid.
+Strings: `decision.tap_row_hint`, `decision.confirm_title`, `decision.choose_option` (web
+`tasks.decision.tapRowHint`, `confirmTitle`, `chooseOption`).
+
 **Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
 with a rating token followed by whitespace or end: `--` disqualifying, `-` poor, `~` mixed or unknown, `+` good,
 `++` decisive, or 🔴 poor / 🟡 mixed / 🟢 good (the two bright ones mean one cell alone rules the
