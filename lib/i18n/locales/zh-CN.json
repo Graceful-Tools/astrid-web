@@ -280,6 +280,21 @@
       "preview": "预览",
       "post": "发布",
       "add": "添加"
+    },
+    "decisionGridEditor": {
+      "edit": "编辑表格",
+      "title": "编辑权衡表",
+      "criteria": "标准",
+      "options": "选项",
+      "remove": "移除",
+      "recommend": "推荐此选项",
+      "save": "保存",
+      "saveFailed": "无法保存表格，请重试。",
+      "optionsAreRowsHint": "这些是决策的选项：重命名、添加或移除选项也会修改问题。",
+      "tooFewOptions": "至少保留两个选项。",
+      "noCriteria": "至少保留一个标准。",
+      "unnamed": "为每个选项和标准命名。",
+      "noRating": "至少为一个单元格评分。"
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "目标:{goals} · 护栏:{guardrails}",
       "targetValue": "目标值:{value}",
       "currentValue": "当前:{value}"
+    },
+    "decisions": {
+      "title": "决策",
+      "intro": "此项目的决策。每个决策都是一个包含问题及其权衡表的任务；打开即可填写。",
+      "new": "新建决策",
+      "newFailed": "无法开始决策，请重试。",
+      "openCount": "决策：{count} 个待定",
+      "openHeading": "待定",
+      "decidedHeading": "已决定",
+      "noneOpen": "没有待定的决策。",
+      "chose": "已选：{option}",
+      "decide": "决定",
+      "confirmTitle": "记录此选择？",
+      "confirmChoose": "选择 {option}",
+      "decideFailed": "无法记录选择，请重试。"
     }
   },
   "viewRotator": {
