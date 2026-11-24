@@ -1913,7 +1913,10 @@
       "saveFailed": "Ziele und Leitplanken konnten nicht gespeichert werden. Bitte erneut versuchen.",
       "counts": "Ziele: {goals} · Leitplanken: {guardrails}",
       "targetValue": "Zielwert: {value}",
-      "currentValue": "Aktuell: {value}"
+      "currentValue": "Aktuell: {value}",
+      "progressValue": "{percent} % des Ziels",
+      "targetMet": "Ziel erreicht",
+      "workServed": "{count} Aufgaben dienten diesem Ziel"
     },
     "decisions": {
       "title": "Entscheidungen",

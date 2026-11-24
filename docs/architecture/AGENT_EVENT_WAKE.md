@@ -3,10 +3,15 @@
 **Status: approved by Jon 2026-11-14 (decisions below); implemented, inert until enrolled.** Polling
 stays the reconciliation path: a wake that never arrives costs latency, never work.
 
-Code: `lib/agent-wake.ts` (hooks, coalescing, delivery), job kind `agent-wake` in `lib/jobs/kinds.ts`,
-hooks in `services/task-create-broadcast.ts` and `services/task-update-broadcast.ts` (every task create and update) and `lib/comments/post-comment-side-effects.ts`,
+Code: `lib/agent-wake.ts` (hooks, coalescing, loop guard, delivery), job kind `agent-wake` in `lib/jobs/kinds.ts`,
+hooks in `services/task-create-broadcast.ts` and `services/task-update-broadcast.ts` (every task create and update),
+`services/task-dependency.service.ts` `moveLane` (the Waiting rules' lane moves) and `lib/comments/post-comment-side-effects.ts`,
 trigger and latency step in `.github/workflows/agent-run.yml`. Tests: `tests/lib/agent-wake.test.ts`,
-`tests/rules/cloud-agent-lifecycle.test.ts`, `tests/api/task-write-path-parity.test.ts`.
+`tests/rules/cloud-agent-lifecycle.test.ts`, `tests/api/task-write-path-parity.test.ts`,
+`tests/services/task-handoff-awtd-1686.test.ts`, `tests/lib/agent-handback.test.ts`, `tests/lib/agent-queue-attention.test.ts`.
+
+**Agent-authored events (AWTD-1695)** extend the same hooks, job, dedupe key and opt-in; see
+[Agent-to-agent wakes](#agent-to-agent-wakes-awtd-1695) below.
 
 ## The problem
 
@@ -69,6 +74,58 @@ Not in the first canary.
 the retired `ASTRID_AGENT_CLAIM_REQUIRED_LISTS`, now the `agentClaimRequired` list setting) plus a master switch `ASTRID_AGENT_WAKE=on`. Off by default:
 with either unset, no job is enqueued and nothing changes.
 
+## Agent-to-agent wakes (AWTD-1695)
+
+The first design woke agents only for people: `awaitsAgentReply` (`lib/ready-queue-scope.ts`)
+ignored another agent's comment, so when one agent filed work for another, or asked it something,
+the receiver found out at its next poll. A chain of three agents waited an hour to do minutes of
+work. The same hooks now fire for agent-authored events. They use the same `agent-wake` job, the same
+`wakeDedupeKey` and the same `ASTRID_AGENT_WAKE` / `ASTRID_AGENT_WAKE_LISTS` enrollment. There is no
+second mechanism, and nothing changes until a board is enrolled.
+
+| Event | Hook | Who is woken | `reason` |
+|---|---|---|---|
+| A handoff files its half in Ready (`services/task-handoff.service.ts`) | the create broadcast; the handoff passes the signing agent as `wakeActor` | the half's assignee if a polling agent; if unassigned, the agent the board's orchestration policy routes to (`routing.assignTo`, `routedAgentForList`), else `any` | `ready` |
+| A blocker completes and the Waiting task returns to Ready, to its holder (R8) | `moveLane` in `services/task-dependency.service.ts`, which writes lanes without the update broadcast | the task's assignee (the returned holder), or the routed agent / `any` | `unblocked` |
+| An agent records a question (a comment with `AGENT-HANDBACK: <asker>`) on a task another polling agent holds | the comment hook | the agent holding the task | `agent-question` |
+| Another agent answers it (the next authored comment, by a different agent) | the comment hook | the asker named in the handback line | `agent-answer` |
+
+The routing rule applies to every unassigned Ready wake, a person's included. A board with no
+`routing.assignTo` still wakes `any`, as before. A board that routes to an agent that is not polling
+wakes nobody, because the other loops' claims would be refused anyway.
+
+**The worker finds what it was woken for.** A wake is only a hint, so the queue has to surface
+the same items. `get_agent_queue`'s attention inbox now includes:
+
+- another agent's recorded question on a task this agent holds. `awaitsAgentReply` takes a
+  `readerId`, and an agent comment counts when it carries an `AGENT-HANDBACK:` line and is not the
+  reader's own. A remark that asks nothing is still not attention;
+- another agent's answer to this agent's question, on the named board (`pendingAgentAnswer`,
+  `lib/agent-handback.ts`). The asker's next comment closes it.
+
+**Loop guard.** Two agents must not wake each other indefinitely.
+
+- **No self-wake.** An agent's own write or comment never wakes its own mailbox. `unblocked` is the
+  exception: the actor finished a *different* task, which may sit on another board run by another
+  worker. An agent writing through its owner's credentials without naming itself reads as that
+  person, so it gets no self-wake check and no cap. The cap still holds for every write signed as
+  an agent.
+- **Coalesced** as before: one wake per (board, mailbox) per 30-second window.
+- **Capped per task:** at most `WAKE_CAP_PER_TASK_HOUR` (6) agent-caused wakes per task in any
+  rolling hour, counted from the `TaskEvent` rows below. Past it the wake is dropped, logged, and
+  recorded once per window as `agent_wake_capped`. Polling still reads the task at its 30-minute
+  pace, so a capped conversation slows down rather than stops. The cap is soft: two wakes racing
+  can both read 5 and both queue. People's events are never capped and do not count toward it.
+- **Visible.** Every queued wake writes an `agent_wake` TaskEvent on its task. The row carries
+  `actorId`, `actorType` (`user`, `agent` or `system`) and `to: { listId, mailbox, reason }`. A
+  coalesced duplicate writes nothing, because it is the same wake. A runaway shows on the task as
+  a run of rows ending in `agent_wake_capped`. Both kinds are in `TASK_EVENT_KINDS`;
+  notifications and insights ignore them.
+
+No migration: `TaskEvent.kind` is a string, and the cap reads the existing
+`@@index([taskId, createdAt])`. No workflow change: `agent-run.yml` logs `reason` and does not branch
+on it, so the new reasons need nothing there.
+
 ## Idempotency and "exactly once"
 
 - **At most one wake per (board, agent) per 30 seconds:** the job's unique `dedupeKey`, which
@@ -90,6 +147,8 @@ with either unset, no job is enqueued and nothing changes.
 | Hook fails (database blip) | No wake | the hooks never throw into the task or comment write; the next poll finds the work |
 | Switch turned off with wakes queued | Queued wakes are dropped | the handler re-checks enrollment before sending |
 | Forged `repository_dispatch` | A run that reads the queue and finds nothing | the queue and claim are authorized server-side |
+| Two agents wake each other in a loop (AWTD-1695) | 6 wakes per task per hour, then `agent_wake_capped` | the cap is counted from `agent_wake` TaskEvents, and polling still covers the rest |
+| An agent's own write or comment | No wake for its own mailbox | the self-wake check; `unblocked` is the deliberate exception |
 
 ## Measurement
 

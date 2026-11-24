@@ -19,6 +19,7 @@ const db = vi.hoisted(() => ({
 const createTaskWithSideEffects = vi.hoisted(() => vi.fn())
 const dispatchAgentAssignment = vi.hoisted(() => vi.fn(async () => {}))
 const recordTaskEvents = vi.hoisted(() => vi.fn(async () => {}))
+const wakeAgentsForTaskWrite = vi.hoisted(() => vi.fn(async () => {}))
 
 function matchesTask(task: any, where: Record<string, any>): boolean {
   for (const key of ['id', 'statusRole', 'completed', 'assigneeId', 'dueDateTime'] as const) {
@@ -90,6 +91,7 @@ vi.mock('@/lib/task-events', async importOriginal => ({
 vi.mock('@/lib/tasks/v1-task-shape', () => ({ loadV1TaskForEvent: vi.fn(async () => undefined) }))
 vi.mock('@/lib/tasks/cancel-active-coding-workflow', () => ({ cancelActiveCodingWorkflow: vi.fn(async () => {}) }))
 vi.mock('@/services/agent-assignment-dispatch', () => ({ dispatchAgentAssignment }))
+vi.mock('@/lib/agent-wake', () => ({ wakeAgentsForTaskWrite }))
 vi.mock('@/services/task.service', () => ({
   createTaskWithSideEffects,
   getTaskForUser: vi.fn(async (id: string) => ({ ok: true, task: { ...db.tasks.get(id) } })),
@@ -219,5 +221,36 @@ describe('AWTD-1686 handoff', () => {
     db.tasks.get('other').completed = true
     await promoteUnblockedDependents({ blockingTaskId: 'other', blockerCompleted: true })
     expect(db.tasks.get('src')).toMatchObject({ statusRole: 'ready', assigneeId: null })
+  })
+})
+
+describe('AWTD-1695: the handoff wakes the agent it is for', () => {
+  it('AWTD-1695: the half is created naming the handing-off agent as the wake actor', async () => {
+    seedTask('src', { statusRole: 'doing', assigneeId: AGENT, assigneeIds: [AGENT] })
+    const { handoffTask } = await import('@/services/task-handoff.service')
+    await handoffTask({ sourceTaskId: 'src', targetListId: 'ios-board', title: 'half', actorId: 'u-jon', authorId: AGENT, actorType: 'agent' })
+    expect(createTaskWithSideEffects).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: 'u-jon', wakeActor: { id: AGENT, type: 'agent' } }),
+    )
+  })
+
+  it('AWTD-1695: the half completing wakes the holder the source returns to, as unblocked', async () => {
+    seedTask('src', { statusRole: 'doing', assigneeId: AGENT, assigneeIds: [AGENT] })
+    const { handoffTask } = await import('@/services/task-handoff.service')
+    const { promoteUnblockedDependents } = await import('@/services/task-dependency.service')
+    const result = await handoffTask({ sourceTaskId: 'src', targetListId: 'ios-board', title: 'half', actorId: AGENT, actorType: 'agent' })
+    if (!result.ok) throw new Error('handoff refused')
+    // Parking the source in Waiting is not an entry to Ready; nothing to wake for it.
+    wakeAgentsForTaskWrite.mockClear()
+
+    db.tasks.get(result.half.id).completed = true
+    await promoteUnblockedDependents({ blockingTaskId: result.half.id, actorId: 'ai-agent-copilot', actorType: 'agent', blockerCompleted: true })
+
+    expect(wakeAgentsForTaskWrite).toHaveBeenCalledWith({
+      before: { id: 'src', statusRole: 'waiting' },
+      after: { id: 'src', statusRole: 'ready' },
+      actor: { id: 'ai-agent-copilot', type: 'agent' },
+      reason: 'unblocked',
+    })
   })
 })
