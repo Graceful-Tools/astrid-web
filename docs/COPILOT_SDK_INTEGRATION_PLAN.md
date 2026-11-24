@@ -1,6 +1,6 @@
 # GitHub Copilot SDK: where it fits, and the plan
 
-**Status (2026-11-24):** not installed. Decision: **adopt it, in the agent runner first.**
+**Status (2026-11-24):** not installed. Decision: **adopt it**, in the agent runner first (Phase 1) and, for server runs, behind a hosted gateway (Phase 2, decided 2026-11-24).
 This file used to say the SDK was "implemented in code". It was, for one day in July 2026, and
 then removed. That history is the main constraint on the plan, so it comes first.
 
@@ -63,21 +63,56 @@ kept as the fallback when the SDK cannot start.
 - Tests: the session lifecycle with a fake transport, the tool allow-list, and the fallback.
 - Docs: `packages/astrid-sdk/README.md`, `docs/AGENT_FLEET.md`.
 
-### Phase 2: the server path (needs a decision on cost)
+### Phase 2: the server path: a hosted Copilot gateway
 
-Stop sending `vscode-chat`. Two ways:
+**Decided (Jon, 2026-11-24, ADEV-238): host the runtime.** Server-run Copilot stays, but it stops
+sending `vscode-chat` and goes through the SDK running in a small always-on container. The other
+options were to withdraw server-run Copilot, or to leave it as it is.
 
-1. **A hosted Copilot runtime** that the server reaches with `RuntimeConnection.forUri`: a small
-   always-on container (Azure Container Apps, Fly or similar), per-session user tokens. This is
-   the supported route, and it costs money every month, so it is Jon's call.
-2. **No server-run Copilot.** Copilot keeps working through the runner and the GitHub cloud agent,
-   and the server-run Copilot option is withdrawn from the agent picker.
+**Why a gateway, not a remote runtime.** The SDK reaches a runtime it didn't start in only one way,
+`RuntimeConnection.forTcp(host, port, { connectionToken })`, which is plaintext TCP with no TLS
+option. (`cliUrl` and `forUri`, which an earlier version of this plan named, no longer exist in v2.)
+Pointing a Vercel function at a public runtime port would send every user's GitHub token
+unencrypted. So the SDK runs **inside** the container, next to its runtime, and the container
+offers Astrid a small HTTPS API instead:
 
-Until Phase 2 is decided, the REST provider stays as it is.
+```
+Vercel function ──HTTPS + shared secret──▶ copilot-gateway (container)
+  (lib/ai/providers/copilot-provider.ts)      @microsoft/copilot-sdk, mode "empty"
+                                              runtime over local stdio/in-process
+                                                    │ user's GitHub token, per session
+                                                    ▼
+                                              GitHub Copilot
+```
+
+This also keeps the SDK out of the Vercel bundle entirely: the server only makes `fetch` calls.
+
+**The gateway (`services/copilot-gateway/`, its own package and Dockerfile):**
+- `POST /v1/turns`: a prompt, a model, the caller's GitHub token, and tool declarations. It
+  creates a session with `mode: "empty"` and `github.tokenProvider` returning that user's token.
+  Tools are declaration-only, so a tool call comes back to the server as a pending call. The server
+  runs it with the existing `executeToolCallback` and posts the result to
+  `POST /v1/turns/:id/tool-results`. The loop stays in one function invocation, as it does today.
+- Auth: `Authorization: Bearer <COPILOT_GATEWAY_SECRET>`, compared in constant time. TLS is
+  terminated by the host. Tokens never go into logs or onto disk (`sessionFs` in memory,
+  `state.enableCrossSessionStore` off, and sessions deleted at the end of a turn).
+- `GET /healthz` reports the SDK and runtime versions without a token.
+
+**The server (`copilot-provider.ts`):** when `COPILOT_GATEWAY_URL` and `COPILOT_GATEWAY_SECRET` are
+set, it calls the gateway. Otherwise it keeps the REST path, so nothing changes until the gateway is
+live. Phase 3 deletes the REST path.
+
+**Hosting** (Jon: an account, a monthly bill, and two secrets): one small always-on instance on
+Azure Container Apps, Fly or similar, with HTTPS on the host's domain. Vercel gets
+`COPILOT_GATEWAY_URL` and `COPILOT_GATEWAY_SECRET`. The secret is generated once and stored on both
+sides.
+
+**Rollback:** unset `COPILOT_GATEWAY_URL` in Vercel. The provider falls back to REST until Phase 3,
+and after Phase 3 Copilot server runs fail with a clear "gateway unavailable" error.
 
 ### Phase 3: retire the REST provider
 
-Once Phase 2 ships either way, delete `copilot-provider.ts`'s REST call, its model-list fetch, and
+Once the gateway has served production for a week, delete `copilot-provider.ts`'s REST call, its model-list fetch, and
 the tests that pin the REST contract (`tests/lib/copilot-integration.test.ts`).
 
 ## Verification before each phase ships
