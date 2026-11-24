@@ -109,6 +109,8 @@ export interface RichTextInputProps {
   hideSendButton?: boolean
   /** Task detail only: show a timer button in the send slot while the input is empty */
   onTimerClick?: () => void
+  /** Extra buttons beside the paperclip (task detail: "Ask for a decision", ADEV-240) */
+  leadingActions?: React.ReactNode
   /** Custom class for the wrapper */
   className?: string
   /** Accept file types for upload */
@@ -138,6 +140,7 @@ export const RichTextInput = React.memo(function RichTextInput({
   disabled = false,
   hideSendButton = false,
   onTimerClick,
+  leadingActions,
   className = '',
   accept = 'image/*,video/*,.pdf,.doc,.docx,.txt,.zip',
   isSending = false,
@@ -440,6 +443,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             </button>
           </>
         )}
+        {leadingActions}
 
         {/* Textarea with highlight overlay */}
         <div className="flex-1 relative">

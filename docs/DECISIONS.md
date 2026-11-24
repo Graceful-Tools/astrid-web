@@ -149,6 +149,25 @@ Put a bold-term list under the grid, one line per column:
 - **Travel:** door-to-door time for most of the team.
 ```
 
+## Writing one in the app
+
+People don't have to type the markdown. In a task's details, **Ask for a decision** opens a
+composer: on iOS and Mac from the comment bar's "+" menu, on web from the button beside the
+paperclip (ADEV-189 on iOS, ADEV-240 on web).
+
+- **Question** (required) and at least **two options**. Add more as needed; the star marks one as
+  recommended.
+- **Trade-offs (optional):** up to five criteria, each with an optional "What it means", which
+  becomes the key under the grid. Each option is rated on each criterion with one of the five
+  traffic lights (tap again to clear) and an optional note. A note without a colour can't be
+  posted, because the table would no longer read as a grid.
+- **Post to:** a comment, or the end of the description (offered only to someone who can edit the
+  task).
+- A live preview draws exactly what will be posted.
+
+It writes the same markdown this page describes, so an agent's decision and a person's look and
+answer the same way. Because its grid has one row per option, it draws as the grid alone.
+
 ## Writing one well (for agents)
 
 - **Any question to a person with two to five discrete answers is a Decision.** Open questions stay

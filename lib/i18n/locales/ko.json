@@ -255,6 +255,31 @@
       "tapRowHint": "선택지를 탭해 고르세요.",
       "confirmTitle": "선택을 게시할까요?",
       "chooseOption": "{option} 선택"
+    },
+    "decisionComposer": {
+      "title": "결정 요청",
+      "question": "질문",
+      "questionPlaceholder": "무엇을 결정해야 하나요?",
+      "options": "선택지",
+      "optionPlaceholder": "선택지",
+      "addOption": "선택지 추가",
+      "needsTwoOptions": "선택지를 두 개 이상 입력하세요.",
+      "recommendHint": "별을 탭해 하나를 추천하세요.",
+      "criteria": "장단점 (선택)",
+      "criterionPlaceholder": "기준, 예: 비용",
+      "criterionDetailPlaceholder": "의미(선택)",
+      "addCriterion": "기준 추가",
+      "criteriaHint": "각 기준에서 선택지를 빨강부터 초록까지 평가하세요. 점수는 없습니다. 결정은 당신이 합니다.",
+      "reasonPlaceholder": "메모(선택), 예: 작업 2일",
+      "reasonNeedsColour": "입력한 이유마다 색을 고르세요.",
+      "postTo": "게시 위치",
+      "asComment": "댓글",
+      "inDescription": "설명",
+      "commentHint": "댓글로 게시됩니다. 선택지를 탭하면 스레드에서 답할 수 있습니다.",
+      "descriptionHint": "설명 끝에 추가됩니다.",
+      "preview": "미리보기",
+      "post": "게시",
+      "add": "추가"
     }
   },
   "assignee": {
