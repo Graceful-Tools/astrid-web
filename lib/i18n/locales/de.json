@@ -250,7 +250,52 @@
       "completedOn": "Erledigt am {date}",
       "completedPill": "✓ am {date}"
     },
-    "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"
+    "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren",
+    "decision": {
+      "tapRowHint": "Tippe auf eine Option, um sie zu wählen.",
+      "confirmTitle": "Deine Wahl posten?",
+      "chooseOption": "{option} wählen"
+    },
+    "decisionComposer": {
+      "title": "Um eine Entscheidung bitten",
+      "question": "Frage",
+      "questionPlaceholder": "Was muss entschieden werden?",
+      "options": "Optionen",
+      "optionPlaceholder": "Option",
+      "addOption": "Option hinzufügen",
+      "needsTwoOptions": "Schreibe mindestens zwei Optionen.",
+      "recommendHint": "Tippe auf den Stern, um eine zu empfehlen.",
+      "criteria": "Abwägungen (optional)",
+      "criterionPlaceholder": "Kriterium, z. B. Kosten",
+      "criterionDetailPlaceholder": "Was es bedeutet (optional)",
+      "addCriterion": "Kriterium hinzufügen",
+      "criteriaHint": "Bewerte jede Option je Kriterium von Rot bis Grün. Es gibt keine Punktzahl: Du entscheidest.",
+      "reasonPlaceholder": "Notiz (optional), z. B. 2 Tage Arbeit",
+      "reasonNeedsColour": "Wähle für jede Begründung eine Farbe.",
+      "postTo": "Posten in",
+      "asComment": "Kommentar",
+      "inDescription": "Beschreibung",
+      "commentHint": "Als Kommentar gepostet. Ein Tipp auf eine Option beantwortet sie im Verlauf.",
+      "descriptionHint": "Wird am Ende der Beschreibung angefügt.",
+      "preview": "Vorschau",
+      "post": "Posten",
+      "add": "Hinzufügen"
+    },
+    "decisionGridEditor": {
+      "edit": "Tabelle bearbeiten",
+      "title": "Abwägungstabelle bearbeiten",
+      "criteria": "Kriterien",
+      "options": "Optionen",
+      "remove": "Entfernen",
+      "recommend": "Diese Option empfehlen",
+      "save": "Speichern",
+      "saveFailed": "Die Tabelle konnte nicht gespeichert werden. Versuche es erneut.",
+      "optionsAreRowsHint": "Das sind die Optionen der Entscheidung: Umbenennen, Hinzufügen oder Entfernen ändert auch die Frage.",
+      "tooFewOptions": "Behalte mindestens zwei Optionen.",
+      "noCriteria": "Behalte mindestens ein Kriterium.",
+      "unnamed": "Benenne jede Option und jedes Kriterium.",
+      "noRating": "Bewerte mindestens eine Zelle."
+    }
   },
   "assignee": {
     "clear": "Zuweisung aufheben"
@@ -1872,6 +1917,21 @@
       "progressValue": "{percent} % des Ziels",
       "targetMet": "Ziel erreicht",
       "workServed": "{count} Aufgaben dienten diesem Ziel"
+    },
+    "decisions": {
+      "title": "Entscheidungen",
+      "intro": "Die Entscheidungen dieses Projekts. Jede ist eine Aufgabe mit der Frage und ihrer Abwägungstabelle; öffne eine, um sie auszufüllen.",
+      "new": "Neue Entscheidung",
+      "newFailed": "Die Entscheidung konnte nicht angelegt werden. Versuche es erneut.",
+      "openCount": "Entscheidungen: {count} offen",
+      "openHeading": "Offen",
+      "decidedHeading": "Entschieden",
+      "noneOpen": "Keine offenen Entscheidungen.",
+      "chose": "Gewählt: {option}",
+      "decide": "Entscheiden",
+      "confirmTitle": "Diese Wahl festhalten?",
+      "confirmChoose": "{option} wählen",
+      "decideFailed": "Die Wahl konnte nicht gespeichert werden. Versuche es erneut."
     }
   },
   "viewRotator": {

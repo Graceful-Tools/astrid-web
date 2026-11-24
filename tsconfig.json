@@ -42,6 +42,7 @@
     "archived/**/*",
     "scripts/archive/**/*",
     "packages/**/*",
+    "services/copilot-gateway/**/*",
     "mcp/mcp-server-v2.ts",
     "mcp/mcp-server-v2.js"
   ]

@@ -38,6 +38,7 @@ import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ProjectGoalsStrip } from "@/components/projects/ProjectGoalsStrip"
+import { ProjectDecisions } from "@/components/projects/ProjectDecisions"
 import { ProjectSettingsDialog } from "@/components/projects/ProjectSettingsDialog"
 import { PriorityAssigneePicker } from "@/components/priority-assignee-picker"
 import { useCompletionConfirmation } from "@/components/completion-confirmation"
@@ -200,6 +201,7 @@ export function ProjectBoard({
       <div className="flex items-center justify-end gap-3 border-b theme-border px-4 py-3">
         <ProjectGoalsStrip projectId={projectId} />
         <div className="flex shrink-0 items-center gap-2">
+        <ProjectDecisions projectId={projectId} onOpenTask={onOpenTask ? taskId => onOpenTask(taskId) : undefined} />
         {canEditSettings && (
           <>
             <Button

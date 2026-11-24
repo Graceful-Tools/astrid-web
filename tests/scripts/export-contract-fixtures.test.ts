@@ -36,6 +36,7 @@ const FIXTURES = [
   'task-identifiers.json',
   'wire-shapes.json',
   'decisions.json',
+  'decision-grid.json',
   'agent-queue.json',
   'agent-modes.json',
   'fixall-claim.json',

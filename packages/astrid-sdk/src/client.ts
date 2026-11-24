@@ -51,9 +51,16 @@ const CLAIM_OUTCOMES: ReadonlySet<string> = new Set<ClaimOutcome>([
   'claimed', 'already_yours', 'released', 'renewed', 'conflict', 'not_ready', 'not_found', 'forbidden', 'binding_denied',
 ])
 
+/**
+ * The server's reason for a refusal. The auth wrapper answers `{ error: 'Forbidden', message: '<why>' }`,
+ * so `error` alone hid why (ADEV-247): keep both when both are there.
+ */
 function reasonOf(body: unknown): string | undefined {
-  if (body && typeof body === 'object' && 'error' in body && typeof body.error === 'string') return body.error
-  return undefined
+  if (!body || typeof body !== 'object') return undefined
+  const error = 'error' in body && typeof body.error === 'string' ? body.error : undefined
+  const message = 'message' in body && typeof body.message === 'string' ? body.message : undefined
+  if (error && message && message !== error) return `${error}: ${message}`
+  return error ?? message
 }
 
 async function readJson(response: Response): Promise<unknown> {

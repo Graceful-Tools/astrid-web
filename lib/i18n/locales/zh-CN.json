@@ -250,7 +250,52 @@
       "completedOn": "完成于 {date}",
       "completedPill": "✓ {date}"
     },
-    "dropToPlaceFirst": "拖放到此处以放置第一个任务"
+    "dropToPlaceFirst": "拖放到此处以放置第一个任务",
+    "decision": {
+      "tapRowHint": "点按一个选项即可选择。",
+      "confirmTitle": "发布你的选择？",
+      "chooseOption": "选择 {option}"
+    },
+    "decisionComposer": {
+      "title": "请求决定",
+      "question": "问题",
+      "questionPlaceholder": "需要决定什么？",
+      "options": "选项",
+      "optionPlaceholder": "选项",
+      "addOption": "添加选项",
+      "needsTwoOptions": "请至少写两个选项。",
+      "recommendHint": "点按星标推荐一个。",
+      "criteria": "权衡（可选）",
+      "criterionPlaceholder": "标准，例如：成本",
+      "criterionDetailPlaceholder": "含义（可选）",
+      "addCriterion": "添加标准",
+      "criteriaHint": "按每个标准将每个选项从红到绿评级。没有分数：由你决定。",
+      "reasonPlaceholder": "备注（可选），如：2 天工作量",
+      "reasonNeedsColour": "请为每条理由选择颜色。",
+      "postTo": "发布到",
+      "asComment": "评论",
+      "inDescription": "描述",
+      "commentHint": "以评论发布。点按选项即可在讨论中回答。",
+      "descriptionHint": "添加到描述末尾。",
+      "preview": "预览",
+      "post": "发布",
+      "add": "添加"
+    },
+    "decisionGridEditor": {
+      "edit": "编辑表格",
+      "title": "编辑权衡表",
+      "criteria": "标准",
+      "options": "选项",
+      "remove": "移除",
+      "recommend": "推荐此选项",
+      "save": "保存",
+      "saveFailed": "无法保存表格，请重试。",
+      "optionsAreRowsHint": "这些是决策的选项：重命名、添加或移除选项也会修改问题。",
+      "tooFewOptions": "至少保留两个选项。",
+      "noCriteria": "至少保留一个标准。",
+      "unnamed": "为每个选项和标准命名。",
+      "noRating": "至少为一个单元格评分。"
+    }
   },
   "assignee": {
     "clear": "取消分配"
@@ -1872,6 +1917,21 @@
       "progressValue": "已达目标的 {percent}%",
       "targetMet": "目标已达成",
       "workServed": "{count} 个任务服务于此目标"
+    },
+    "decisions": {
+      "title": "决策",
+      "intro": "此项目的决策。每个决策都是一个包含问题及其权衡表的任务；打开即可填写。",
+      "new": "新建决策",
+      "newFailed": "无法开始决策，请重试。",
+      "openCount": "决策：{count} 个待定",
+      "openHeading": "待定",
+      "decidedHeading": "已决定",
+      "noneOpen": "没有待定的决策。",
+      "chose": "已选：{option}",
+      "decide": "决定",
+      "confirmTitle": "记录此选择？",
+      "confirmChoose": "选择 {option}",
+      "decideFailed": "无法记录选择，请重试。"
     }
   },
   "viewRotator": {

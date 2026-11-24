@@ -375,10 +375,34 @@ every item starts with a bold marker — a number of up to two digits or a singl
 whatever marker was written (AWTD-1533, iOS AITD-585); each draws as a card with its number, and a
 trailing `(recommended)` becomes a badge. Clicking a card posts `<number> — <option text>` as an
 ordinary comment (that reply wakes the agent via `AGENT-HANDBACK`). Cards are inert in a
-description, on your own question, and once someone other than the asker has replied after it
-(system comments don't count). If that reply leads with an option's number, or with the marker the
+description, and once the question is answered (system comments don't count): by the first reply
+after it from someone other than the asker, or by the asker's own reply that picks an option, so
+the asker can choose on their own decision with the same tap and confirmation (web ADEV-248, iOS
+ADEV-232). The asker's follow-up in words is not an answer. If that reply leads with an option's number, or with the marker the
 asker wrote (letters case-insensitive), followed by end/space/punctuation, that card shows as
 chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
+
+**A grid that is the choice** (iOS/Mac ADEV-229, web ADEV-230). When a trade-off grid follows the
+options, before the next Decision, with exactly as many body rows as options, the decision draws as
+the question and the grid only, with no cards; row n is option n. While open, a hint above the grid
+("Tap an option to choose it.") and every cell of a row choose that row, through a confirmation
+("Post your choice?", confirm "Choose 2 — Cabin") that posts the same `<number> — <option text>`
+reply. Once answered, the chosen row is ringed with a ✓ and the others dimmed; `(recommended)`
+badges its row ★. Inert in the same cases as cards. Any other grid, or none, keeps the cards and
+draws the grid after them. The markdown is unchanged: writers keep both the list and the grid.
+Strings: `decision.tap_row_hint`, `decision.confirm_title`, `decision.choose_option` (web
+`tasks.decision.tapRowHint`, `confirmTitle`, `chooseOption`).
+
+**Writing a decision** (iOS/Mac ADEV-189 and ADEV-231, web ADEV-240). Task details offer "Ask
+for a decision": iOS/Mac in the comment bar's "+" menu, web as a button beside the paperclip. It
+takes a question, two or more options (one may be starred as recommended), and up to five optional
+criteria, each with an optional meaning. Each option is rated per criterion in the five lights
+`-- - ~ +` `++` (tap again to clear) with an optional note; a note with no light blocks posting. It
+posts as a comment, or appends to the description for someone who may edit the task, and shows a
+live preview drawn by the thread's renderer. The markdown is byte for byte what iOS's
+`DecisionDraft.markdown` writes: the Decision paragraph, the numbered options with
+`(recommended)`, the grid once a cell has a light, then the key (`- **Cost:** meaning`) for the
+criteria that have one. Strings: `decision_composer.*` (web `tasks.decisionComposer.*`).
 
 **Trade-off grid.** A GFM table where every non-empty body cell after the first column starts
 with a rating token followed by whitespace or end: `--` disqualifying, `-` poor, `~` mixed or unknown, `+` good,
@@ -395,7 +419,9 @@ columns are lettered A, B, C (AA after Z) before their names. Every option row i
 the tallest, and the criteria columns share the width equally, at least 84 (pt or px) each. A
 column grows past its share only to fit its longest word, so no text is clipped or broken mid-word.
 The option column is as wide as its longest name, from 6 to 12rem (about 96–192) and at most a
-third of the screen's width, and wraps past that (AWTD-1536). Rated cells centre both ways, column and option names vertically. A grid wider than its
+third of the screen's width, and wraps past that (AWTD-1536). On a grid that is the choice and is
+still open to the viewer it is 150–280 wide and at most half the width, so option names wrap
+between words (iOS ADEV-231, web ADEV-248). Rated cells centre both ways, column and option names vertically. A grid wider than its
 container scrolls sideways, and a sideways drag there scrolls the grid rather than dismissing the
 task or pane behind it. Every grid offers a full-screen view of itself (web: "Full screen", AWTD-1534).
 
@@ -412,8 +438,8 @@ the person has the `project_mode` flag (`GET /api/v1/features`), from an admin g
 - **Board.** Each chosen list is a row; the project's status columns (Inbox, Ready, Doing,
   Waiting, the project's custom columns, Done) are the columns. A card's column is its
   `statusRole`, exactly as on a list's own board, and moving a card sets it the same way. A card
-  on two row lists shows in both rows. Done keeps to each list's recently-completed window, then
-  to the board's Done period: the Done header reads "15 ✓ This week" and opens Today / This week /
+  on two row lists shows in both rows. Done is bounded by the board's Done period alone, not the list's
+  recently-completed window (ADEV-191): the Done header reads "15 ✓ This week" and opens Today / This week /
   This month / This year / Pick a date… / All time. The period filters the cards as well as the
   count, the week is Monday to Sunday, and the default is This week, kept per person and per
   project on the device (ADEV-133). Done is newest-completed first whatever the sort, and each Done
@@ -428,6 +454,16 @@ the person has the `project_mode` flag (`GET /api/v1/features`), from an admin g
   and `Now: …`, and guardrails with `enforced` marked. It draws nothing when the project states
   none. The owner or an admin edits them in Project settings (the board's gear); agents read them
   and never write them. Wire: API_CONTRACT.md `/api/v1/projects/{id}/goals`.
+- **Decisions** (ADEV-180, web ADEV-188). Everyone working in the project gets *New decision* in
+  the board header. It starts a decision task from the project's goals and opens it. Once the
+  project has a decision, a *Decisions: N open* button opens the list: open decisions with an
+  option button each, which records the choice after a confirmation ("Record this choice?"), then
+  decided ones with the choice (`Chose 2 — Cabin`). A title opens the task. On a decision task's
+  description, whoever may edit it gets *Edit grid*: criteria (up to five), options and cells,
+  each a rating plus a reason, and never a score column. When the Decision has one option per grid
+  row, renaming, adding, removing or starring an option there rewrites the Decision's list too.
+  Strings: web `projectMode.decisions.*`, `tasks.decisionGridEditor.*`. Wire: API_CONTRACT.md
+  `/api/v1/projects/{id}/decisions`.
 
 ---
 

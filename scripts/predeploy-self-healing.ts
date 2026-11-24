@@ -464,6 +464,15 @@ export function getChecks(): Omit<CheckResult, 'passed' | 'output' | 'duration'>
       autoFixable: false, // Test failures need investigation
     },
     {
+      // services/copilot-gateway is its own package, excluded from the main
+      // suite; its tests fake the SDK, so they run here without its deps
+      // (ADEV-244). Agents can't merge .github changes, so this is where it gates.
+      name: 'Copilot Gateway',
+      command: 'npm run test:copilot-gateway',
+      timeoutMs: DEFAULT_CHECK_TIMEOUT_MS,
+      autoFixable: false,
+    },
+    {
       // Runs every brands/*.brand.json through the real route handlers. Separate from
       // the Vitest gate so a whitelabel regression is reported as itself rather than
       // as one failure among 3000. Task 97208a72.

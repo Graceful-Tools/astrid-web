@@ -250,7 +250,52 @@
       "completedOn": "{date}に完了",
       "completedPill": "✓ {date}"
     },
-    "dropToPlaceFirst": "ここにドロップして最初のタスクを配置"
+    "dropToPlaceFirst": "ここにドロップして最初のタスクを配置",
+    "decision": {
+      "tapRowHint": "選択肢をタップして選びます。",
+      "confirmTitle": "選択を投稿しますか？",
+      "chooseOption": "{option} を選ぶ"
+    },
+    "decisionComposer": {
+      "title": "決定を依頼",
+      "question": "質問",
+      "questionPlaceholder": "何を決めますか？",
+      "options": "選択肢",
+      "optionPlaceholder": "選択肢",
+      "addOption": "選択肢を追加",
+      "needsTwoOptions": "選択肢を2つ以上入力してください。",
+      "recommendHint": "星をタップしておすすめを1つ選びます。",
+      "criteria": "比較（任意）",
+      "criterionPlaceholder": "基準（例：費用）",
+      "criterionDetailPlaceholder": "意味（任意）",
+      "addCriterion": "基準を追加",
+      "criteriaHint": "各基準で各選択肢を赤から緑で評価します。点数はありません。決めるのはあなたです。",
+      "reasonPlaceholder": "メモ（任意）例：作業2日",
+      "reasonNeedsColour": "入力した理由ごとに色を選んでください。",
+      "postTo": "投稿先",
+      "asComment": "コメント",
+      "inDescription": "説明",
+      "commentHint": "コメントとして投稿します。選択肢をタップするとスレッドで回答できます。",
+      "descriptionHint": "説明の最後に追加します。",
+      "preview": "プレビュー",
+      "post": "投稿",
+      "add": "追加"
+    },
+    "decisionGridEditor": {
+      "edit": "表を編集",
+      "title": "トレードオフ表を編集",
+      "criteria": "基準",
+      "options": "選択肢",
+      "remove": "削除",
+      "recommend": "この選択肢を推奨",
+      "save": "保存",
+      "saveFailed": "表を保存できませんでした。もう一度お試しください。",
+      "optionsAreRowsHint": "これらは意思決定の選択肢です。名前の変更・追加・削除は質問にも反映されます。",
+      "tooFewOptions": "選択肢は2つ以上必要です。",
+      "noCriteria": "基準は1つ以上必要です。",
+      "unnamed": "すべての選択肢と基準に名前を付けてください。",
+      "noRating": "少なくとも1つのセルを評価してください。"
+    }
   },
   "assignee": {
     "clear": "割り当てを解除"
@@ -1872,6 +1917,21 @@
       "progressValue": "目標の{percent}%",
       "targetMet": "目標達成",
       "workServed": "この目標に貢献したタスク: {count}件"
+    },
+    "decisions": {
+      "title": "意思決定",
+      "intro": "このプロジェクトの意思決定です。それぞれが質問とトレードオフ表を持つタスクです。開いて記入してください。",
+      "new": "新しい意思決定",
+      "newFailed": "意思決定を開始できませんでした。もう一度お試しください。",
+      "openCount": "意思決定: 未決 {count} 件",
+      "openHeading": "未決",
+      "decidedHeading": "決定済み",
+      "noneOpen": "未決の意思決定はありません。",
+      "chose": "選択: {option}",
+      "decide": "決定",
+      "confirmTitle": "この選択を記録しますか？",
+      "confirmChoose": "{option} を選ぶ",
+      "decideFailed": "選択を記録できませんでした。もう一度お試しください。"
     }
   },
   "viewRotator": {

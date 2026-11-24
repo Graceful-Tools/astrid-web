@@ -250,7 +250,52 @@
       "completedOn": "Voltooid op {date}",
       "completedPill": "✓ op {date}"
     },
-    "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
+    "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen",
+    "decision": {
+      "tapRowHint": "Tik op een optie om die te kiezen.",
+      "confirmTitle": "Je keuze plaatsen?",
+      "chooseOption": "{option} kiezen"
+    },
+    "decisionComposer": {
+      "title": "Om een beslissing vragen",
+      "question": "Vraag",
+      "questionPlaceholder": "Wat moet er beslist worden?",
+      "options": "Opties",
+      "optionPlaceholder": "Optie",
+      "addOption": "Optie toevoegen",
+      "needsTwoOptions": "Schrijf minstens twee opties.",
+      "recommendHint": "Tik op de ster om er één aan te bevelen.",
+      "criteria": "Afwegingen (optioneel)",
+      "criterionPlaceholder": "Criterium, bijv. Kosten",
+      "criterionDetailPlaceholder": "Wat het betekent (optioneel)",
+      "addCriterion": "Criterium toevoegen",
+      "criteriaHint": "Beoordeel elke optie per criterium van rood tot groen. Er is geen score: jij beslist.",
+      "reasonPlaceholder": "Notitie (optioneel), bijv. 2 dagen werk",
+      "reasonNeedsColour": "Kies een kleur voor elke reden die je schrijft.",
+      "postTo": "Plaatsen in",
+      "asComment": "Opmerking",
+      "inDescription": "Beschrijving",
+      "commentHint": "Geplaatst als opmerking. Tikken op een optie beantwoordt die in de draad.",
+      "descriptionHint": "Toegevoegd aan het einde van de beschrijving.",
+      "preview": "Voorbeeld",
+      "post": "Plaatsen",
+      "add": "Toevoegen"
+    },
+    "decisionGridEditor": {
+      "edit": "Tabel bewerken",
+      "title": "De afwegingstabel bewerken",
+      "criteria": "Criteria",
+      "options": "Opties",
+      "remove": "Verwijderen",
+      "recommend": "Deze optie aanbevelen",
+      "save": "Opslaan",
+      "saveFailed": "Kon de tabel niet opslaan. Probeer het opnieuw.",
+      "optionsAreRowsHint": "Dit zijn de opties van de beslissing: hernoemen, toevoegen of verwijderen verandert ook de vraag.",
+      "tooFewOptions": "Houd minstens twee opties.",
+      "noCriteria": "Houd minstens één criterium.",
+      "unnamed": "Geef elke optie en elk criterium een naam.",
+      "noRating": "Beoordeel minstens één cel."
+    }
   },
   "assignee": {
     "clear": "Toewijzing opheffen"
@@ -1872,6 +1917,21 @@
       "progressValue": "{percent}% van het doel",
       "targetMet": "Doel bereikt",
       "workServed": "{count} taken dienden dit doel"
+    },
+    "decisions": {
+      "title": "Beslissingen",
+      "intro": "De beslissingen van dit project. Elke beslissing is een taak met de vraag en haar afwegingstabel; open er een om die in te vullen.",
+      "new": "Nieuwe beslissing",
+      "newFailed": "Kon de beslissing niet starten. Probeer het opnieuw.",
+      "openCount": "Beslissingen: {count} open",
+      "openHeading": "Open",
+      "decidedHeading": "Besloten",
+      "noneOpen": "Geen open beslissingen.",
+      "chose": "Gekozen: {option}",
+      "decide": "Beslissen",
+      "confirmTitle": "Deze keuze vastleggen?",
+      "confirmChoose": "{option} kiezen",
+      "decideFailed": "Kon de keuze niet vastleggen. Probeer het opnieuw."
     }
   },
   "viewRotator": {

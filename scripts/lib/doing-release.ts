@@ -52,6 +52,13 @@ export const RELEASE_MARKER = '🔁 Released from Doing by the scheduled /fixall
  */
 export const REWORK_MARKER = '🛠️ Sent back by the ship workflow'
 
+/**
+ * A run whose harness never started (ADEV-236: a revoked token, a crash on start). The task
+ * goes back to Ready under this marker, which is not RELEASE_MARKER, so it never counts toward
+ * the second-release handback: nothing was attempted.
+ */
+export const START_FAILURE_MARKER = '🔌 Released: the run could not start'
+
 /** Idle time before a Doing claim no runner holds counts as abandoned. */
 export const DEFAULT_STALE_DOING_MINUTES = 180
 
@@ -216,7 +223,7 @@ function isCurrentMarker(comments: ReleaseComment[], isMarker: (comment: Release
   // A completion, a release, a redo claim (lib/fixall-claim.ts) or a rework (ADEV-200) starts a new attempt.
   const superseded = newest(comment => comment.systemEventType === 'COMPLETED' ||
     (comment.content ?? '').startsWith(RELEASE_MARKER) || (comment.content ?? '').startsWith(REDO_CLAIM_MARKER) ||
-    (comment.content ?? '').startsWith(REWORK_MARKER))
+    (comment.content ?? '').startsWith(REWORK_MARKER) || (comment.content ?? '').startsWith(START_FAILURE_MARKER))
   return marker > superseded
 }
 
@@ -351,9 +358,17 @@ export async function releaseDoingClaim(input: {
   /** Branches already merged into origin/main: finished work, never "continue from here" (AWTD-1471). */
   merged?: string[]
   why: string
+  /** ADEV-236: the harness never started, and why. Back to Ready, never counted as a release. */
+  couldNotStart?: string | null
   api: DoingReleaseApi
 }): Promise<ReleaseOutcome> {
   const { task, comments, why, api } = input
+  if (input.couldNotStart) {
+    await api.setStatus(task, READY_STATUS_ROLE)
+    await api.comment(task, `${START_FAILURE_MARKER}: ${input.couldNotStart}. Nothing was attempted, so this ` +
+      'does not count as a failed try. Back to Ready so the next run picks it up.')
+    return { action: 'ready' }
+  }
   const where = describeTaskWork({
     identifier: task.identifier,
     checkouts: input.checkouts ?? [{ name: '', branches: input.branches, merged: input.merged }],

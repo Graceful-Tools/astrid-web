@@ -7,6 +7,7 @@
  * Usage (both scheduled loops call it; astrid-ios runs it from ../astrid-web):
  *   # After a run: release exactly what that run claimed and left in Doing.
  *   npx tsx scripts/release-stuck-doing.ts --agent claude --claims-file <file> [--saved-branch <name>] [--repo <path>]
+ *     [--harness-outcome <success|failure|…> --transcript <file>]   # ADEV-236: a harness that never started
  *   # Tick start: release claims idle for N minutes that no runner holds.
  *   npx tsx scripts/release-stuck-doing.ts --agent claude --list <listId> --stale-minutes 180 [--repo <path>]
  *   # ...or name the board instead of carrying its id (AWTD-1267; astrid-windows keeps no ids):
@@ -33,6 +34,7 @@ import { existsSync, readFileSync } from 'fs'
 import { loadScriptEnv } from './lib/load-env'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { SweepApi } from './lib/sweep-api'
+import { harnessStartFailure } from './lib/harness-start'
 import { boardTasksUrl } from './lib/board-read-url'
 import { readCheckout, releaseCheckouts } from './lib/release-checkouts'
 import { parseBoardTarget, resolveBoardListId, type BoardTarget } from './lib/board-by-name'
@@ -84,6 +86,16 @@ async function main() {
   // Where the loop saved this run's unfinished work (AWTD-1471). Only the run's own
   // claims get it; the idle backstop has no way to know which run a branch came from.
   const savedBranch = arg('--saved-branch')
+  // ADEV-236: the harness step's outcome and its transcript. A failure with nothing printed means
+  // the harness never started, and that release does not count toward "released twice".
+  const harnessOutcome = arg('--harness-outcome')
+  const transcriptPath = arg('--transcript')
+  const couldNotStart = harnessOutcome
+    ? harnessStartFailure({
+        outcome: harnessOutcome,
+        transcript: transcriptPath && existsSync(transcriptPath) ? readFileSync(transcriptPath, 'utf8') : '',
+      })
+    : null
 
   const usage =
     'Usage: release-stuck-doing.ts --agent <mailbox> (--claims-file <file> [--saved-branch <name>] | (--list <listId> | --board <web|ios|windows|android>) [--stale-minutes N]) [--repo <path>]... [--dry-run]'
@@ -236,6 +248,7 @@ async function main() {
       checkouts: checkoutsOnce(),
       savedBranch: mode === 'claims' ? savedBranch : null,
       why,
+      couldNotStart: mode === 'claims' ? couldNotStart : null,
       api,
     })
     released += 1
@@ -243,7 +256,7 @@ async function main() {
     console.log(
       outcome.action === 'handback'
         ? `  RELEASE: ${label} → Inbox, handed back (second release)${dryRun ? ' [dry run]' : ''}`
-        : `  RELEASE: ${label} → Ready (${mode === 'claims' ? 'its run ended mid-task' : 'abandoned claim'})${dryRun ? ' [dry run]' : ''}`,
+        : `  RELEASE: ${label} → Ready (${mode === 'claims' ? (couldNotStart ? 'its run could not start; not counted' : 'its run ended mid-task') : 'abandoned claim'})${dryRun ? ' [dry run]' : ''}`,
     )
   }
   if (released === 0 && listId) console.log('  RELEASE: no stuck Doing claims')
