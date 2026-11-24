@@ -255,6 +255,31 @@
       "tapRowHint": "Tap an option to choose it.",
       "confirmTitle": "Post your choice?",
       "chooseOption": "Choose {option}"
+    },
+    "decisionComposer": {
+      "title": "Ask for a decision",
+      "question": "Question",
+      "questionPlaceholder": "What needs deciding?",
+      "options": "Options",
+      "optionPlaceholder": "Option",
+      "addOption": "Add option",
+      "needsTwoOptions": "Write at least two options.",
+      "recommendHint": "Tap the star to recommend one.",
+      "criteria": "Trade-offs (optional)",
+      "criterionPlaceholder": "Criterion, e.g. Cost",
+      "criterionDetailPlaceholder": "What it means (optional)",
+      "addCriterion": "Add criterion",
+      "criteriaHint": "Rate each option from red to green on each criterion. There is no score: you decide.",
+      "reasonPlaceholder": "Note (optional), e.g. 2 days of work",
+      "reasonNeedsColour": "Pick a colour for every reason you write.",
+      "postTo": "Post to",
+      "asComment": "Comment",
+      "inDescription": "Description",
+      "commentHint": "Posted as a comment. Tapping an option answers it in the thread.",
+      "descriptionHint": "Added to the end of the description.",
+      "preview": "Preview",
+      "post": "Post",
+      "add": "Add"
     }
   },
   "assignee": {

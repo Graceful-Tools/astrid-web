@@ -8,6 +8,9 @@ import type { Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { hasExplicitListRole } from "@/lib/list-permissions"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
+import { Vote } from "lucide-react"
+import { DecisionComposer, type DecisionDestination } from "@/components/task-detail/DecisionComposer"
+import { appendDecision } from "@/lib/decision-draft"
 
 export interface CommentInputBarProps {
   task: Task
@@ -29,6 +32,8 @@ export interface CommentInputBarProps {
   setUploadError?: (value: string | null) => void
   /** Show a timer button in the send slot while the input is empty */
   onTimerClick?: () => void
+  /** Whether the decision composer may add to the description (ADEV-240); comments always. */
+  canEditDescription?: boolean
 }
 
 /**
@@ -54,8 +59,10 @@ export function CommentInputBar({
   uploadError,
   setUploadError,
   onTimerClick,
+  canEditDescription = false,
 }: CommentInputBarProps) {
   const { t } = useTranslations()
+  const [composerOpen, setComposerOpen] = useState(false)
   // Fetch Astrid agent so it's available in the @-mention list.
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
@@ -93,20 +100,29 @@ export function CommentInputBar({
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
   }, [task, currentUser.id, defaultAgent])
 
-  const handleAddComment = async () => {
+  const handleAddComment = () => postComment(newComment, attachedFiles, true)
+
+  /**
+   * Post a comment optimistically. `fromComposer` is the typed comment: it clears the input and
+   * restores it on failure. A decision from the composer (ADEV-240) posts its own text and leaves
+   * whatever is half-typed in the input alone.
+   */
+  const postComment = async (text: string, files: FileAttachment[], fromComposer: boolean) => {
     // One comment per staged file — the comments API takes a single fileId (Task 9f325964).
     const pending = await buildPendingComments({
       taskId: task.id,
       currentUser,
-      text: newComment,
-      files: attachedFiles,
+      text,
+      files,
     })
     if (pending.length === 0) return
 
-    const originalComment = newComment
-    const originalFiles = attachedFiles
-    setNewComment("")
-    setAttachedFiles([])
+    const originalComment = text
+    const originalFiles = files
+    if (fromComposer) {
+      setNewComment("")
+      setAttachedFiles([])
+    }
 
     const taskList = task.lists?.[0]
     const isCollaborativePublic = taskList?.privacy === "PUBLIC" && taskList?.publicListType === "collaborative"
@@ -148,10 +164,19 @@ export function CommentInputBar({
         writeComments(comments => comments.filter(c => !unsent.has(c.id)))
       },
       restore: (text, files) => {
+        if (!fromComposer) return
         if (text !== null) setNewComment(text)
         setAttachedFiles(files)
       },
     })
+  }
+
+  const postDecision = async (markdown: string, destination: DecisionDestination) => {
+    if (destination === 'description') {
+      onUpdate({ ...task, description: appendDecision(markdown, task.description || '') })
+      return
+    }
+    await postComment(markdown, [], false)
   }
 
   if (readOnly) return null
@@ -174,7 +199,27 @@ export function CommentInputBar({
         uploadError={uploadError}
         onUploadErrorChange={setUploadError}
         onTimerClick={onTimerClick}
+        leadingActions={
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
+            title={t('tasks.decisionComposer.title')}
+            aria-label={t('tasks.decisionComposer.title')}
+            data-testid="ask-for-decision"
+          >
+            <Vote className="w-5 h-5" />
+          </button>
+        }
       />
+      {composerOpen && (
+        <DecisionComposer
+          open
+          onClose={() => setComposerOpen(false)}
+          canEditDescription={canEditDescription}
+          onPost={postDecision}
+        />
+      )}
     </div>
   )
 }

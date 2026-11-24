@@ -255,6 +255,31 @@
       "tapRowHint": "点按一个选项即可选择。",
       "confirmTitle": "发布你的选择？",
       "chooseOption": "选择 {option}"
+    },
+    "decisionComposer": {
+      "title": "请求决定",
+      "question": "问题",
+      "questionPlaceholder": "需要决定什么？",
+      "options": "选项",
+      "optionPlaceholder": "选项",
+      "addOption": "添加选项",
+      "needsTwoOptions": "请至少写两个选项。",
+      "recommendHint": "点按星标推荐一个。",
+      "criteria": "权衡（可选）",
+      "criterionPlaceholder": "标准，例如：成本",
+      "criterionDetailPlaceholder": "含义（可选）",
+      "addCriterion": "添加标准",
+      "criteriaHint": "按每个标准将每个选项从红到绿评级。没有分数：由你决定。",
+      "reasonPlaceholder": "备注（可选），如：2 天工作量",
+      "reasonNeedsColour": "请为每条理由选择颜色。",
+      "postTo": "发布到",
+      "asComment": "评论",
+      "inDescription": "描述",
+      "commentHint": "以评论发布。点按选项即可在讨论中回答。",
+      "descriptionHint": "添加到描述末尾。",
+      "preview": "预览",
+      "post": "发布",
+      "add": "添加"
     }
   },
   "assignee": {

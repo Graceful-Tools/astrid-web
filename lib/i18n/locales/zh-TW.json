@@ -255,6 +255,31 @@
       "tapRowHint": "點一下選項即可選擇。",
       "confirmTitle": "發佈你的選擇？",
       "chooseOption": "選擇 {option}"
+    },
+    "decisionComposer": {
+      "title": "請求決定",
+      "question": "問題",
+      "questionPlaceholder": "需要決定什麼？",
+      "options": "選項",
+      "optionPlaceholder": "選項",
+      "addOption": "新增選項",
+      "needsTwoOptions": "請至少寫兩個選項。",
+      "recommendHint": "點一下星號推薦一個。",
+      "criteria": "權衡（選填）",
+      "criterionPlaceholder": "標準，例如：成本",
+      "criterionDetailPlaceholder": "含義（選填）",
+      "addCriterion": "新增標準",
+      "criteriaHint": "依每個標準將每個選項從紅到綠評級。沒有分數：由你決定。",
+      "reasonPlaceholder": "備註（選填），如：2 天工作量",
+      "reasonNeedsColour": "請為每條理由選擇顏色。",
+      "postTo": "發佈到",
+      "asComment": "留言",
+      "inDescription": "描述",
+      "commentHint": "以留言發佈。點一下選項即可在討論中回答。",
+      "descriptionHint": "新增到描述末尾。",
+      "preview": "預覽",
+      "post": "發佈",
+      "add": "新增"
     }
   },
   "assignee": {
