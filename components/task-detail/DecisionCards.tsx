@@ -13,7 +13,7 @@ interface DecisionCardsProps {
   decision: ParsedDecision
   /** Number of the option someone already picked; marks that card chosen. */
   chosen: number | null
-  /** Cards are inert unless this is set (not your own question, not yet answered). */
+  /** Cards are inert unless this is set (in a thread, not yet answered). */
   onChoose?: (reply: string) => void
   identifiers?: IdentifierLinkContext
 }
@@ -185,6 +185,7 @@ function DecisionGrid({ decision, chosen, onChoose, gridHtml, beforeHtml, prompt
       <div
         ref={gridRef}
         className={`${prose} decision-grid-choice`}
+        data-choosable={onChoose ? true : undefined}
         onClick={onClick}
         onKeyDown={onKeyDown}
         dangerouslySetInnerHTML={gridHtml}

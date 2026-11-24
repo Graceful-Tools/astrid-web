@@ -72,9 +72,12 @@ with a bold number (or a single letter), and there are at least two items.
   "Choose 2 — Cabin") posts the same reply a card would. The confirmation is there because a
   sideways scroll of a wide grid can land a tap. Once answered, the chosen row is ringed with a ✓
   and the others dim.
-- **When cards are inert:** on your own question, in a task description, and once someone else has
-  replied after it. A reply that starts with an option's number, or with the letter the asker
-  wrote, marks that card as chosen (`2`, `2 — Wait`, `b`). `2nd thoughts` or `10 minutes` do not.
+- **When cards are inert:** in a task description, and once the question is answered. Someone
+  else's reply after it answers it; so does the asker's own reply when it picks an option, so you
+  can choose on your own decision with the same tap and confirmation (ADEV-248, iOS ADEV-232). The
+  asker's follow-up in words doesn't answer it. A reply that starts with an option's number, or
+  with the letter the asker wrote, marks that card as chosen (`2`, `2 — Wait`, `b`).
+  `2nd thoughts` or `10 minutes` do not.
 
 ## A trade-off grid
 
@@ -101,7 +104,8 @@ The exact colours are the design tokens' `palette.tradeoff`
   rating in words ("Good. $600 a person").
 - **Even rows and columns:** every option row is as tall as the tallest, and the criteria columns
   share the width equally, never narrower than their longest word. The option column can be
-  wider, up to about 12rem, and wraps past that.
+  wider, up to about 12rem, and wraps past that. On a grid you choose from it gets 150–280px, up
+  to half the width, so option names wrap between words (ADEV-248, iOS ADEV-231).
 - **Wide grids scroll sideways** rather than squeezing columns below about 84px. Rated cells are
   centred; column and option names are centred vertically. Every grid has a **Full screen** control that opens it on its
   own. Dragging a grid that scrolls moves the grid; it never closes the task behind it.
