@@ -172,6 +172,32 @@ describe('AstridClient.claimFixallTask (AWTD-1691)', () => {
       status: 409, claimed: false, error: 'Task changed after queue selection and was not claimed',
     })
   })
+
+  // ADEV-247: the auth wrapper answers 403 as { error: 'Forbidden', message: '<why>' }.
+  // Keeping only `error` printed "HTTP 403 from claim-fixall: Forbidden" and hid the reason.
+  it('keeps the server message on a 403, not just "Forbidden" (ADEV-247)', async () => {
+    const client = new AstridClient({
+      origin: 'https://astrid.test',
+      auth: { token: 't' },
+      fetch: fakeFetch({ status: 403, body: { error: 'Forbidden', message: 'Access denied to this task' } }),
+    })
+
+    await expect(client.claimFixallTask('task-1', { action: 'ready' })).rejects.toThrow(
+      'HTTP 403 from claim-fixall: Forbidden: Access denied to this task',
+    )
+  })
+
+  it('keeps a 409 reason that carries a message too (ADEV-247)', async () => {
+    const client = new AstridClient({
+      origin: 'https://astrid.test',
+      auth: { token: 't' },
+      fetch: fakeFetch({ status: 409, body: { error: 'Conflict', message: 'claimed by codex' } }),
+    })
+
+    await expect(client.claimFixallTask('task-1', { action: 'ready' })).resolves.toMatchObject({
+      claimed: false, error: 'Conflict: claimed by codex',
+    })
+  })
 })
 
 describe('AstridClient task writes (AWTD-1691)', () => {
