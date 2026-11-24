@@ -20,7 +20,7 @@
  * browser: no server imports.
  */
 
-import { AUTONOMY_FIELDS, autonomyFor, stricterAutonomy, type AutonomyField, type OrchestrationPolicy } from '@/lib/orchestration-autonomy'
+import { AUTONOMY_FIELDS, autonomyFor, stricterAutonomy, type AutonomyField, type OrchestrationPolicy } from './orchestration-autonomy'
 
 export const GUARDRAIL_KINDS = ['stated', 'enforced'] as const
 export type GuardrailKind = (typeof GUARDRAIL_KINDS)[number]
