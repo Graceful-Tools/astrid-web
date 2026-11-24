@@ -375,8 +375,10 @@ every item starts with a bold marker — a number of up to two digits or a singl
 whatever marker was written (AWTD-1533, iOS AITD-585); each draws as a card with its number, and a
 trailing `(recommended)` becomes a badge. Clicking a card posts `<number> — <option text>` as an
 ordinary comment (that reply wakes the agent via `AGENT-HANDBACK`). Cards are inert in a
-description, on your own question, and once someone other than the asker has replied after it
-(system comments don't count). If that reply leads with an option's number, or with the marker the
+description, and once the question is answered (system comments don't count): by the first reply
+after it from someone other than the asker, or by the asker's own reply that picks an option, so
+the asker can choose on their own decision with the same tap and confirmation (web ADEV-248, iOS
+ADEV-232). The asker's follow-up in words is not an answer. If that reply leads with an option's number, or with the marker the
 asker wrote (letters case-insensitive), followed by end/space/punctuation, that card shows as
 chosen. `2nd thoughts` and `10 minutes` (no tenth option) choose nothing.
 
@@ -417,7 +419,9 @@ columns are lettered A, B, C (AA after Z) before their names. Every option row i
 the tallest, and the criteria columns share the width equally, at least 84 (pt or px) each. A
 column grows past its share only to fit its longest word, so no text is clipped or broken mid-word.
 The option column is as wide as its longest name, from 6 to 12rem (about 96–192) and at most a
-third of the screen's width, and wraps past that (AWTD-1536). Rated cells centre both ways, column and option names vertically. A grid wider than its
+third of the screen's width, and wraps past that (AWTD-1536). On a grid that is the choice and is
+still open to the viewer it is 150–280 wide and at most half the width, so option names wrap
+between words (iOS ADEV-231, web ADEV-248). Rated cells centre both ways, column and option names vertically. A grid wider than its
 container scrolls sideways, and a sideways drag there scrolls the grid rather than dismissing the
 task or pane behind it. Every grid offers a full-screen view of itself (web: "Full screen", AWTD-1534).
 
