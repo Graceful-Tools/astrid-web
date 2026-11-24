@@ -206,3 +206,12 @@
 .decision-card { border-radius: var(--astrid-markdown-decision-card-radius); }
 .decision-badge { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; min-width: var(--astrid-markdown-decision-badge); height: var(--astrid-markdown-decision-badge); border-radius: 9999px; font-weight: 600; color: rgb(var(--astrid-accent-ink)); background-color: rgba(var(--astrid-accent), var(--theme-wash-opacity)); }
 .decision-card[data-chosen] .decision-badge { color: rgb(var(--astrid-accent-text)); background-color: rgb(var(--astrid-accent)); }
+/* A decision whose grid is the choice (ADEV-230, iOS ADEV-229). Even grids lay rows out with
+   `display: contents`, so the states are drawn on the cells, not the row. */
+.decision-grid-choice tr[data-choosable] > td { cursor: pointer; }
+.decision-grid-choice tr[data-choosable]:hover > td,
+.decision-grid-choice tr[data-choosable]:focus-visible > td { box-shadow: inset 0 0 0 1px rgb(var(--astrid-accent)); }
+.decision-grid-choice tr[data-chosen] > td { box-shadow: inset 0 0 0 2px rgb(var(--astrid-accent)); }
+.decision-grid-choice tr[data-chosen] > td:first-child::after { content: " ✓"; font-weight: 600; color: rgb(var(--astrid-accent-ink)); }
+.decision-grid-choice tr[data-dimmed] > td { opacity: 0.45; }
+.decision-grid-choice tr[data-recommended] > td:first-child::before { content: "★ "; color: rgb(var(--astrid-accent-ink)); }

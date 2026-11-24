@@ -250,7 +250,12 @@
       "completedOn": "Erledigt am {date}",
       "completedPill": "✓ am {date}"
     },
-    "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren"
+    "dropToPlaceFirst": "Hier ablegen, um die erste Aufgabe zu platzieren",
+    "decision": {
+      "tapRowHint": "Tippe auf eine Option, um sie zu wählen.",
+      "confirmTitle": "Deine Wahl posten?",
+      "chooseOption": "{option} wählen"
+    }
   },
   "assignee": {
     "clear": "Zuweisung aufheben"

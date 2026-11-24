@@ -250,7 +250,12 @@
       "completedOn": "Terminée le {date}",
       "completedPill": "✓ le {date}"
     },
-    "dropToPlaceFirst": "Déposez ici pour placer la première tâche"
+    "dropToPlaceFirst": "Déposez ici pour placer la première tâche",
+    "decision": {
+      "tapRowHint": "Touchez une option pour la choisir.",
+      "confirmTitle": "Publier votre choix ?",
+      "chooseOption": "Choisir {option}"
+    }
   },
   "assignee": {
     "clear": "Désassigner"

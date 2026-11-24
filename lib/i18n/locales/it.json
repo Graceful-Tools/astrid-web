@@ -250,7 +250,12 @@
       "completedOn": "Completata il {date}",
       "completedPill": "✓ il {date}"
     },
-    "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"
+    "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività",
+    "decision": {
+      "tapRowHint": "Tocca un’opzione per sceglierla.",
+      "confirmTitle": "Pubblicare la tua scelta?",
+      "chooseOption": "Scegli {option}"
+    }
   },
   "assignee": {
     "clear": "Rimuovi assegnazione"

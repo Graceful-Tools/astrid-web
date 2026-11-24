@@ -38,10 +38,14 @@ We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the team
 
 On web, iOS and Mac this draws as:
 - the recommendation as an ordinary sentence;
-- three cards numbered 1 to 3, with Lisbon badged as recommended;
-- a grid whose rows are numbered 1 to 3 and whose criteria are lettered A to C, each cell on its
-  colour;
+- the question, then **the grid alone, with no cards**: its three rows are the options (row 1 is
+  option 1), numbered 1 to 3, criteria lettered A to C, each cell on its colour, and Lisbon's row
+  badged ★ as recommended;
 - a colour key, then the criteria key as an ordinary list.
+
+The grid replaces the cards only when it has **exactly as many rows as there are options**. A
+decision with no grid, or with a grid of a different size, draws its cards and then the grid
+(ADEV-229 on iOS and Mac, ADEV-230 on web).
 
 ## A Decision
 
@@ -63,6 +67,11 @@ with a bold number (or a single letter), and there are at least two items.
 - **Tapping a card** posts `1 — Ship today` as an ordinary comment. That reply is the answer, and if
   the question ended with an `AGENT-HANDBACK:` line it wakes the agent. A link inside an option opens
   the link and does not answer.
+- **Tapping a grid row** (when the grid replaces the cards): a hint above the grid says "Tap an
+  option to choose it.", any cell of a row chooses it, and a confirmation ("Post your choice?" /
+  "Choose 2 — Cabin") posts the same reply a card would. The confirmation is there because a
+  sideways scroll of a wide grid can land a tap. Once answered, the chosen row is ringed with a ✓
+  and the others dim.
 - **When cards are inert:** on your own question, in a task description, and once someone else has
   replied after it. A reply that starts with an option's number, or with the letter the asker
   wrote, marks that card as chosen (`2`, `2 — Wait`, `b`). `2nd thoughts` or `10 minutes` do not.
