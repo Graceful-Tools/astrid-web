@@ -7,7 +7,7 @@
  *
  * tests/fixtures/core/list-project-moves.json is astrid-core's
  * contracts/fixtures/list-project-moves.json, copied byte for byte at core
- * 2b5034870c7b5215e9ad61f424abc4319ed76078.
+ * c5b88fa883a3e8b570c5ed0beec07cc5e00a343d.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
