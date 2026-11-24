@@ -9,13 +9,21 @@ import React from "react"
 import { ChevronDown, ChevronRight, Target } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
 import { useProjectGoals } from "@/hooks/use-project-goals"
-import { hasGoalsOrGuardrails } from "@/lib/goals-guardrails"
+import { goalProgress, hasGoalsOrGuardrails, type ProjectGoal } from "@/lib/goals-guardrails"
 
 export function ProjectGoalsStrip({ projectId }: { projectId: string }) {
   const { t } = useTranslations()
   const { state } = useProjectGoals(projectId)
   const [open, setOpen] = React.useState(false)
   if (!state || !hasGoalsOrGuardrails(state)) return null
+
+  /** Progress toward the target when both read as numbers (ADEV-182); nothing for a prose measure. */
+  const progressText = (goal: ProjectGoal) => {
+    const progress = goalProgress(goal)
+    if (!progress) return null
+    if (progress.met) return t("projectMode.goals.targetMet")
+    return progress.percent === null ? null : t("projectMode.goals.progressValue", { percent: String(progress.percent) })
+  }
 
   return (
     <div className="mr-auto min-w-0 text-sm theme-text-primary" data-testid="project-goals-strip">
@@ -42,12 +50,14 @@ export function ProjectGoalsStrip({ projectId }: { projectId: string }) {
                 {state.goals.map(goal => (
                   <li key={goal.id}>
                     <span>{goal.statement}</span>
-                    {(goal.measure || goal.target || goal.current) && (
-                      <span className="block text-xs theme-text-secondary">
+                    {(goal.measure || goal.target || goal.current || state.workByGoal[goal.id]) && (
+                      <span className="block text-xs theme-text-secondary" data-testid="project-goal-measure">
                         {[
                           goal.measure,
                           goal.target && t("projectMode.goals.targetValue", { value: goal.target }),
                           goal.current && t("projectMode.goals.currentValue", { value: goal.current }),
+                          progressText(goal),
+                          state.workByGoal[goal.id] && t("projectMode.goals.workServed", { count: String(state.workByGoal[goal.id]) }),
                         ]
                           .filter(Boolean)
                           .join(" · ")}

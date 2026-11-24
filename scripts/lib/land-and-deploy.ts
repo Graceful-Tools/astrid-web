@@ -6,6 +6,8 @@ import {
   type OrchestrationAction,
   type OrchestrationPolicy,
 } from '@/lib/orchestration-policy'
+import { guardrailViolations, type ProjectGuardrail } from '@/lib/goals-guardrails'
+import type { AutonomyField } from '@/lib/orchestration-autonomy'
 import orchestrationFixture from '@/packages/astrid-rules/fixtures/orchestration.json'
 /**
  * The decisions behind `scripts/land-and-deploy.ts` (AWTD-1250).
@@ -279,6 +281,22 @@ export function policyHold(
   }`
 }
 
+/**
+ * ADEV-182: why an enforced guardrail of the project blocks `fields`, or null when none does. A
+ * violated guardrail holds the action whatever the policy otherwise allows, and names the guardrail
+ * so the person reading the chat can fix the policy or the guardrail.
+ */
+export function guardrailHold(
+  guardrails: ProjectGuardrail[] | undefined,
+  policy: OrchestrationPolicy,
+  fields: AutonomyField[],
+): string | null {
+  if (!guardrails?.length) return null
+  const violated = guardrailViolations(guardrails, policy, fields)
+  if (!violated.length) return null
+  return `enforced guardrail violated — ${violated.map(v => `"${v.statement}" [${v.guardrailId}]: ${v.reason}`).join('; ')}`
+}
+
 export function automaticDeployHold(runs: Array<{ status: string; conclusion: string | null }>): string | null {
   if (runs.some(run => run.status !== 'completed')) return 'a deploy of this commit is already in progress'
   if (runs.some(run => run.conclusion === 'success')) return 'this commit already had a successful deploy; reconcile health rather than redeploying'
@@ -361,6 +379,8 @@ export function deployVerdict(input: {
   /** ADEV-20: the stored policy and the agent asking. Absent, only the destructive-migration rule applies. */
   policy?: OrchestrationPolicy
   agent?: string
+  /** ADEV-182: the project's guardrails; an enforced one the policy breaks holds the action. */
+  guardrails?: ProjectGuardrail[]
 }): DeployVerdict {
   if (input.allowDestructive) {
     // There is no code path that should set this. It exists so that if one is
@@ -375,6 +395,12 @@ export function deployVerdict(input: {
   const hold = migrationHold(input.pending)
   if (hold) return { deploy: false, code: 3, reason: hold }
   const { policy, agent = 'claude' } = input
+  if (policy) {
+    const fields: AutonomyField[] = ['deploy']
+    if (input.pending.length) fields.push(migrationKind(input.pending) === 'destructive' ? 'migrateDestructive' : 'migrateAdditive')
+    const guarded = guardrailHold(input.guardrails, policy, fields)
+    if (guarded) return { deploy: false, code: 3, reason: guarded }
+  }
   if (policy && input.pending.length) {
     const kind = migrationKind(input.pending)
     const migrate = policyHold(policy, agent, 'migrate', kind)

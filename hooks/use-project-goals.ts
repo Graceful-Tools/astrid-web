@@ -11,6 +11,8 @@ import { storedGoalsAndGuardrails, type GoalsAndGuardrails } from '@/lib/goals-g
 
 export interface ProjectGoalsState extends GoalsAndGuardrails {
   canEdit: boolean
+  /** Tasks that reported serving each goal, by goal id (ADEV-182). */
+  workByGoal: Record<string, number>
 }
 
 const cache = new Map<string, ProjectGoalsState>()
@@ -19,7 +21,8 @@ const listeners = new Map<string, Set<(state: ProjectGoalsState) => void>>()
 
 function toState(body: unknown): ProjectGoalsState {
   const record = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
-  return { ...storedGoalsAndGuardrails(record), canEdit: record.canEdit === true }
+  const work = record.workByGoal && typeof record.workByGoal === 'object' ? (record.workByGoal as Record<string, number>) : {}
+  return { ...storedGoalsAndGuardrails(record), canEdit: record.canEdit === true, workByGoal: work }
 }
 
 function publish(projectId: string, state: ProjectGoalsState) {

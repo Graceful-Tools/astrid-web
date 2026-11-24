@@ -1913,7 +1913,10 @@
       "saveFailed": "Não foi possível salvar os objetivos e limites. Tente novamente.",
       "counts": "Objetivos: {goals} · Limites: {guardrails}",
       "targetValue": "Meta: {value}",
-      "currentValue": "Agora: {value}"
+      "currentValue": "Agora: {value}",
+      "progressValue": "{percent}% da meta",
+      "targetMet": "Meta atingida",
+      "workServed": "{count} tarefas serviram a esta meta"
     },
     "decisions": {
       "title": "Decisões",
