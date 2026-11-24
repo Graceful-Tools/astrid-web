@@ -32,6 +32,7 @@
     "test:auth": "tsx scripts/test-auth.ts",
     "test:rate-limit": "vitest tests/auth/rate-limit-simple.test.ts",
     "predeploy:check": "tsx scripts/predeploy-check.ts",
+    "test:copilot-gateway": "vitest run --config services/copilot-gateway/vitest.config.ts",
     "check:model-sync": "tsx scripts/check-model-sync.ts",
     "check:contract-fixtures": "tsx scripts/export-contract-fixtures.ts --check",
     "export:contract-fixtures": "tsx scripts/export-contract-fixtures.ts",

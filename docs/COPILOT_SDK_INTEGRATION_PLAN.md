@@ -88,6 +88,9 @@ Vercel function ──HTTPS + shared secret──▶ copilot-gateway (container)
 This also keeps the SDK out of the Vercel bundle entirely: the server only makes `fetch` calls.
 
 **The gateway (`services/copilot-gateway/`, its own package and Dockerfile):**
+
+*Built (ADEV-244/245, 2026-11-24), not yet hosted:* see [services/copilot-gateway/README.md](../services/copilot-gateway/README.md). The provider side is in `copilot-provider.ts`, and the shared request/response types are in `lib/ai/providers/copilot-gateway-contract.ts`.
+
 - `POST /v1/turns`: a prompt, a model, the caller's GitHub token, and tool declarations. It
   creates a session with `mode: "empty"` and `github.tokenProvider` returning that user's token.
   Tools are declaration-only, so a tool call comes back to the server as a pending call. The server

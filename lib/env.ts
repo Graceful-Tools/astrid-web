@@ -213,6 +213,10 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GITHUB_COPILOT_CLIENT_SECRET', scope: 'optional', description: 'Copilot OAuth secret.' },
   // Read by the Copilot SDK itself rather than by this codebase, so the scanner
   // cannot see it; documented because an operator may need to set it.
+  // ADEV-245: both set routes server Copilot runs through the hosted gateway
+  // (services/copilot-gateway); either unset keeps the REST path.
+  { name: 'COPILOT_GATEWAY_URL', scope: 'optional', description: 'HTTPS origin of the Copilot gateway (services/copilot-gateway). With COPILOT_GATEWAY_SECRET, server Copilot runs use it instead of the REST API.', validate: isUrl },
+  { name: 'COPILOT_GATEWAY_SECRET', scope: 'optional', description: 'Shared bearer secret for the Copilot gateway; the same value is set on the gateway host.' },
   { name: 'COPILOT_CLI_URL', scope: 'optional', readExternally: true, description: 'External headless Copilot runtime. Unset uses the SDK’s bundled one.' },
 
   // ── Google sync ───────────────────────────────────────────────────────────

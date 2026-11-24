@@ -83,6 +83,8 @@ export const SHARED_EXCLUDE = [
   '**/.{idea,git,cache,output,temp}/**',
   '**/{karma,rollup,webpack,vite,vitest,jest,ava,babel,nyc,cypress,tsup,build}.config.*',
   'packages/openclaw-astrid-channel/tests/**',
+  // Its own package and vitest config; run by `npm run test:copilot-gateway` (ADEV-244).
+  'services/copilot-gateway/**',
   // Needs a real Postgres; vitest.postgres.config.ts runs it on its own.
   POSTGRES_ONLY_TEST,
   // Live tests against real external services, gated on secrets and run on
