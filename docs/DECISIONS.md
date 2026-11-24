@@ -168,6 +168,17 @@ paperclip (ADEV-189 on iOS, ADEV-240 on web).
 It writes the same markdown this page describes, so an agent's decision and a person's look and
 answer the same way. Because its grid has one row per option, it draws as the grid alone.
 
+## A project's decisions
+
+On a project's board (web ADEV-188, the UI half of ADEV-180), **New decision** starts a decision
+task from the project's goals. Each goal becomes a criterion, every cell starts as `~`, and a
+"Do nothing" row is always included. The new task then opens for you to fill in. **Decisions: N
+open** lists the project's open decisions, each with an option button that records the choice
+after a confirmation, and its decided ones with the choice. On a decision task's description,
+**Edit grid** edits the criteria, options and cells (a rating plus a reason) without touching
+the prose around the grid. When the Decision has one option per row, editing an option there
+edits it in the question too. There is no score column.
+
 ## Writing one well (for agents)
 
 - **Any question to a person with two to five discrete answers is a Decision.** Open questions stay

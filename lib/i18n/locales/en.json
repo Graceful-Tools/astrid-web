@@ -280,6 +280,21 @@
       "preview": "Preview",
       "post": "Post",
       "add": "Add"
+    },
+    "decisionGridEditor": {
+      "edit": "Edit grid",
+      "title": "Edit the trade-off grid",
+      "criteria": "Criteria",
+      "options": "Options",
+      "remove": "Remove",
+      "recommend": "Recommend this option",
+      "save": "Save",
+      "saveFailed": "Could not save the grid. Try again.",
+      "optionsAreRowsHint": "These are the decision's options: renaming, adding or removing one changes the question too.",
+      "tooFewOptions": "Keep at least two options.",
+      "noCriteria": "Keep at least one criterion.",
+      "unnamed": "Name every option and criterion.",
+      "noRating": "Rate at least one cell."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "Goals: {goals} · Guardrails: {guardrails}",
       "targetValue": "Target: {value}",
       "currentValue": "Now: {value}"
+    },
+    "decisions": {
+      "title": "Decisions",
+      "intro": "This project's decisions. Each is a task holding the question and its trade-off grid; open one to fill it in.",
+      "new": "New decision",
+      "newFailed": "Could not start a decision. Try again.",
+      "openCount": "Decisions: {count} open",
+      "openHeading": "Open",
+      "decidedHeading": "Decided",
+      "noneOpen": "No open decisions.",
+      "chose": "Chose {option}",
+      "decide": "Decide",
+      "confirmTitle": "Record this choice?",
+      "confirmChoose": "Choose {option}",
+      "decideFailed": "Could not record the choice. Try again."
     }
   },
   "viewRotator": {

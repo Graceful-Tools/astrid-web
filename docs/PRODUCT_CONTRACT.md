@@ -450,6 +450,16 @@ the person has the `project_mode` flag (`GET /api/v1/features`), from an admin g
   and `Now: …`, and guardrails with `enforced` marked. It draws nothing when the project states
   none. The owner or an admin edits them in Project settings (the board's gear); agents read them
   and never write them. Wire: API_CONTRACT.md `/api/v1/projects/{id}/goals`.
+- **Decisions** (ADEV-180, web ADEV-188). Everyone working in the project gets *New decision* in
+  the board header. It starts a decision task from the project's goals and opens it. Once the
+  project has a decision, a *Decisions: N open* button opens the list: open decisions with an
+  option button each, which records the choice after a confirmation ("Record this choice?"), then
+  decided ones with the choice (`Chose 2 — Cabin`). A title opens the task. On a decision task's
+  description, whoever may edit it gets *Edit grid*: criteria (up to five), options and cells,
+  each a rating plus a reason, and never a score column. When the Decision has one option per grid
+  row, renaming, adding, removing or starring an option there rewrites the Decision's list too.
+  Strings: web `projectMode.decisions.*`, `tasks.decisionGridEditor.*`. Wire: API_CONTRACT.md
+  `/api/v1/projects/{id}/decisions`.
 
 ---
 

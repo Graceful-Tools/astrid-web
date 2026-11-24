@@ -280,6 +280,21 @@
       "preview": "Voorbeeld",
       "post": "Plaatsen",
       "add": "Toevoegen"
+    },
+    "decisionGridEditor": {
+      "edit": "Tabel bewerken",
+      "title": "De afwegingstabel bewerken",
+      "criteria": "Criteria",
+      "options": "Opties",
+      "remove": "Verwijderen",
+      "recommend": "Deze optie aanbevelen",
+      "save": "Opslaan",
+      "saveFailed": "Kon de tabel niet opslaan. Probeer het opnieuw.",
+      "optionsAreRowsHint": "Dit zijn de opties van de beslissing: hernoemen, toevoegen of verwijderen verandert ook de vraag.",
+      "tooFewOptions": "Houd minstens twee opties.",
+      "noCriteria": "Houd minstens één criterium.",
+      "unnamed": "Geef elke optie en elk criterium een naam.",
+      "noRating": "Beoordeel minstens één cel."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "Doelen: {goals} · Vangrails: {guardrails}",
       "targetValue": "Streefwaarde: {value}",
       "currentValue": "Nu: {value}"
+    },
+    "decisions": {
+      "title": "Beslissingen",
+      "intro": "De beslissingen van dit project. Elke beslissing is een taak met de vraag en haar afwegingstabel; open er een om die in te vullen.",
+      "new": "Nieuwe beslissing",
+      "newFailed": "Kon de beslissing niet starten. Probeer het opnieuw.",
+      "openCount": "Beslissingen: {count} open",
+      "openHeading": "Open",
+      "decidedHeading": "Besloten",
+      "noneOpen": "Geen open beslissingen.",
+      "chose": "Gekozen: {option}",
+      "decide": "Beslissen",
+      "confirmTitle": "Deze keuze vastleggen?",
+      "confirmChoose": "{option} kiezen",
+      "decideFailed": "Kon de keuze niet vastleggen. Probeer het opnieuw."
     }
   },
   "viewRotator": {

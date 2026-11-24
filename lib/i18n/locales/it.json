@@ -280,6 +280,21 @@
       "preview": "Anteprima",
       "post": "Pubblica",
       "add": "Aggiungi"
+    },
+    "decisionGridEditor": {
+      "edit": "Modifica tabella",
+      "title": "Modifica la tabella dei compromessi",
+      "criteria": "Criteri",
+      "options": "Opzioni",
+      "remove": "Rimuovi",
+      "recommend": "Consiglia questa opzione",
+      "save": "Salva",
+      "saveFailed": "Impossibile salvare la tabella. Riprova.",
+      "optionsAreRowsHint": "Queste sono le opzioni della decisione: rinominarne, aggiungerne o rimuoverne una cambia anche la domanda.",
+      "tooFewOptions": "Mantieni almeno due opzioni.",
+      "noCriteria": "Mantieni almeno un criterio.",
+      "unnamed": "Dai un nome a ogni opzione e criterio.",
+      "noRating": "Valuta almeno una cella."
     }
   },
   "assignee": {
@@ -1899,6 +1914,21 @@
       "counts": "Obiettivi: {goals} · Vincoli: {guardrails}",
       "targetValue": "Traguardo: {value}",
       "currentValue": "Ora: {value}"
+    },
+    "decisions": {
+      "title": "Decisioni",
+      "intro": "Le decisioni di questo progetto. Ognuna è un'attività con la domanda e la sua tabella dei compromessi; aprine una per completarla.",
+      "new": "Nuova decisione",
+      "newFailed": "Impossibile avviare la decisione. Riprova.",
+      "openCount": "Decisioni: {count} aperte",
+      "openHeading": "Aperte",
+      "decidedHeading": "Decise",
+      "noneOpen": "Nessuna decisione aperta.",
+      "chose": "Scelta: {option}",
+      "decide": "Decidi",
+      "confirmTitle": "Registrare questa scelta?",
+      "confirmChoose": "Scegli {option}",
+      "decideFailed": "Impossibile registrare la scelta. Riprova."
     }
   },
   "viewRotator": {
