@@ -430,6 +430,17 @@ export function latestCommentWatermark(comments: TimestampedComment[]): string |
 export interface AuthoredComment extends TimestampedComment {
   authorId?: string | null
   author?: { id?: string | null; isAIAgent?: boolean | null } | null
+  /** Read only for another agent's comment: is it a recorded question (AWTD-1695)? */
+  content?: string | null
+}
+
+/**
+ * The mailbox a comment's `AGENT-HANDBACK: <mailbox>` line names: the agent that asked, and is
+ * waiting for the answer. Null when the comment carries no such line.
+ */
+export function handbackMailboxOf(content: string | null | undefined): string | null {
+  const match = (content ?? '').match(/^\s*AGENT-HANDBACK:\s*(\S+)\s*$/m)
+  return match ? match[1].toLowerCase() : null
 }
 
 export function awaitsAgentReply(input: {
@@ -437,14 +448,23 @@ export function awaitsAgentReply(input: {
   comment: AuthoredComment | null | undefined
   /** When the task was completed, or null if it is still open. */
   completedAt?: Date | string | null
+  /**
+   * The agent reading (AWTD-1695). With it, another agent's RECORDED QUESTION (a comment that
+   * carries an `AGENT-HANDBACK:` line) is this agent's to answer too. Without it, as before, only
+   * a person's comment is.
+   */
+  readerId?: string | null
 }): boolean {
-  const { comment, completedAt } = input
+  const { comment, completedAt, readerId } = input
   if (!comment) return false
   // A system event is nobody's question.
   if (!comment.authorId) return false
-  // "From a human". Another agent's comment is not this loop's to answer, and
-  // the agent's own comment is the answer.
-  if (comment.author?.isAIAgent === true) return false
+  // "From a human". Another agent's comment is not this loop's to answer unless
+  // it is a recorded question, and the agent's own comment is the answer.
+  if (comment.author?.isAIAgent === true) {
+    if (!readerId || comment.authorId === readerId) return false
+    if (!handbackMailboxOf(comment.content)) return false
+  }
 
   // On a COMPLETED task, the newest comment is usually the loop's own
   // completion report — and it is attributed to a PERSON, because the OAuth
