@@ -39,6 +39,7 @@ const ENTRY_PATTERNS = [
   /^scripts\//,        // run by hand or by package.json
   /^mcp\//,            // standalone servers
   /^packages\//,       // separately published
+  /^services\/copilot-gateway\//, // its own package and container (ADEV-244)
   /^tools\//,
   /^prisma\//,
   /\.d\.ts$/,
