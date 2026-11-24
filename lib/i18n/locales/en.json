@@ -1913,7 +1913,10 @@
       "saveFailed": "Could not save the goals and guardrails. Try again.",
       "counts": "Goals: {goals} · Guardrails: {guardrails}",
       "targetValue": "Target: {value}",
-      "currentValue": "Now: {value}"
+      "currentValue": "Now: {value}",
+      "progressValue": "{percent}% of target",
+      "targetMet": "Target met",
+      "workServed": "{count} tasks served this goal"
     },
     "decisions": {
       "title": "Decisions",

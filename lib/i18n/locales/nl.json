@@ -1913,7 +1913,10 @@
       "saveFailed": "Doelen en vangrails konden niet worden opgeslagen. Probeer het opnieuw.",
       "counts": "Doelen: {goals} · Vangrails: {guardrails}",
       "targetValue": "Streefwaarde: {value}",
-      "currentValue": "Nu: {value}"
+      "currentValue": "Nu: {value}",
+      "progressValue": "{percent}% van het doel",
+      "targetMet": "Doel bereikt",
+      "workServed": "{count} taken dienden dit doel"
     },
     "decisions": {
       "title": "Beslissingen",
