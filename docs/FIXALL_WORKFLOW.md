@@ -146,7 +146,9 @@ Astrid's stored values: it is prose about the policy, not a second copy of it.
 
 - **Found an issue? File it straight to `Ready`**: on the right board, with `statusRole: "ready"`,
   unassigned (or assigned to your own mailbox if you will take it now). Never file to the Inbox
-  "so Jon can promote it". The Inbox is for a person's own notes and for genuine handbacks.
+  "so Jon can promote it". **Agents never file to the Inbox.** It holds people's own notes and
+  genuine handbacks, and the run helps turn those notes into work (*Clarifying Inbox ideas*,
+  below).
 - **Shared-design implementation, system or performance work, and code cleanup are yours.** File
   them Ready and pick them up. They do not need a review.
 - **A choice with a recommended option is not a question.** When you would write a Decision whose
@@ -172,6 +174,62 @@ check is the backstop that stops a mis-classified one.
 
 When you do ask, batch it: one task per thing Jon must do, with the exact command or click, so a
 person can clear a stack of them in one sitting.
+
+## Clarifying Inbox ideas (ADEV-227)
+
+> *"The ai can help drive clarity on inbox /ideas. This could be part of the fix all workflow."*
+> (Jon, 2026-11-23, choosing **ask, then promote** and **all open ideas** per run)
+
+People jot notes into a board's Inbox, and a note can sit there for weeks because nobody has
+decided what it means. Each run now helps clarify them. **After the Ready queue and the agent's
+own attention items**, on every board the run covers:
+
+1. **Find the ideas.** `get_agent_queue { …, includeUnassigned: true }` returns them as
+   `inbox.ideas`. These are open Inbox notes (no status, not completed) on the named board, not
+   assigned to an agent. Each carries its `creatorId`. The server leaves out:
+   - a note whose latest agent comment is an `AGENT-HANDBACK:` question. Either the person has
+     not answered, or they have and the resume path below owns the reply;
+   - a public-intake copy (`[public-intake:…]`), which a person still promotes (*Public requests*,
+     above);
+   - every note on a board the caller is not a member of, or a private board the agent is not a
+     member of. The bound is the one `includeUnassigned` already uses (`lib/inbox-ideas.ts`,
+     `lib/agent-queue.ts`).
+2. **A clear note needs no question.** It is clear when it has one obvious reading and a small
+   scope. That is the *Autonomy* rule: a choice with a recommended option is not a question. Write
+   the scope and move it to Ready, unassigned, in one call, then add a one-line comment saying so:
+
+   ```bash
+   npx tsx scripts/promote-inbox-idea.ts <taskId> --scope-file <scope.md> \
+     --decided "clear as written (agent, <date>)" --agent <mailbox>
+   ```
+
+3. **An unclear note gets one Decision comment** on the note, never in list chat. Use the
+   [DECISIONS.md](./DECISIONS.md) format:
+   - the readings of the idea as numbered options, exactly one marked `(recommended)`, plus a
+     `Do nothing` option;
+   - a short trade-off grid: effort, risk and value, plus a platform or scope column where it
+     matters;
+   - the recommendation first, and the `AGENT-HANDBACK: <mailbox>` line last.
+
+   Then hand it back to the person who wrote it:
+   `npx tsx scripts/assign-task.ts <taskId> <creator email> --handback --agent <mailbox>`.
+   It stays in the Inbox, assigned to them, and they are notified.
+4. **On the answer**, the reply arrives through the existing resume path
+   (`attention.tasks[].resume` → `claim-fixall-task.ts resume`, *A human reply resumes an
+   explicit handback*, below). After the resume claim:
+   - **An option reply** (`1 — …`, the card tap): run `promote-inbox-idea.ts <taskId>
+     --scope-file <scope.md> --agent <mailbox>`. It reads the chosen option from the reply and
+     writes `**Decided:** option <n> — <text>`, then the scope, then the original note. It moves
+     the task to **Ready**, unassigned, so the next run builds it.
+   - **A reply in words:** the script refuses to guess. Act on the words and pass `--decided
+     "<what was decided>"`. If the words are still ambiguous, ask one follow-up Decision and hand
+     it back again.
+
+**Not this:** no promotion without an answer, except a clear note under step 2. No question on a
+board the agent is not a member of. A Decision on an idea goes on the note, never in list chat.
+Clarifying ideas does not count toward `ASTRID_FIXALL_MAX_TASKS`. The scheduled preflight counts
+new ideas as work (`QUEUE: empty — N unclarified Inbox ideas`). Each idea wakes one run until it
+is edited, the same way a comment does. A note waiting on its question wakes nothing.
 
 ---
 
@@ -234,6 +292,8 @@ A task is yours only when **all four** hold:
    the caller owns or belongs to (public visibility is not enough), and only in Ready — an
    unassigned task with no status is an Inbox note, even under `requireReady: false`. Without
    the flag the queue is assigned-only, which is still right for anyone else's shared list.
+   The same flag returns those Inbox notes separately, as `inbox.ideas`, for the run to clarify
+   rather than work (*Clarifying Inbox ideas*, above).
 4. **Due now.** See below.
 
 The queue reports what it held and why (`held.notDueCount`, `held.scheduled`), so a queue
@@ -565,7 +625,7 @@ report and release as usual, then end the run.
 watchdog for it. **Never take a task listed in `ASTRID_FIXALL_DEFER_TASKS`** (comma-separated
 ids): it is flagged `LONG-RUN`, this run has only the ordinary watchdog, and it will start in
 the long-run window instead. Leave it in Ready, without comment. (*Tasks longer than one run*,
-below.) Answering the inbox does not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
+below.) Answering the inbox, and clarifying Inbox ideas, does not count toward the limit. Unset (an interactive `/fixall`), drive the queue to
 empty.
 
 The scheduled runners (`astrid-web/scripts/fixall-loop.sh`, `astrid-ios/scripts/fixall-loop.sh`)
@@ -782,7 +842,8 @@ ANY state, completed included — whose newest authored comment is from a human.
 that already reads the queue, so a quiet tick still costs one HTTP request.
 
 The scheduled runner (`scripts/fixall-loop.sh`) reads that same call *before* starting a session
-— through its queue-status guard — and starts one only for a Ready task or a new inbox item. An inbox item wakes **one** run:
+— through its queue-status guard — and starts one only for a Ready task, a new inbox item or a new
+Inbox idea (ADEV-227). An inbox item wakes **one** run:
 if that run chooses not to answer it, the same comment never wakes another, a new comment does.
 So an idle board costs no tokens at all, and an unanswered "thanks" cannot become a session
 every half hour.

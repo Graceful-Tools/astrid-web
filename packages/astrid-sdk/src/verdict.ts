@@ -45,6 +45,16 @@ export interface AttentionSnapshot {
   skipped?: string[]
 }
 
+/**
+ * Inbox notes waiting on an agent to clarify them (ADEV-227). The server
+ * leaves out a note already carrying an open agent question, so a tick does
+ * not loop on it.
+ */
+export interface InboxSnapshot {
+  ideas: Array<{ id: string; identifier?: string | null; title?: string; updatedAt?: string }>
+  truncated?: boolean
+}
+
 /** The subset of `GET /api/v1/agent-queue` the verdict reads. */
 export interface QueueSnapshot {
   empty: boolean
@@ -56,10 +66,12 @@ export interface QueueSnapshot {
   }
   /** Absent on a response that predates AWTD-963, or when the token could not read it. */
   attention?: AttentionSnapshot | null
+  /** Present only under `includeUnassigned` on a named board, on a server with ADEV-227. */
+  inbox?: InboxSnapshot | null
   hint?: string
 }
 
-export type QueueVerdictReason = 'queue' | 'inbox' | 'idle'
+export type QueueVerdictReason = 'queue' | 'inbox' | 'ideas' | 'idle'
 
 export interface QueueVerdict {
   /** Start a session? */
@@ -84,7 +96,13 @@ export function wakeKeys(snapshot: QueueSnapshot): string[] {
   for (const message of snapshot.attention?.messages ?? []) {
     keys.push(`message:${message.id}`)
   }
+  for (const idea of snapshot.inbox?.ideas ?? []) keys.push(ideaKey(idea))
   return keys
+}
+
+/** An idea's key carries its last edit, so an edited note wakes another run and an unchanged one does not. */
+function ideaKey(idea: { id: string; updatedAt?: string }): string {
+  return `idea:${idea.id}:${idea.updatedAt ?? ''}`
 }
 
 function plural(n: number, singular: string, pluralForm = `${singular}s`): string {
@@ -135,7 +153,18 @@ export function decideQueueVerdict({
     return { work: true, reason: 'inbox', line: `QUEUE: empty — ${parts.join('; ')}`, keys }
   }
 
-  // 3. Idle. Say why, the way the log already reads, and name what was NOT
+  // 3. Inbox ideas to clarify (ADEV-227) — each wakes one run, like a comment.
+  const newIdeas = (snapshot.inbox?.ideas ?? []).filter(idea => !seen.has(ideaKey(idea)))
+  if (newIdeas.length > 0) {
+    return {
+      work: true,
+      reason: 'ideas',
+      line: `QUEUE: empty — ${plural(newIdeas.length, 'unclarified Inbox idea')} (${newIdeas.map(label).join(', ')})`,
+      keys,
+    }
+  }
+
+  // 4. Idle. Say why, the way the log already reads, and name what was NOT
   // read: an unread inbox and a quiet one are different facts.
   const next = snapshot.held?.scheduled?.[0]
   let line = next
@@ -143,7 +172,8 @@ export function decideQueueVerdict({
     : `QUEUE: empty${snapshot.hint ? ` — ${snapshot.hint}` : ''}`
 
   const notes: string[] = []
-  const muted = (attention?.tasks.length ?? 0) + (attention?.messages.length ?? 0)
+  const muted = (attention?.tasks.length ?? 0) + (attention?.messages.length ?? 0) +
+    (snapshot.inbox?.ideas.length ?? 0)
   if (muted > 0) {
     notes.push(`${plural(muted, 'unanswered item')} already woke a run; a new comment wakes another`)
   }

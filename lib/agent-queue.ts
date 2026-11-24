@@ -36,6 +36,7 @@ import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchest
 import { collectProjectGoals, type AgentProjectGoals } from '@/lib/agent-queue-project-goals'
 import { emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
 import { pendingAgentAnswer, pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
+import { buildInboxIdeas, type AgentInbox } from '@/lib/inbox-ideas'
 
 /**
  * How much unanswered conversation one poll reports.
@@ -69,6 +70,7 @@ export interface AgentQueueTask {
 }
 
 export { LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions }
+export type { AgentInbox, AgentInboxIdea } from '@/lib/inbox-ideas'
 
 /** A task with something said on it that the agent has not answered. */
 export interface AgentAttentionTask {
@@ -143,6 +145,14 @@ export interface AgentQueueResult {
   truncated: boolean
   /** Unanswered comments and chat replies — the loop's inbox (AWTD-963). */
   attention: AgentAttention
+  /**
+   * Inbox notes waiting to be clarified (ADEV-227). Present only under
+   * `includeUnassigned` on a named board — the same membership bound as
+   * unassigned Ready work — so every other caller's JSON is unchanged. Not
+   * part of `runnable`: the scheduled preflight bounds ideas with seen-keys,
+   * and a hosted wake on them would repeat every tick.
+   */
+  inbox?: AgentInbox
   /**
    * Why the queue is empty, when it is. Absent whenever there is work: a loop
    * with something to do needs no explanation (AWTD-845).
@@ -483,6 +493,11 @@ export async function buildAgentQueue({
 
   const projectGoals = await collectProjectGoals(dueTasks)
 
+  // Ideas follow unassigned Ready work's bound exactly: a board the caller is on, routed to this agent.
+  const inbox = unassignedOnOwnBoard && listId
+    ? await buildInboxIdeas({ agentId: agentUser.id, userId, listId, boundScope })
+    : null
+
   return {
     agent: { mailbox, email, id: agentUser.id, name: agentUser.name },
     mode,
@@ -517,6 +532,7 @@ export async function buildAgentQueue({
     // run, so say it rather than working a silent subset.
     truncated,
     attention,
+    ...(inbox ? { inbox } : {}),
     runnable: {
       version: 1,
       hasWork: reasons.length > 0,
