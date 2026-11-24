@@ -1,73 +1,87 @@
-# GitHub Copilot SDK Integration
+# GitHub Copilot SDK: where it fits, and the plan
 
-**Status:** Implemented in code; server OAuth application configuration is required before use.
+**Status (2026-11-24):** not installed. Decision: **adopt it, in the agent runner first.**
+This file used to say the SDK was "implemented in code". It was, for one day in July 2026, and
+then removed. That history is the main constraint on the plan, so it comes first.
 
-## Supported architecture
+## What exists today
 
-Astrid uses GitHub's supported `@github/copilot-sdk` and a separate OAuth or
-GitHub App. Each user authorizes their own GitHub account, so Copilot requests
-use that user's identity, subscription, policies, and quota.
+| Path | How it reaches Copilot | Code |
+|---|---|---|
+| Server-run Copilot agent (assistant workflow, agent runtime tool calls) | Direct REST to `api.githubcopilot.com` through `callOpenAI` with the user's GitHub token | `lib/ai/providers/copilot-provider.ts`, `lib/astrid-agent-runtime.ts` |
+| Model list | `GET api.githubcopilot.com/models` | `lib/ai/fetch-provider-models.ts` |
+| Local and cloud runner (`astrid-agent run --harness copilot`) | Spawns the Copilot CLI: `copilot -p <prompt>` | `packages/astrid-sdk/src/run.ts` |
+| Copilot cloud agent on GitHub | GitHub's own coding agent, bridged to the board | `.github/workflows/native-copilot-bridge.yml` |
 
-The implementation intentionally does not call private
-`api.githubcopilot.com` endpoints or impersonate another editor's integration
-identifier.
+Users connect Copilot with GitHub OAuth (`CopilotCredential`, encrypted) or a pasted GitHub token.
+Entitlement follows the user's Copilot subscription, not the app that minted the token.
 
-1. `GET /api/v1/integrations/copilot/authorize` creates an HMAC-signed,
-   provider-tagged OAuth state and returns GitHub's authorization URL.
-2. The callback exchanges the one-time code and encrypts access and refresh
-   tokens in `CopilotCredential`.
-3. Agent execution retrieves the user's token and supplies it to the Copilot
-   SDK at both client and session scope.
-4. The SDK runs in `empty` mode, skips cross-session embedding retrieval, and
-   receives only Astrid's explicitly registered tools.
+## Why the SDK was removed (76fffa0a, 2026-07-26)
 
-## Runtime modes
+The Node SDK starts a bundled Copilot runtime. That binary was about 253 MB, which is more than
+Vercel's 250 MB unzipped function limit, so the SDK-based provider could never have run in
+production. It was replaced by the REST call above.
 
-- With no `COPILOT_CLI_URL`, the Node SDK starts its bundled Copilot runtime.
-- With `COPILOT_CLI_URL`, Astrid connects to a separately operated headless
-  runtime. Per-session GitHub tokens maintain user isolation.
+## Why adopt it now
 
-The external runtime is recommended for production serverless deployments to
-avoid cold-starting a CLI process during a request.
+1. **The REST path identifies itself as VS Code.** `COPILOT_HEADERS` sends
+   `Copilot-Integration-Id: vscode-chat`. The July plan explicitly ruled out impersonating another
+   editor's integration identifier, and GitHub can block or revoke that at any time. The SDK is the
+   supported way for a third-party app to use Copilot.
+2. **The runner only sees an exit code.** `copilot -p` gives back text and a status. The SDK gives
+   sessions, streamed events, explicit tool registration (the Astrid MCP tools only) and a
+   permission handler, so the runner can report progress, heartbeat on real activity, and refuse a
+   tool call it should not make.
+3. **It is generally available** (GA 2026-06-02) and maintained.
 
-## Required configuration
+## Constraints
 
-```text
-GITHUB_COPILOT_CLIENT_ID
-GITHUB_COPILOT_CLIENT_SECRET
-```
+- **Package:** `@github/copilot-sdk` was deprecated on 2026-11-19 in favour of
+  `@microsoft/copilot-sdk`, whose v2 has breaking changes
+  ([v2 breaking changes](https://github.com/microsoft/copilot-sdk/blob/main/docs/v2-breaking-changes.md)).
+  v2.0.1 was published 2026-11-24. Use `@microsoft/copilot-sdk`, pinned exactly, and not before it
+  has been out for two weeks.
+- **Size:** the package itself is about 4 MB, but it still brings the Copilot runtime. Never put it
+  in a Vercel function bundle. On the server, connect to a separately run runtime instead
+  (`RuntimeConnection.forUri` in v2; the older docs call it `cliUrl`).
+- **Identity:** each session runs with that user's GitHub token. Never a shared token, and never
+  across users in one session.
+- **Node:** `^20.19.0 || >=22.12.0`.
 
-Optional:
+## Plan
 
-```text
-COPILOT_CLI_URL
-```
+### Phase 1: the agent runner (no cost, no Vercel limit)
 
-Set the GitHub application's callback URL to:
+Add the SDK to `packages/astrid-sdk` as the engine behind `--harness copilot`, with the CLI spawn
+kept as the fallback when the SDK cannot start.
 
-```text
-https://<astrid-host>/api/v1/integrations/copilot/callback
-```
+- One session per claimed task, created with the task prompt the runner already builds.
+- Register only Astrid's MCP server as tools, and handle permissions in code: allow the repo's
+  tools, deny anything outside the worktree.
+- Map SDK events to the claim lease: heartbeat on activity, and release with the SDK's error text
+  rather than "exited with code 1".
+- Tests: the session lifecycle with a fake transport, the tool allow-list, and the fallback.
+- Docs: `packages/astrid-sdk/README.md`, `docs/AGENT_FLEET.md`.
 
-Do not store tokens in source, scripts, or client-side storage. OAuth tokens
-are encrypted by the existing field-encryption service.
+### Phase 2: the server path (needs a decision on cost)
 
-## Compatibility
+Stop sending `vscode-chat`. Two ways:
 
-The integration is additive. Existing Claude, OpenAI, Gemini, OpenClaw, legacy
-API routes, and v1 routes retain their existing wire contracts. Copilot
-credential status and authorization are exposed only through new v1 routes.
+1. **A hosted Copilot runtime** that the server reaches with `RuntimeConnection.forUri`: a small
+   always-on container (Azure Container Apps, Fly or similar), per-session user tokens. This is
+   the supported route, and it costs money every month, so it is Jon's call.
+2. **No server-run Copilot.** Copilot keeps working through the runner and the GitHub cloud agent,
+   and the server-run Copilot option is withdrawn from the agent picker.
 
-## Verification
+Until Phase 2 is decided, the REST provider stays as it is.
 
-Focused tests cover:
+### Phase 3: retire the REST provider
 
-- agent registry and routing;
-- OAuth state tamper, expiry, and provider-replay rejection;
-- encrypted token retrieval and refresh;
-- SDK empty-mode isolation and explicit tool registration;
-- cleanup after successful and failed SDK calls.
+Once Phase 2 ships either way, delete `copilot-provider.ts`'s REST call, its model-list fetch, and
+the tests that pin the REST contract (`tests/lib/copilot-integration.test.ts`).
 
-Before deployment, run `npm run predeploy` and verify the OAuth callback with a
-non-production GitHub application and an account that has an active Copilot
-subscription.
+## Verification before each phase ships
+
+`npm run predeploy`, plus one real Copilot task worked end to end with an account that has an active
+Copilot subscription: claimed, worked, reported and released by the runner (Phase 1), or answered by
+the server agent (Phase 2).
