@@ -1,6 +1,6 @@
 // Runs astrid-web's leading-control rules (lib/task-leading-control.ts) over every combination of
 // assignee, reader and completion, and prints the mark each draws and whether a tap opens the
-// options sheet instead of completing. ADEV-147: a completed task shows the checked checkbox
+// options sheet instead of completing, and whether completing asks first (ADEV-255). ADEV-147: a completed task shows the checked checkbox
 // whoever holds it, while someone else's task still opens the sheet rather than reopening.
 // Invoked by scripts/export-contract-fixtures.ts; not useful on its own.
 //
@@ -18,7 +18,12 @@ if (!webRoot) {
 
 registerWebAliases(webRoot)
 
-const { taskLeadingControlKind, isSomeoneElsesTask, leadingControlOpensOptions } = await import(
+const {
+  taskLeadingControlKind,
+  isSomeoneElsesTask,
+  leadingControlOpensOptions,
+  completionNeedsConfirmation,
+} = await import(
   pathToFileURL(join(webRoot, 'lib/task-leading-control.ts')).href
 )
 
@@ -41,6 +46,9 @@ for (const assigneeId of ASSIGNEES) {
           listRow: leadingControlOpensOptions({ onBoard: false, isSomeoneElses, kind }),
           boardCard: leadingControlOpensOptions({ onBoard: true, isSomeoneElses, kind }),
         },
+        // ADEV-255: completing from the options sheet asks first (core's
+        // TaskRow.completionNeedsConfirmation reads this column).
+        asksBeforeCompleting: completionNeedsConfirmation({ assigneeId, currentUserId, completed }),
       })
     }
   }
@@ -48,6 +56,6 @@ for (const assigneeId of ASSIGNEES) {
 
 process.stdout.write(JSON.stringify({
   generatedFrom: 'lib/task-leading-control.ts',
-  rule: 'completed → checkbox; else unassigned → unassigned; else someone else\'s (or no reader) → avatar; else checkbox. A tap opens the picker on a board card, on someone else\'s task, and on any mark that is not a checkbox; otherwise it completes (or reopens).',
+  rule: 'completed → checkbox; else unassigned → unassigned; else someone else\'s (or no reader) → avatar; else checkbox. A tap opens the picker on a board card, on someone else\'s task, and on any mark that is not a checkbox; otherwise it completes (or reopens). asksBeforeCompleting: completed → false; no reader → true; otherwise assignee ≠ reader (ADEV-255).',
   cases,
 }))
