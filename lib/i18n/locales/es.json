@@ -255,6 +255,31 @@
       "tapRowHint": "Toca una opción para elegirla.",
       "confirmTitle": "¿Publicar tu elección?",
       "chooseOption": "Elegir {option}"
+    },
+    "decisionComposer": {
+      "title": "Pedir una decisión",
+      "question": "Pregunta",
+      "questionPlaceholder": "¿Qué hay que decidir?",
+      "options": "Opciones",
+      "optionPlaceholder": "Opción",
+      "addOption": "Añadir opción",
+      "needsTwoOptions": "Escribe al menos dos opciones.",
+      "recommendHint": "Toca la estrella para recomendar una.",
+      "criteria": "Ventajas e inconvenientes (opcional)",
+      "criterionPlaceholder": "Criterio, p. ej. Coste",
+      "criterionDetailPlaceholder": "Qué significa (opcional)",
+      "addCriterion": "Añadir criterio",
+      "criteriaHint": "Valora cada opción de rojo a verde en cada criterio. No hay puntuación: tú decides.",
+      "reasonPlaceholder": "Nota (opcional), p. ej. 2 días de trabajo",
+      "reasonNeedsColour": "Elige un color para cada motivo que escribas.",
+      "postTo": "Publicar en",
+      "asComment": "Comentario",
+      "inDescription": "Descripción",
+      "commentHint": "Se publica como comentario. Tocar una opción la responde en el hilo.",
+      "descriptionHint": "Se añade al final de la descripción.",
+      "preview": "Vista previa",
+      "post": "Publicar",
+      "add": "Añadir"
     }
   },
   "assignee": {

@@ -255,6 +255,31 @@
       "tapRowHint": "Tippe auf eine Option, um sie zu wählen.",
       "confirmTitle": "Deine Wahl posten?",
       "chooseOption": "{option} wählen"
+    },
+    "decisionComposer": {
+      "title": "Um eine Entscheidung bitten",
+      "question": "Frage",
+      "questionPlaceholder": "Was muss entschieden werden?",
+      "options": "Optionen",
+      "optionPlaceholder": "Option",
+      "addOption": "Option hinzufügen",
+      "needsTwoOptions": "Schreibe mindestens zwei Optionen.",
+      "recommendHint": "Tippe auf den Stern, um eine zu empfehlen.",
+      "criteria": "Abwägungen (optional)",
+      "criterionPlaceholder": "Kriterium, z. B. Kosten",
+      "criterionDetailPlaceholder": "Was es bedeutet (optional)",
+      "addCriterion": "Kriterium hinzufügen",
+      "criteriaHint": "Bewerte jede Option je Kriterium von Rot bis Grün. Es gibt keine Punktzahl: Du entscheidest.",
+      "reasonPlaceholder": "Notiz (optional), z. B. 2 Tage Arbeit",
+      "reasonNeedsColour": "Wähle für jede Begründung eine Farbe.",
+      "postTo": "Posten in",
+      "asComment": "Kommentar",
+      "inDescription": "Beschreibung",
+      "commentHint": "Als Kommentar gepostet. Ein Tipp auf eine Option beantwortet sie im Verlauf.",
+      "descriptionHint": "Wird am Ende der Beschreibung angefügt.",
+      "preview": "Vorschau",
+      "post": "Posten",
+      "add": "Hinzufügen"
     }
   },
   "assignee": {
