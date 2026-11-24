@@ -212,8 +212,13 @@ jobs:
         run: |
           mkdir -p .agent-output .agent-state
           touch "${ASTRID_FIXALL_CLAIMS_FILE}"
+          # The email is on astrid.cc, a domain we own, on purpose. GitHub credits a commit to
+          # the account that VERIFIED its email, except `<login>@users.noreply.github.com`,
+          # which it credits to whoever holds <login>. `agent-claude-code` was registered by a
+          # stranger four days after these commits went public (2026-10-29), so 139 agent
+          # commits listed them as a contributor. Never use a bare-login noreply address here.
           git config user.name "Astrid agent (${ASTRID_FIXALL_HARNESS})"
-          git config user.email "agent-${ASTRID_FIXALL_HARNESS}@users.noreply.github.com"
+          git config user.email "agent-${ASTRID_FIXALL_HARNESS}@astrid.cc"
 
       # Wake state is slot 1's alone: only slot 1 answers the inbox, so only it
       # has wake keys to record, and one writer keeps the cache key unique.
@@ -338,7 +343,7 @@ jobs:
             exit 1
           fi
           git -C "${CORE_DIR}" config user.name "Astrid agent (${ASTRID_FIXALL_HARNESS})"
-          git -C "${CORE_DIR}" config user.email "agent-${ASTRID_FIXALL_HARNESS}@users.noreply.github.com"
+          git -C "${CORE_DIR}" config user.email "agent-${ASTRID_FIXALL_HARNESS}@astrid.cc"   # see "Identify the run in git"
           git -C "${CORE_DIR}" config credential.https://github.com.helper ''
           git -C "${CORE_DIR}" config --add credential.https://github.com.helper '!gh auth git-credential'
           echo "ASTRID_CORE_DIR=${CORE_DIR}" >> "${GITHUB_ENV}"
