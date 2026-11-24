@@ -47,7 +47,7 @@ describe('a decision written from task details (ADEV-240, iOS ADEV-189)', () => 
   })
 
   it('what the composer writes is what the apps draw: a decision and a grid, one row per option', () => {
-    let d = { ...withCriteria(draft('Where?', ['Lisbon', 'Cabin']), ['Cost']), recommended: 'o1' }
+    let d: DecisionDraft = { ...withCriteria(draft('Where?', ['Lisbon', 'Cabin']), ['Cost']), recommended: 'o1' }
     d = setDraftCell(d, 'o0', 'c0', { rating: '--', text: 'dear' })
     d = setDraftCell(d, 'o1', 'c0', { rating: '++', text: 'cheap | quiet' })
     const decision = parseDecision(decisionDraftMarkdown(d))
