@@ -43,7 +43,16 @@ const state = vi.hoisted(() => ({
   taskReadFails: false,
   repository: 'Graceful-Tools/astrid-web' as string | null,
   mode: 'polling' as string,
+  events: [] as Array<{ taskId: string; actorId: string | null; actorType: string; kind: string; to: unknown; createdAt: Date }>,
+  users: {} as Record<string, { email: string }>,
+  routed: null as string | null,
 }))
+
+type EventWhere = { taskId: string; kind: string; actorType?: string; createdAt: { gte: Date } }
+const eventsMatching = (where: EventWhere) =>
+  state.events.filter(e =>
+    e.taskId === where.taskId && e.kind === where.kind &&
+    (where.actorType === undefined || e.actorType === where.actorType) && e.createdAt >= where.createdAt.gte)
 
 const db = vi.hoisted(() => ({
   task: {
@@ -54,6 +63,17 @@ const db = vi.hoisted(() => ({
   },
   taskList: {
     findUnique: vi.fn(async () => ({ githubRepositoryId: state.repository })),
+  },
+  taskEvent: {
+    count: vi.fn(async ({ where }: { where: EventWhere }) => eventsMatching(where).length),
+    findFirst: vi.fn(async ({ where }: { where: EventWhere }) => eventsMatching(where)[0] ?? null),
+    createMany: vi.fn(async ({ data }: { data: Array<Omit<(typeof state.events)[number], 'createdAt'>> }) => {
+      for (const row of data) state.events.push({ ...row, createdAt: new Date() })
+      return { count: data.length }
+    }),
+  },
+  user: {
+    findUnique: vi.fn(async ({ where }: { where: { id: string } }) => state.users[where.id] ?? null),
   },
   job: {
     createMany: vi.fn(async ({ data }: { data: Array<Partial<JobRow>> }) => {
@@ -95,6 +115,9 @@ const db = vi.hoisted(() => ({
 
 vi.mock('@/lib/prisma', () => ({ prisma: db }))
 vi.mock('@/lib/background', async () => (await import('../utils/after-response')).backgroundMock)
+vi.mock('@/services/orchestration-policy.service', () => ({
+  routedAgentForList: vi.fn(async () => state.routed),
+}))
 vi.mock('@/lib/ai/agent-execution-mode', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/ai/agent-execution-mode')>()),
   getAgentExecutionMode: vi.fn(async () => state.mode),
@@ -150,6 +173,9 @@ beforeEach(() => {
   state.taskReadFails = false
   state.repository = 'Graceful-Tools/astrid-web'
   state.mode = 'polling'
+  state.events = []
+  state.users = {}
+  state.routed = null
   vi.clearAllMocks()
   github.getInstallationOctokit.mockImplementation(async () => ({ request: github.installationRequest }))
   github.installationRequest.mockImplementation(async () => ({ status: 204 }))
@@ -254,13 +280,15 @@ describe('AWTD-1556: a human reply wakes the agent it was said to', () => {
     expect(wakeJobs()[0].payload).toMatchObject({ mailbox: 'claude', reason: 'reply' })
   })
 
-  it('AWTD-1556: an agent comment, or a system one, wakes nobody', async () => {
+  it('AWTD-1556: an agent comment on its own task, or a system one, wakes nobody', async () => {
     enroll()
     await wake.wakeAgentsForComment({
       taskId: 'task-1',
       comment: { id: 'c-1', content: 'done' },
       commenter: { id: 'agent-claude', isAIAgent: true },
     })
+    expect(wakeJobs()).toHaveLength(0)
+    vi.clearAllMocks()
     await wake.wakeAgentsForComment({
       taskId: 'task-1',
       comment: { id: 'c-2', content: 'Moved to Ready <!-- SYSTEM_GENERATED_COMMENT -->' },
@@ -393,5 +421,152 @@ describe('AWTD-1556: failure never reaches the write', () => {
       wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: 'c', content: 'hi' }, commenter: { id: 'jon', isAIAgent: false } }),
     ).resolves.toBeUndefined()
     expect(wakeJobs()).toHaveLength(0)
+  })
+})
+
+describe('AWTD-1695: one agent\'s handoff or question wakes the agent it is for', () => {
+  const CLAUDE = { id: 'agent-claude', type: 'agent' as const }
+  const minute = (m: number) => new Date(NOW.getTime() - (60 - m) * 60_000)
+  const agentComment = (id: string, authorId: string, content: string, at: Date) => ({
+    id, authorId, author: { isAIAgent: true }, content, createdAt: at, updatedAt: at,
+  })
+  const question = agentComment('c-q', 'agent-claude', 'Which endpoint does iOS read?\nAGENT-HANDBACK: claude', minute(58))
+  const answer = agentComment('c-a', 'agent-copilot', 'It reads /api/v1/tasks.', minute(59))
+  const heldByCopilot = (comments: unknown[]) =>
+    storedTask({ statusRole: 'doing', assigneeId: 'agent-copilot', assignee: agent('copilot'), comments })
+  const payloads = () => wakeJobs().map(j => j.payload as { mailbox: string; reason: string })
+  const wakeEvents = (kind = 'agent_wake') => state.events.filter(e => e.kind === kind)
+
+  beforeEach(() => {
+    state.users = { 'agent-claude': agent('claude'), 'agent-copilot': agent('copilot') }
+  })
+
+  it('AWTD-1695: a handoff filed unassigned in Ready wakes the agent the board policy routes it to', async () => {
+    enroll()
+    state.routed = 'copilot'
+    state.task = storedTask({ assigneeId: null, assignee: null })
+    await wake.wakeAgentsForTaskWrite({ before: null, after: { ...after, assigneeId: null }, actor: CLAUDE })
+    expect(payloads()).toEqual([expect.objectContaining({ mailbox: 'copilot', reason: 'ready' })])
+  })
+
+  it('AWTD-1695: a handoff assigned to another polling agent wakes that agent', async () => {
+    enroll()
+    state.task = storedTask({ assigneeId: 'agent-copilot', assignee: agent('copilot') })
+    await wake.wakeAgentsForTaskWrite({ before: null, after: { ...after, assigneeId: 'agent-copilot' }, actor: CLAUDE })
+    expect(payloads()).toEqual([expect.objectContaining({ mailbox: 'copilot' })])
+  })
+
+  it('AWTD-1695: an agent\'s own write never wakes itself', async () => {
+    enroll()
+    await wake.wakeAgentsForTaskWrite({ before, after, actor: CLAUDE })
+    expect(wakeJobs()).toHaveLength(0)
+  })
+
+  it('AWTD-1695: a completed blocker wakes the agent the waiting task returns to, even when that agent finished it', async () => {
+    enroll()
+    await wake.wakeAgentsForTaskWrite({
+      before: { id: 'task-1', statusRole: 'waiting' },
+      after: { id: 'task-1', statusRole: 'ready' },
+      actor: CLAUDE,
+      reason: 'unblocked',
+    })
+    expect(payloads()).toEqual([expect.objectContaining({ mailbox: 'claude', reason: 'unblocked' })])
+  })
+
+  it('AWTD-1695: a recorded question to the agent holding the task wakes that agent, and only that agent', async () => {
+    enroll()
+    state.task = heldByCopilot([question])
+    await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: 'c-q', content: question.content }, commenter: { id: 'agent-claude', isAIAgent: true } })
+    expect(payloads()).toEqual([expect.objectContaining({ mailbox: 'copilot', reason: 'agent-question' })])
+  })
+
+  it('AWTD-1695: an agent remark that asks nothing wakes nobody', async () => {
+    enroll()
+    const remark = agentComment('c-r', 'agent-claude', 'Looked at this; nothing to add.', minute(58))
+    state.task = heldByCopilot([remark])
+    await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: 'c-r', content: remark.content }, commenter: { id: 'agent-claude', isAIAgent: true } })
+    expect(wakeJobs()).toHaveLength(0)
+  })
+
+  it('AWTD-1695: the answer to a recorded question wakes the agent that asked, not the one answering', async () => {
+    enroll()
+    state.task = heldByCopilot([answer, question])
+    await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: 'c-a', content: answer.content }, commenter: { id: 'agent-copilot', isAIAgent: true } })
+    expect(payloads()).toEqual([expect.objectContaining({ mailbox: 'claude', reason: 'agent-answer' })])
+  })
+
+  it('AWTD-1695: each wake writes an agent_wake TaskEvent naming who caused it; a coalesced duplicate writes none', async () => {
+    enroll()
+    state.task = storedTask({ assigneeId: 'agent-copilot', assignee: agent('copilot') })
+    const write = { before: null, after: { ...after, assigneeId: 'agent-copilot' }, actor: CLAUDE }
+    await wake.wakeAgentsForTaskWrite(write)
+    await wake.wakeAgentsForTaskWrite(write)
+    expect(wakeJobs()).toHaveLength(1)
+    expect(wakeEvents()).toEqual([
+      expect.objectContaining({
+        taskId: 'task-1',
+        actorId: 'agent-claude',
+        actorType: 'agent',
+        to: { listId: BOARD, mailbox: 'copilot', reason: 'ready' },
+      }),
+    ])
+  })
+
+  it('AWTD-1695: the per-task hourly cap stops two agents waking each other, and says so once on the task', async () => {
+    enroll()
+    // Each turn lands in a new coalescing window, so only the cap can stop it.
+    for (let turn = 0; turn < 20; turn++) {
+      vi.setSystemTime(new Date(NOW.getTime() + turn * (wake.WAKE_COALESCE_MS + 1_000)))
+      const at = new Date()
+      if (turn % 2 === 0) {
+        const q = agentComment(`q-${turn}`, 'agent-claude', 'And now?\nAGENT-HANDBACK: claude', at)
+        state.task = heldByCopilot([q])
+        await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: q.id, content: q.content }, commenter: { id: 'agent-claude', isAIAgent: true } })
+      } else {
+        const q = agentComment(`q-${turn - 1}`, 'agent-claude', 'And now?\nAGENT-HANDBACK: claude', new Date(at.getTime() - 1_000))
+        const a = agentComment(`a-${turn}`, 'agent-copilot', 'Still no.', at)
+        state.task = heldByCopilot([a, q])
+        await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: a.id, content: a.content }, commenter: { id: 'agent-copilot', isAIAgent: true } })
+      }
+    }
+    expect(wakeJobs()).toHaveLength(wake.WAKE_CAP_PER_TASK_HOUR)
+    expect(wakeEvents()).toHaveLength(wake.WAKE_CAP_PER_TASK_HOUR)
+    expect(wakeEvents('agent_wake_capped')).toHaveLength(1)
+
+    // An hour after the first wake the window has moved and wakes resume.
+    vi.setSystemTime(new Date(NOW.getTime() + 61 * 60_000))
+    const q = agentComment('q-late', 'agent-claude', 'Now?\nAGENT-HANDBACK: claude', new Date())
+    state.task = heldByCopilot([q])
+    await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: q.id, content: q.content }, commenter: { id: 'agent-claude', isAIAgent: true } })
+    expect(wakeJobs()).toHaveLength(wake.WAKE_CAP_PER_TASK_HOUR + 1)
+  })
+
+  it('AWTD-1695: a person is never capped: their reply still wakes the agent after agents hit the cap', async () => {
+    enroll()
+    for (let i = 0; i < wake.WAKE_CAP_PER_TASK_HOUR; i++) {
+      state.events.push({ taskId: 'task-1', actorId: 'agent-copilot', actorType: 'agent', kind: 'agent_wake', to: null, createdAt: NOW })
+    }
+    const reply = { id: 'c-h', authorId: 'jon', author: { isAIAgent: false }, content: 'Go ahead.', createdAt: NOW, updatedAt: NOW }
+    state.task = storedTask({ statusRole: 'doing', comments: [reply] })
+    await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: 'c-h', content: reply.content }, commenter: { id: 'jon', isAIAgent: false } })
+    expect(payloads()).toEqual([expect.objectContaining({ mailbox: 'claude', reason: 'reply' })])
+    expect(wakeEvents().at(-1)).toMatchObject({ actorId: 'jon', actorType: 'user' })
+  })
+
+  it('AWTD-1695: a board whose policy routes to an agent that is not polling wakes nobody', async () => {
+    enroll()
+    state.routed = 'copilot'
+    state.mode = 'webhook'
+    state.task = storedTask({ assigneeId: null, assignee: null })
+    await wake.wakeAgentsForTaskWrite({ before: null, after: { ...after, assigneeId: null }, actor: CLAUDE })
+    expect(wakeJobs()).toHaveLength(0)
+  })
+
+  it('AWTD-1695: off by default for agent events too', async () => {
+    vi.stubEnv('ASTRID_AGENT_WAKE_LISTS', BOARD)
+    state.task = heldByCopilot([question])
+    await wake.wakeAgentsForComment({ taskId: 'task-1', comment: { id: 'c-q', content: question.content }, commenter: { id: 'agent-claude', isAIAgent: true } })
+    expect(wakeJobs()).toHaveLength(0)
+    expect(db.task.findUnique).not.toHaveBeenCalled()
   })
 })

@@ -216,6 +216,18 @@ export async function agentMayTakeUnassigned(listId: string, mailbox: string): P
   return ALLOW
 }
 
+/**
+ * The one agent this list's policy sends its unassigned Ready work to (`routing.assignTo`), or null
+ * when any admitted agent may take it. The agent wake (lib/agent-wake.ts, AWTD-1695) wakes that
+ * agent rather than every loop. A list that cannot be read, or does not resolve, routes nowhere.
+ */
+export async function routedAgentForList(listId: string): Promise<string | null> {
+  const stored = await storedFor(listId)
+  if (!stored) return null
+  const answer = effectiveOrchestrationPolicy(stored)
+  return answer.ok ? (answer.value.routing.assignTo?.trim().toLowerCase() || null) : null
+}
+
 const ROUTING_MESSAGES: Record<string, string> = {
   routedElsewhere: "This board's orchestration policy sends its unassigned Ready tasks to another agent.",
   notAdmitted: "This board's orchestration policy does not admit this agent.",

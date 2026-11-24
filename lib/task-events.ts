@@ -51,6 +51,11 @@ export const TASK_EVENT_KINDS = [
   // them — so this event, and the notification it fans out to, is the whole
   // signal.
   'blocker_reopened',
+  // The opt-in agent wake (AWTD-1695, docs/architecture/AGENT_EVENT_WAKE.md): one row per wake
+  // queued for this task, and one when agent-caused wakes hit the per-task hourly cap. Two agents
+  // waking each other show up here as a run of rows, which is what makes a runaway visible.
+  'agent_wake',
+  'agent_wake_capped',
 ] as const
 
 export type TaskEventKind = (typeof TASK_EVENT_KINDS)[number]
