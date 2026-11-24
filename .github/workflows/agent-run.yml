@@ -363,9 +363,38 @@ jobs:
       # answering "none" (exit 3). It skips core tasks when ASTRID_CORE_PUSH=0.
       # Slot 1 claims inside the session, because it alone may answer the inbox
       # or take a resume instead; the prompt sends it through the same script.
+      # ADEV-236: one tiny request proves the Claude Code token works BEFORE any claim. On
+      # 2026-11-22 the token was revoked: every worker claimed a task, failed within seconds and
+      # released it, and two releases handed a task back to Jon as "failed twice". Now a refused
+      # token claims nothing, turns the run red, and slot 1 files one Inbox task for the owner.
+      - name: Check the Claude Code token
+        id: auth
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && (inputs.harness || 'claude-code') == 'claude-code' }}
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          npm install --global @anthropic-ai/claude-code@2.1.306
+          if OUT=$(claude -p "Reply with the single word OK." --max-turns 1 2>&1); then
+            echo "ok=true" >> "${GITHUB_OUTPUT}"
+            echo "Claude Code token accepted"
+          else
+            echo "ok=false" >> "${GITHUB_OUTPUT}"
+            echo "::error::Claude Code could not start, so this worker claims nothing: $(printf '%s' "${OUT}" | tr '\n' ' ' | head -c 300)"
+          fi
+
+      - name: Report a refused token
+        if: ${{ steps.auth.outputs.ok == 'false' }}
+        run: |
+          if [ "${ASTRID_AGENT_SLOT}" = 1 ]; then
+            npx tsx scripts/report-harness-auth-failure.ts --list "${ASTRID_OAUTH_LIST_ID}" \
+              --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+              --repo "${GITHUB_REPOSITORY}" || true
+          fi
+          exit 1
+
       - name: Take this worker's task
         id: take
-        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
+        if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' && steps.auth.outputs.ok != 'false' }}
         env:
           AGENT: ${{ steps.preflight.outputs.agent }}
           USE_RUNNER: ${{ inputs.use_runner }}
@@ -466,7 +495,7 @@ jobs:
           PINNED_TASK: ${{ inputs.use_runner && inputs.task_id || '' }}
         run: |
           set -o pipefail
-          npm install --global @anthropic-ai/claude-code@2.1.306
+          # The CLI was installed by "Check the Claude Code token" (ADEV-236).
           # Renew this run's claim leases while the agent works (ADEV-37): MCP claim_task
           # holds a 15-minute lease, and without a heartbeat the task went back to Ready
           # mid-run. Only leases taken since now are renewed (scripts/lib/held-claims.ts).
@@ -648,8 +677,11 @@ jobs:
         env:
           AGENT: ${{ steps.preflight.outputs.agent }}
         run: |
+          # ADEV-236: a harness that failed before printing anything never started; that
+          # release says so and does not count toward the two-release handback.
           npx tsx scripts/release-stuck-doing.ts --agent "${AGENT}" \
-            --claims-file "${ASTRID_FIXALL_CLAIMS_FILE}"
+            --claims-file "${ASTRID_FIXALL_CLAIMS_FILE}" \
+            --harness-outcome "${{ steps.claude.outcome }}" --transcript .agent-output/agent-transcript.txt
 
       - name: Record wake outcome
         if: ${{ always() && !inputs.dry_run && steps.take.outputs.go == 'true' && matrix.slot == 1 }}
