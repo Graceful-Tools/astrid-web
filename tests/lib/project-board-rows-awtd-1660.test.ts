@@ -144,14 +144,14 @@ describe('grouping cards into swimlanes (AWTD-1660)', () => {
     expect(lanes[1].cells.ready.map(t => t.id)).toEqual(['shared'])
   })
 
-  it('keeps Done to the row list\'s recently-completed window', () => {
+  it('does not cut Done to the row list\'s recently-completed window; the Done period owns it (ADEV-191)', () => {
     const rows = [list('web', { projectId: 'p1', recentlyCompletedWindow: { kind: 'duration', amount: 24, unit: 'hour' } } as unknown as Partial<TaskList>)]
     const now = new Date('2026-06-10T12:00:00Z')
     const lanes = buildSwimlanes(rows, [
       task('old', ['web'], { completed: true, completedAt: new Date('2026-05-01T00:00:00Z') } as Partial<Task>),
       task('new', ['web'], { completed: true, completedAt: new Date('2026-06-10T11:00:00Z') } as Partial<Task>),
     ], columns, { now })
-    expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id)).toEqual(['new'])
+    expect(lanes[0].cells[VIRTUAL_DONE_COLUMN_ID].map(t => t.id).sort()).toEqual(['new', 'old'])
   })
 
   it('orders Done newest-completed first, whatever the row list\'s manual order (2026-11-19)', () => {

@@ -100,6 +100,19 @@ async function workByGoal(projectId: string, goalIds: string[]): Promise<Record<
   return Object.fromEntries([...tasksByGoal].map(([id, tasks]) => [id, tasks.size]))
 }
 
+/**
+ * The project and its stated goals for anyone working in it, or a 404 result (never a 403, so the
+ * caller cannot probe which projects exist). Shared with the decisions service (ADEV-180).
+ */
+export async function loadProjectForMember(
+  projectId: string,
+  userId: string,
+): Promise<GoalsResult<{ project: LoadedProject; stated: GoalsAndGuardrails }>> {
+  const project = await loadProject(projectId)
+  if (!project || !worksInProject(project, userId)) return { ok: false, status: 404, error: 'Project not found' }
+  return { ok: true, value: { project, stated: storedGoalsAndGuardrails(project.goalsAndGuardrails) } }
+}
+
 export async function getProjectGoals(projectId: string, userId: string): Promise<GoalsResult<ProjectGoalsView>> {
   const project = await loadProject(projectId)
   // 404 rather than 403 for a project the caller has no part in, so the route does not confirm it exists.

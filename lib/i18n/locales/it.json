@@ -250,7 +250,52 @@
       "completedOn": "Completata il {date}",
       "completedPill": "✓ il {date}"
     },
-    "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività"
+    "dropToPlaceFirst": "Rilascia qui per posizionare la prima attività",
+    "decision": {
+      "tapRowHint": "Tocca un’opzione per sceglierla.",
+      "confirmTitle": "Pubblicare la tua scelta?",
+      "chooseOption": "Scegli {option}"
+    },
+    "decisionComposer": {
+      "title": "Chiedi una decisione",
+      "question": "Domanda",
+      "questionPlaceholder": "Cosa bisogna decidere?",
+      "options": "Opzioni",
+      "optionPlaceholder": "Opzione",
+      "addOption": "Aggiungi opzione",
+      "needsTwoOptions": "Scrivi almeno due opzioni.",
+      "recommendHint": "Tocca la stella per consigliarne una.",
+      "criteria": "Pro e contro (facoltativo)",
+      "criterionPlaceholder": "Criterio, ad es. Costo",
+      "criterionDetailPlaceholder": "Cosa significa (facoltativo)",
+      "addCriterion": "Aggiungi criterio",
+      "criteriaHint": "Valuta ogni opzione dal rosso al verde per ogni criterio. Nessun punteggio: decidi tu.",
+      "reasonPlaceholder": "Nota (facoltativa), es. 2 giorni di lavoro",
+      "reasonNeedsColour": "Scegli un colore per ogni motivo che scrivi.",
+      "postTo": "Pubblica in",
+      "asComment": "Commento",
+      "inDescription": "Descrizione",
+      "commentHint": "Pubblicato come commento. Toccando un’opzione si risponde nella discussione.",
+      "descriptionHint": "Aggiunto alla fine della descrizione.",
+      "preview": "Anteprima",
+      "post": "Pubblica",
+      "add": "Aggiungi"
+    },
+    "decisionGridEditor": {
+      "edit": "Modifica tabella",
+      "title": "Modifica la tabella dei compromessi",
+      "criteria": "Criteri",
+      "options": "Opzioni",
+      "remove": "Rimuovi",
+      "recommend": "Consiglia questa opzione",
+      "save": "Salva",
+      "saveFailed": "Impossibile salvare la tabella. Riprova.",
+      "optionsAreRowsHint": "Queste sono le opzioni della decisione: rinominarne, aggiungerne o rimuoverne una cambia anche la domanda.",
+      "tooFewOptions": "Mantieni almeno due opzioni.",
+      "noCriteria": "Mantieni almeno un criterio.",
+      "unnamed": "Dai un nome a ogni opzione e criterio.",
+      "noRating": "Valuta almeno una cella."
+    }
   },
   "assignee": {
     "clear": "Rimuovi assegnazione"
@@ -1872,6 +1917,21 @@
       "progressValue": "{percent}% dell'obiettivo",
       "targetMet": "Obiettivo raggiunto",
       "workServed": "{count} attività hanno servito questo obiettivo"
+    },
+    "decisions": {
+      "title": "Decisioni",
+      "intro": "Le decisioni di questo progetto. Ognuna è un'attività con la domanda e la sua tabella dei compromessi; aprine una per completarla.",
+      "new": "Nuova decisione",
+      "newFailed": "Impossibile avviare la decisione. Riprova.",
+      "openCount": "Decisioni: {count} aperte",
+      "openHeading": "Aperte",
+      "decidedHeading": "Decise",
+      "noneOpen": "Nessuna decisione aperta.",
+      "chose": "Scelta: {option}",
+      "decide": "Decidi",
+      "confirmTitle": "Registrare questa scelta?",
+      "confirmChoose": "Scegli {option}",
+      "decideFailed": "Impossibile registrare la scelta. Riprova."
     }
   },
   "viewRotator": {

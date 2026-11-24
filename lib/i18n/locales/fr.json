@@ -250,7 +250,52 @@
       "completedOn": "Terminée le {date}",
       "completedPill": "✓ le {date}"
     },
-    "dropToPlaceFirst": "Déposez ici pour placer la première tâche"
+    "dropToPlaceFirst": "Déposez ici pour placer la première tâche",
+    "decision": {
+      "tapRowHint": "Touchez une option pour la choisir.",
+      "confirmTitle": "Publier votre choix ?",
+      "chooseOption": "Choisir {option}"
+    },
+    "decisionComposer": {
+      "title": "Demander une décision",
+      "question": "Question",
+      "questionPlaceholder": "Que faut-il décider ?",
+      "options": "Options",
+      "optionPlaceholder": "Option",
+      "addOption": "Ajouter une option",
+      "needsTwoOptions": "Écrivez au moins deux options.",
+      "recommendHint": "Touchez l’étoile pour en recommander une.",
+      "criteria": "Compromis (facultatif)",
+      "criterionPlaceholder": "Critère, p. ex. Coût",
+      "criterionDetailPlaceholder": "Ce que cela signifie (facultatif)",
+      "addCriterion": "Ajouter un critère",
+      "criteriaHint": "Notez chaque option du rouge au vert pour chaque critère. Pas de score : c’est vous qui décidez.",
+      "reasonPlaceholder": "Note (facultatif), p. ex. 2 jours de travail",
+      "reasonNeedsColour": "Choisissez une couleur pour chaque raison écrite.",
+      "postTo": "Publier dans",
+      "asComment": "Commentaire",
+      "inDescription": "Description",
+      "commentHint": "Publié en commentaire. Toucher une option y répond dans le fil.",
+      "descriptionHint": "Ajouté à la fin de la description.",
+      "preview": "Aperçu",
+      "post": "Publier",
+      "add": "Ajouter"
+    },
+    "decisionGridEditor": {
+      "edit": "Modifier le tableau",
+      "title": "Modifier le tableau de compromis",
+      "criteria": "Critères",
+      "options": "Options",
+      "remove": "Retirer",
+      "recommend": "Recommander cette option",
+      "save": "Enregistrer",
+      "saveFailed": "Impossible d'enregistrer le tableau. Réessayez.",
+      "optionsAreRowsHint": "Ce sont les options de la décision : en renommer, ajouter ou retirer une modifie aussi la question.",
+      "tooFewOptions": "Gardez au moins deux options.",
+      "noCriteria": "Gardez au moins un critère.",
+      "unnamed": "Nommez chaque option et chaque critère.",
+      "noRating": "Évaluez au moins une cellule."
+    }
   },
   "assignee": {
     "clear": "Désassigner"
@@ -1872,6 +1917,21 @@
       "progressValue": "{percent} % de l'objectif",
       "targetMet": "Objectif atteint",
       "workServed": "{count} tâches ont servi cet objectif"
+    },
+    "decisions": {
+      "title": "Décisions",
+      "intro": "Les décisions de ce projet. Chacune est une tâche contenant la question et son tableau de compromis ; ouvrez-en une pour la compléter.",
+      "new": "Nouvelle décision",
+      "newFailed": "Impossible de lancer la décision. Réessayez.",
+      "openCount": "Décisions : {count} ouvertes",
+      "openHeading": "Ouvertes",
+      "decidedHeading": "Tranchées",
+      "noneOpen": "Aucune décision ouverte.",
+      "chose": "Choix : {option}",
+      "decide": "Décider",
+      "confirmTitle": "Enregistrer ce choix ?",
+      "confirmChoose": "Choisir {option}",
+      "decideFailed": "Impossible d'enregistrer le choix. Réessayez."
     }
   },
   "viewRotator": {

@@ -38,10 +38,14 @@ We recommend Lisbon (#1), accepting a 9-hour travel day for the offsite the team
 
 On web, iOS and Mac this draws as:
 - the recommendation as an ordinary sentence;
-- three cards numbered 1 to 3, with Lisbon badged as recommended;
-- a grid whose rows are numbered 1 to 3 and whose criteria are lettered A to C, each cell on its
-  colour;
+- the question, then **the grid alone, with no cards**: its three rows are the options (row 1 is
+  option 1), numbered 1 to 3, criteria lettered A to C, each cell on its colour, and Lisbon's row
+  badged ★ as recommended;
 - a colour key, then the criteria key as an ordinary list.
+
+The grid replaces the cards only when it has **exactly as many rows as there are options**. A
+decision with no grid, or with a grid of a different size, draws its cards and then the grid
+(ADEV-229 on iOS and Mac, ADEV-230 on web).
 
 ## A Decision
 
@@ -63,9 +67,17 @@ with a bold number (or a single letter), and there are at least two items.
 - **Tapping a card** posts `1 — Ship today` as an ordinary comment. That reply is the answer, and if
   the question ended with an `AGENT-HANDBACK:` line it wakes the agent. A link inside an option opens
   the link and does not answer.
-- **When cards are inert:** on your own question, in a task description, and once someone else has
-  replied after it. A reply that starts with an option's number, or with the letter the asker
-  wrote, marks that card as chosen (`2`, `2 — Wait`, `b`). `2nd thoughts` or `10 minutes` do not.
+- **Tapping a grid row** (when the grid replaces the cards): a hint above the grid says "Tap an
+  option to choose it.", any cell of a row chooses it, and a confirmation ("Post your choice?" /
+  "Choose 2 — Cabin") posts the same reply a card would. The confirmation is there because a
+  sideways scroll of a wide grid can land a tap. Once answered, the chosen row is ringed with a ✓
+  and the others dim.
+- **When cards are inert:** in a task description, and once the question is answered. Someone
+  else's reply after it answers it; so does the asker's own reply when it picks an option, so you
+  can choose on your own decision with the same tap and confirmation (ADEV-248, iOS ADEV-232). The
+  asker's follow-up in words doesn't answer it. A reply that starts with an option's number, or
+  with the letter the asker wrote, marks that card as chosen (`2`, `2 — Wait`, `b`).
+  `2nd thoughts` or `10 minutes` do not.
 
 ## A trade-off grid
 
@@ -92,7 +104,8 @@ The exact colours are the design tokens' `palette.tradeoff`
   rating in words ("Good. $600 a person").
 - **Even rows and columns:** every option row is as tall as the tallest, and the criteria columns
   share the width equally, never narrower than their longest word. The option column can be
-  wider, up to about 12rem, and wraps past that.
+  wider, up to about 12rem, and wraps past that. On a grid you choose from it gets 150–280px, up
+  to half the width, so option names wrap between words (ADEV-248, iOS ADEV-231).
 - **Wide grids scroll sideways** rather than squeezing columns below about 84px. Rated cells are
   centred; column and option names are centred vertically. Every grid has a **Full screen** control that opens it on its
   own. Dragging a grid that scrolls moves the grid; it never closes the task behind it.
@@ -139,6 +152,36 @@ Put a bold-term list under the grid, one line per column:
 - **Cost:** what the company pays, all in.
 - **Travel:** door-to-door time for most of the team.
 ```
+
+## Writing one in the app
+
+People don't have to type the markdown. In a task's details, **Ask for a decision** opens a
+composer: on iOS and Mac from the comment bar's "+" menu, on web from the button beside the
+paperclip (ADEV-189 on iOS, ADEV-240 on web).
+
+- **Question** (required) and at least **two options**. Add more as needed; the star marks one as
+  recommended.
+- **Trade-offs (optional):** up to five criteria, each with an optional "What it means", which
+  becomes the key under the grid. Each option is rated on each criterion with one of the five
+  traffic lights (tap again to clear) and an optional note. A note without a colour can't be
+  posted, because the table would no longer read as a grid.
+- **Post to:** a comment, or the end of the description (offered only to someone who can edit the
+  task).
+- A live preview draws exactly what will be posted.
+
+It writes the same markdown this page describes, so an agent's decision and a person's look and
+answer the same way. Because its grid has one row per option, it draws as the grid alone.
+
+## A project's decisions
+
+On a project's board (web ADEV-188, the UI half of ADEV-180), **New decision** starts a decision
+task from the project's goals. Each goal becomes a criterion, every cell starts as `~`, and a
+"Do nothing" row is always included. The new task then opens for you to fill in. **Decisions: N
+open** lists the project's open decisions, each with an option button that records the choice
+after a confirmation, and its decided ones with the choice. On a decision task's description,
+**Edit grid** edits the criteria, options and cells (a rating plus a reason) without touching
+the prose around the grid. When the Decision has one option per row, editing an option there
+edits it in the question too. There is no score column.
 
 ## Writing one well (for agents)
 

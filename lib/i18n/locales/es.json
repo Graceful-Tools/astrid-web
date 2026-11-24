@@ -250,7 +250,52 @@
       "completedOn": "Completada el {date}",
       "completedPill": "✓ el {date}"
     },
-    "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea"
+    "dropToPlaceFirst": "Suelta aquí para colocar la primera tarea",
+    "decision": {
+      "tapRowHint": "Toca una opción para elegirla.",
+      "confirmTitle": "¿Publicar tu elección?",
+      "chooseOption": "Elegir {option}"
+    },
+    "decisionComposer": {
+      "title": "Pedir una decisión",
+      "question": "Pregunta",
+      "questionPlaceholder": "¿Qué hay que decidir?",
+      "options": "Opciones",
+      "optionPlaceholder": "Opción",
+      "addOption": "Añadir opción",
+      "needsTwoOptions": "Escribe al menos dos opciones.",
+      "recommendHint": "Toca la estrella para recomendar una.",
+      "criteria": "Ventajas e inconvenientes (opcional)",
+      "criterionPlaceholder": "Criterio, p. ej. Coste",
+      "criterionDetailPlaceholder": "Qué significa (opcional)",
+      "addCriterion": "Añadir criterio",
+      "criteriaHint": "Valora cada opción de rojo a verde en cada criterio. No hay puntuación: tú decides.",
+      "reasonPlaceholder": "Nota (opcional), p. ej. 2 días de trabajo",
+      "reasonNeedsColour": "Elige un color para cada motivo que escribas.",
+      "postTo": "Publicar en",
+      "asComment": "Comentario",
+      "inDescription": "Descripción",
+      "commentHint": "Se publica como comentario. Tocar una opción la responde en el hilo.",
+      "descriptionHint": "Se añade al final de la descripción.",
+      "preview": "Vista previa",
+      "post": "Publicar",
+      "add": "Añadir"
+    },
+    "decisionGridEditor": {
+      "edit": "Editar tabla",
+      "title": "Editar la tabla de compensaciones",
+      "criteria": "Criterios",
+      "options": "Opciones",
+      "remove": "Quitar",
+      "recommend": "Recomendar esta opción",
+      "save": "Guardar",
+      "saveFailed": "No se pudo guardar la tabla. Inténtalo de nuevo.",
+      "optionsAreRowsHint": "Estas son las opciones de la decisión: renombrar, añadir o quitar una también cambia la pregunta.",
+      "tooFewOptions": "Mantén al menos dos opciones.",
+      "noCriteria": "Mantén al menos un criterio.",
+      "unnamed": "Pon nombre a cada opción y criterio.",
+      "noRating": "Valora al menos una celda."
+    }
   },
   "assignee": {
     "clear": "Desasignar"
@@ -1872,6 +1917,21 @@
       "progressValue": "{percent}% del objetivo",
       "targetMet": "Objetivo cumplido",
       "workServed": "{count} tareas sirvieron a este objetivo"
+    },
+    "decisions": {
+      "title": "Decisiones",
+      "intro": "Las decisiones de este proyecto. Cada una es una tarea con la pregunta y su tabla de compensaciones; abre una para completarla.",
+      "new": "Nueva decisión",
+      "newFailed": "No se pudo iniciar la decisión. Inténtalo de nuevo.",
+      "openCount": "Decisiones: {count} abiertas",
+      "openHeading": "Abiertas",
+      "decidedHeading": "Decididas",
+      "noneOpen": "No hay decisiones abiertas.",
+      "chose": "Elegida: {option}",
+      "decide": "Decidir",
+      "confirmTitle": "¿Registrar esta elección?",
+      "confirmChoose": "Elegir {option}",
+      "decideFailed": "No se pudo registrar la elección. Inténtalo de nuevo."
     }
   },
   "viewRotator": {

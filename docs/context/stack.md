@@ -23,15 +23,15 @@
 - **Rate Limiting**: Custom implementation with IP/user tracking
 
 ## Testing Stack
-- **Unit Tests**: Vitest 5.1.0
-- **E2E Tests**: Playwright 1.65.0
+- **Unit Tests**: Vitest 5.1.1
+- **E2E Tests**: Playwright 1.65.1
 - **Test Environment**: jsdom 30.1.1
 - **Test Utilities**: React Testing Library 16.3.3
 
 ## UI & Styling
 - **Styling**: Tailwind CSS 3.4.17
 - **Components**: Radix UI primitives (Shadcn/ui)
-- **Icons**: Lucide React 1.72.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
+- **Icons**: Lucide React 1.77.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
 - **Forms**: Zod 4.6.6 for validation (no form library)
 
 ## Build & Development
@@ -49,7 +49,7 @@
 - **GitHub Integration**: Octokit for repository access
 
 ## Email & Notifications
-- **Outbound Email**: Resend 6.38.1
+- **Outbound Email**: Resend 6.39.0
 - **Inbound Email**: Cloudflare Email Workers / Mailgun / Resend webhooks
 - **Email Parsing**: TurndownService (HTML to Markdown)
 - **Push Notifications**: web-push 3.6.7 (VAPID-based)
