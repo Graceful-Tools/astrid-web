@@ -6,7 +6,7 @@
 
 ## workflow
 
-`advance-prod-branch.sh`, `agent-queue-status.ts`, `brand-env-file.ts`, `check-destructive-migrations.ts`, `check-image-tag-published.ts`, `claim-fixall-task.ts`, `claim-next-fixall-task.ts`, `cron-runner.mjs`, `deploy-preview.sh`, `extract-preview-url.sh`, `heartbeat-held-claims.ts`, `job-worker.mjs`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `self-host-smoke.ts`, `set-task-status.ts`, `verify-deployed-sha.sh`
+`advance-prod-branch.sh`, `agent-queue-status.ts`, `brand-env-file.ts`, `check-destructive-migrations.ts`, `check-image-tag-published.ts`, `claim-fixall-task.ts`, `claim-next-fixall-task.ts`, `cron-runner.mjs`, `deploy-preview.sh`, `extract-preview-url.sh`, `heartbeat-held-claims.ts`, `job-worker.mjs`, `land-and-deploy.ts`, `native-copilot-bridge.ts`, `open-fixall-prs.ts`, `parse-ready-tasks-output.ts`, `post-session-link.ts`, `ready-tasks.ts`, `release-stuck-doing.ts`, `report-harness-auth-failure.ts`, `restore-cloud-wake-state.ts`, `sanitize-pulled-env.ts`, `self-host-smoke.ts`, `set-task-status.ts`, `verify-deployed-sha.sh`
 
 ## documentation
 
@@ -14,7 +14,7 @@
 
 ## caller
 
-`add-oauth-comment.ts`, `assign-to-agent.ts`, `backfill-agent-scope-groups.ts`, `backfill-analytics.ts`, `check-board-permissions.ts`, `cleanup-google-backfill-open-tasks.ts`, `cleanup-test-lists.ts`, `complete-by-prefix.ts`, `complete-from-file.ts`, `complete-ios-task.ts`, `complete-task-oauth.ts`, `create-specific-ai-agents.ts`, `debug-task-comments.ts`, `legacy-api-coverage.ts`, `mark-shipped-tasks-complete.ts`, `migrate-favorites-to-per-user.ts`, `migrate-hash-mcp-tokens.ts`, `migrate-hash-oauth-tokens.ts`, `report-harness-auth-failure.ts`, `reset-webhook-failures.ts`, `restart-ai-tasks.ts`, `restart-stuck-tasks.ts`, `run-fixall-loop.mjs`, `run-prod-migration.ts`, `setup-private-key.js`, `sync-core-fixtures.ts`, `test-api-keys.ts`, `test-claude-direct.ts`, `test-cloud-workflow-quick.ts`, `test-email-reminder.ts`, `test-oauth-locally.ts`, `test-resend-setup.ts`, `trigger-webhook.ts`, `uitest-account.ts`, `update-list-owner.ts`, `upload-ai-agent-images.ts`, `validate-secrets.ts`
+`add-oauth-comment.ts`, `assign-to-agent.ts`, `backfill-agent-scope-groups.ts`, `backfill-analytics.ts`, `check-board-permissions.ts`, `cleanup-google-backfill-open-tasks.ts`, `cleanup-test-lists.ts`, `complete-by-prefix.ts`, `complete-from-file.ts`, `complete-ios-task.ts`, `complete-task-oauth.ts`, `create-specific-ai-agents.ts`, `debug-task-comments.ts`, `legacy-api-coverage.ts`, `mark-shipped-tasks-complete.ts`, `migrate-favorites-to-per-user.ts`, `migrate-hash-mcp-tokens.ts`, `migrate-hash-oauth-tokens.ts`, `reset-webhook-failures.ts`, `restart-ai-tasks.ts`, `restart-stuck-tasks.ts`, `run-fixall-loop.mjs`, `run-prod-migration.ts`, `setup-private-key.js`, `sync-core-fixtures.ts`, `test-api-keys.ts`, `test-claude-direct.ts`, `test-cloud-workflow-quick.ts`, `test-email-reminder.ts`, `test-oauth-locally.ts`, `test-resend-setup.ts`, `trigger-webhook.ts`, `uitest-account.ts`, `update-list-owner.ts`, `upload-ai-agent-images.ts`, `validate-secrets.ts`
 
 ## unreferenced
 
