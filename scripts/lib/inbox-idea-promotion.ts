@@ -72,7 +72,7 @@ function optionText(decision: string | undefined, n: number): string | null {
  * old letter form (`B` is option 2), as the apps and DECISIONS.md do.
  */
 export function decidedFromReply(reply: string, decision?: string): string | null {
-  const match = reply.trim().match(/^(\d{1,2}|[A-Ea-e])(?:\s*[—–\-.:)]\s*(.*))?$/s)
+  const match = reply.trim().match(/^(\d{1,2}|[A-Ea-e])(?:\s*[—–\-.:)]\s*([\s\S]*))?$/)
   if (!match) return null
   const n = /\d/.test(match[1]) ? Number(match[1]) : match[1].toUpperCase().charCodeAt(0) - 64
   if (n < 1) return null
@@ -104,7 +104,7 @@ function answerToLatestQuestion(comments: PromotionComment[]): { reply: string; 
 }
 
 export function planIdeaPromotion(input: {
-  task: { description: string | null | undefined; statusRole: string | null | undefined; completed?: boolean }
+  task: { description?: string | null; statusRole?: string | null; completed?: boolean }
   comments: PromotionComment[]
   scope: string
   decided?: string
