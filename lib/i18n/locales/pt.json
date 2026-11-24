@@ -250,7 +250,12 @@
       "completedOn": "Concluída em {date}",
       "completedPill": "✓ em {date}"
     },
-    "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa"
+    "dropToPlaceFirst": "Solte aqui para posicionar a primeira tarefa",
+    "decision": {
+      "tapRowHint": "Toque numa opção para escolhê-la.",
+      "confirmTitle": "Publicar a sua escolha?",
+      "chooseOption": "Escolher {option}"
+    }
   },
   "assignee": {
     "clear": "Remover atribuição"

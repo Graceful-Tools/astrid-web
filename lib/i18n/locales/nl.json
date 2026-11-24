@@ -250,7 +250,12 @@
       "completedOn": "Voltooid op {date}",
       "completedPill": "✓ op {date}"
     },
-    "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen"
+    "dropToPlaceFirst": "Zet hier neer om de eerste taak te plaatsen",
+    "decision": {
+      "tapRowHint": "Tik op een optie om die te kiezen.",
+      "confirmTitle": "Je keuze plaatsen?",
+      "chooseOption": "{option} kiezen"
+    }
   },
   "assignee": {
     "clear": "Toewijzing opheffen"

@@ -250,7 +250,12 @@
       "completedOn": "Выполнено {date}",
       "completedPill": "✓ {date}"
     },
-    "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу"
+    "dropToPlaceFirst": "Перетащите сюда, чтобы разместить первую задачу",
+    "decision": {
+      "tapRowHint": "Нажмите на вариант, чтобы выбрать его.",
+      "confirmTitle": "Опубликовать ваш выбор?",
+      "chooseOption": "Выбрать {option}"
+    }
   },
   "assignee": {
     "clear": "Снять назначение"
