@@ -250,7 +250,12 @@
       "completedOn": "Completed {date}",
       "completedPill": "✓ on {date}"
     },
-    "dropToPlaceFirst": "Drop here to place the first task"
+    "dropToPlaceFirst": "Drop here to place the first task",
+    "decision": {
+      "tapRowHint": "Tap an option to choose it.",
+      "confirmTitle": "Post your choice?",
+      "chooseOption": "Choose {option}"
+    }
   },
   "assignee": {
     "clear": "Unassign"

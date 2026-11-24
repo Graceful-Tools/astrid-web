@@ -250,7 +250,12 @@
       "completedOn": "完成于 {date}",
       "completedPill": "✓ {date}"
     },
-    "dropToPlaceFirst": "拖放到此处以放置第一个任务"
+    "dropToPlaceFirst": "拖放到此处以放置第一个任务",
+    "decision": {
+      "tapRowHint": "点按一个选项即可选择。",
+      "confirmTitle": "发布你的选择？",
+      "chooseOption": "选择 {option}"
+    }
   },
   "assignee": {
     "clear": "取消分配"
