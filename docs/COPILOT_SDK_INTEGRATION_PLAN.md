@@ -115,6 +115,11 @@ and after Phase 3 Copilot server runs fail with a clear "gateway unavailable" er
 Once the gateway has served production for a week, delete `copilot-provider.ts`'s REST call, its model-list fetch, and
 the tests that pin the REST contract (`tests/lib/copilot-integration.test.ts`).
 
+### Copilot on the user's own computer
+
+A separate plan, for later: [COPILOT_LOCAL_PLAN.md](./COPILOT_LOCAL_PLAN.md) (a `copilot-local@`
+agent in the Mac and Windows apps, through the Rust SDK).
+
 ## Verification before each phase ships
 
 `npm run predeploy`, plus one real Copilot task worked end to end with an account that has an active
