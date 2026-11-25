@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { taskCostGate } from '@/lib/task-cost'
 import { recordTaskCost } from '@/lib/task-cost-events'
 import { createLogger } from '@/lib/logger'
@@ -28,12 +29,15 @@ type RouteContext = { params: Promise<{ id: string }> }
 export const POST = withAuth<RouteContext>(
   { scopes: ['tasks:write'], tag: 'v1.tasks.cost' },
   async (req, auth, { params }) => {
-    const { id: taskId } = await params
+    const { id: rawId } = await params
 
     // Gate before the access check so a deployment without the feature answers
     // 404 rather than leaking whether the task exists.
     const gated = await taskCostGate(auth.userId)
     if (gated) return gated
+
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
 
     // Outside the try/catch below: requireTaskAccess throws ForbiddenError,
     // which the wrapper turns into a 403. Catching it here would report 500.

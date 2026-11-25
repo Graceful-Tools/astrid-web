@@ -17,6 +17,7 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: { findUnique: vi.fn() },
     task: { updateMany: vi.fn(), findUnique: vi.fn() },
+    projectKeyAlias: { findUnique: vi.fn() },
     comment: { create: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -301,5 +302,29 @@ describe("POST /api/v1/tasks/:id/claim-fixall", () => {
       vi.mocked(prisma.task.findUnique).mockResolvedValue({ ...row, statusRole: 'waiting' } as never)
       expect((await POST(request(body), { params })).status).toBe(409)
       expect(prisma.task.updateMany).not.toHaveBeenCalled()
+  })
+
+  it("ADEV-264: resolves a task identifier to its id before the access check and claim", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValueOnce({ id: TASK_ID } as never)
+    vi.mocked(prisma.task.updateMany).mockResolvedValue({ count: 1 })
+
+    const response = await POST(request({ action: "ready", commentWatermark: null }), {
+      params: Promise.resolve({ id: "ADEV-262" }),
+    })
+
+    expect(prisma.task.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { identifier: "ADEV-262" } }))
+    expect(requireTaskAccess).toHaveBeenCalledWith("owner-1", TASK_ID)
+    expect(response.status).toBe(200)
+    expect((await response.json()).taskId).toBe(TASK_ID)
+  })
+
+  it("ADEV-264: an identifier that matches no task is a 404, not a 403", async () => {
+    vi.mocked(prisma.task.findUnique).mockResolvedValue(null)
+    vi.mocked(prisma.projectKeyAlias.findUnique).mockResolvedValue(null)
+
+    const response = await POST(request({ action: "ready" }), { params: Promise.resolve({ id: "ADEV-99999" }) })
+
+    expect(response.status).toBe(404)
+    expect(prisma.task.updateMany).not.toHaveBeenCalled()
   })
 })

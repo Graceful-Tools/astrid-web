@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { withAuth } from "@/lib/api-auth-wrapper"
 import { requireTaskAccess } from "@/lib/api-auth-middleware"
+import { resolveTaskIdOrIdentifier } from "@/lib/task-identifier"
 import { parseFixallClaimRequest } from "@/lib/fixall-claim"
 import { claimFixallTask } from "@/services/fixall-claim.service"
 import { runtimePrincipalOf } from "@/lib/runtime-binding/task-runtime"
@@ -11,7 +12,10 @@ type RouteContext = { params: Promise<{ id: string }> }
 export const POST = withAuth<RouteContext>(
   { scopes: ["tasks:write"], tag: "v1.tasks.claim-fixall" },
   async (request, auth, { params }) => {
-    const { id: taskId } = await params
+    // Identifiers are accepted wherever a task id is (ADEV-264); the queue hands them out.
+    const { id: rawId } = await params
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) return NextResponse.json({ error: "Task not found" }, { status: 404 })
     await requireTaskAccess(auth.userId, taskId)
 
     let claim

@@ -12,6 +12,7 @@
 
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { copyTaskForUser } from '@/lib/task-copy-flow'
 import { createLogger } from '@/lib/logger'
 
@@ -23,7 +24,8 @@ export const POST = withAuth<RouteContext>(
   { scopes: ['tasks:write'], tag: 'v1.tasks.copy' },
   async (req, auth, { params }) => {
     try {
-      const { id: taskId } = await params
+      const taskId = await resolveTaskIdOrIdentifier((await params).id)
+      if (!taskId) return NextResponse.json({ error: 'Task not found' }, { status: 404 })
       const body = await req.json()
       const {
         targetListId,
