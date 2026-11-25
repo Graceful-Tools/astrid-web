@@ -2,6 +2,7 @@ import { isBrandAgentEmail } from '@/lib/brand/agent-emails'
 import type { AuthContext } from '@/lib/api-auth-middleware'
 import type { RuntimeBindingDenial } from '@/lib/ai/runtime-binding-resolver'
 import { DOING_STATUS_ROLE } from '@/lib/task-status'
+import { REDO_CLAIM_MARKER } from '@/lib/fixall-claim'
 
 export const AGENT_TASK_CLAIM_ACTIONS = ['claim', 'resume', 'release', 'heartbeat'] as const
 
@@ -46,6 +47,36 @@ export interface ExpiredLeaseTask {
   claimHolderId: string | null
   /** Any of the task's boards has agentClaimRequired on. */
   enrolled: boolean
+  /**
+   * The task's newest agent marker is a current AWAITING-DEPLOY / AWAITING-MERGE (ADEV-266):
+   * it is finished and stays in Doing, assigned, until the ship workflow lands it.
+   */
+  awaitingHandoff?: boolean
+}
+
+const HANDOFF_LINE = /^\s*awaiting-(?:deploy|merge):\s*\S+/i
+/** Comments that start a new attempt, so an older marker no longer counts (scripts/lib/doing-release.ts). */
+const NEW_ATTEMPT_PREFIXES = ['🔁 Released from Doing', '🛠️ Sent back by the ship workflow', '🔌 Released: the run could not start']
+
+/**
+ * Is the task's newest handoff marker (`AWAITING-DEPLOY: <sha>` or `AWAITING-MERGE: <repo>#<n> <sha>`)
+ * still current (ADEV-266)? Newer than any completion, release, rework or redo claim, the same
+ * rule `isAwaitingDeploy` / `isAwaitingMerge` apply to the release sweep, kept here so a service
+ * need not import from scripts/.
+ */
+export function hasCurrentHandoffMarker(
+  comments: Array<{ content?: string | null; createdAt: Date | string; systemEventType?: string | null }>,
+): boolean {
+  const at = (comment: { createdAt: Date | string }) => new Date(comment.createdAt).getTime() || 0
+  const marker = Math.max(0, ...comments
+    .filter(comment => (comment.content ?? '').split('\n').some(line => HANDOFF_LINE.test(line)))
+    .map(at))
+  if (marker === 0) return false
+  const superseded = Math.max(0, ...comments.filter(comment =>
+    comment.systemEventType === 'COMPLETED' ||
+    [...NEW_ATTEMPT_PREFIXES, REDO_CLAIM_MARKER].some(prefix => (comment.content ?? '').startsWith(prefix)),
+  ).map(at))
+  return marker > superseded
 }
 
 export type ExpiredLeaseDecision =
@@ -67,6 +98,7 @@ export function decideExpiredLease(task: ExpiredLeaseTask): ExpiredLeaseDecision
   if (!holder || task.completed || task.statusRole !== DOING_STATUS_ROLE || task.assigneeId !== holder) {
     return { kind: 'clear' }
   }
+  if (task.awaitingHandoff) return { kind: 'clear' }
   if (!task.enrolled) {
     return { kind: 'release', assigneeId: task.assigneeId, assigneeIds: [...task.assigneeIds] }
   }

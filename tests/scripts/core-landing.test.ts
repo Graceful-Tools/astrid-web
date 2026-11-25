@@ -18,6 +18,7 @@ import {
   landableCorePullRequests,
   latestHandoff,
   mergedCompletionComment,
+  orphanedHandoffOwner,
   parseAwaitingMerge,
   type CorePullRequest,
 } from '@/scripts/lib/core-handoff'
@@ -175,5 +176,17 @@ describe('AWTD-1682: completing a core task once its PR is merged', () => {
     expect(news).toContain(`Landed ${CORE_REPO}#41`)
     expect(news).toContain('AWTD-1700')
     expect(news).toContain(`${CORE_REPO}#40 — red: core (linux)`)
+  })
+})
+
+describe('ADEV-266: a finished handoff whose assignee went missing', () => {
+  const orphan = { ...task, assignee: null }
+  it('ADEV-266: the marker author owns an unassigned Doing task again', () => {
+    expect(orphanedHandoffOwner({ task: orphan, comments: [marker], agentId: 'claude-id' })).toBe(true)
+    expect(orphanedHandoffOwner({ task: { ...orphan, statusRole: 'ready' }, comments: [marker], agentId: 'claude-id' })).toBe(false)
+    expect(orphanedHandoffOwner({ task, comments: [marker], agentId: 'claude-id' })).toBe(false)
+    expect(orphanedHandoffOwner({ task: orphan, comments: [marker], agentId: 'someone-else' })).toBe(false)
+    expect(orphanedHandoffOwner({ task: orphan, comments: [{ ...marker, content: 'no marker' }], agentId: 'claude-id' })).toBe(false)
+    expect(orphanedHandoffOwner({ task: orphan, comments: [marker], agentId: null })).toBe(false)
   })
 })

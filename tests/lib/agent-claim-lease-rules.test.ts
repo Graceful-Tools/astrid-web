@@ -8,6 +8,7 @@ import {
   claimsOnBehalfOfAgent,
   decideExpiredLease,
   expiredLeaseComment,
+  hasCurrentHandoffMarker,
   isClaimLeaseExpired,
   parseAgentTaskClaimRequest,
 } from '@/lib/agent-task-claim'
@@ -45,6 +46,21 @@ describe('claim lease rules (AWTD-1688)', () => {
     ['no holder recorded', { claimHolderId: null }],
   ])('only clears the lease on a task that was %s', (_label, change) => {
     expect(decideExpiredLease({ ...held, ...change })).toEqual({ kind: 'clear' })
+  })
+
+  it('ADEV-266: finished work awaiting its deploy or merge keeps its claim and Doing; only the lease clears', () => {
+    expect(decideExpiredLease({ ...held, awaitingHandoff: true })).toEqual({ kind: 'clear' })
+    expect(decideExpiredLease({ ...held, enrolled: true, awaitingHandoff: true })).toEqual({ kind: 'clear' })
+  })
+
+  it('ADEV-266: a handoff marker counts until a completion, release or rework supersedes it', () => {
+    const marker = { content: 'Done.\nAWAITING-MERGE: Graceful-Tools/astrid-core#122 ' + 'a'.repeat(40), createdAt: '2026-11-25T04:13:00Z' }
+    expect(hasCurrentHandoffMarker([marker])).toBe(true)
+    expect(hasCurrentHandoffMarker([{ content: 'AWAITING-DEPLOY: ' + 'b'.repeat(40), createdAt: '2026-11-25T04:13:00Z' }])).toBe(true)
+    expect(hasCurrentHandoffMarker([{ content: 'no marker', createdAt: '2026-11-25T04:13:00Z' }])).toBe(false)
+    expect(hasCurrentHandoffMarker([marker, { content: '🔁 Released from Doing by the scheduled /fixall loop. x', createdAt: '2026-11-25T04:20:00Z' }])).toBe(false)
+    expect(hasCurrentHandoffMarker([marker, { content: '🛠️ Sent back by the ship workflow', createdAt: '2026-11-25T04:20:00Z' }])).toBe(false)
+    expect(hasCurrentHandoffMarker([marker, { content: '🔁 Returned to Ready: lease', createdAt: '2026-11-25T04:25:00Z' }])).toBe(true)
   })
 
   it('says why the task is back in Ready', () => {

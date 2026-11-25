@@ -45,10 +45,11 @@
 import { execFileSync } from 'child_process'
 import { isAwaitingDeployLane, parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { resolveAgentAuthorId } from './lib/agent-author'
-import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
-import { AGENT_BRANCH, cloudHandoffEligible } from './lib/cloud-handoff'
+import { agentEmail, agentMailboxFromEmail } from '@/lib/brand/agent-emails'
+import { AGENT_BRANCH, branchMailbox, cloudHandoffEligible } from './lib/cloud-handoff'
 import {
   coreHandoffEligible,
+  orphanedHandoffOwner,
   coreTasksMerged,
   landableCorePullRequests,
   latestHandoff,
@@ -497,6 +498,20 @@ async function landAndCompleteCore(repo: string, listId: string): Promise<CoreTi
     const commentsResponse = await fetch(`${API}/api/v1/tasks/${task.id}/comments`, { headers: auth })
     if (!commentsResponse.ok) throw new Error(`Core handoff comments failed: HTTP ${commentsResponse.status}`)
     const comments = (await commentsResponse.json()).comments ?? []
+    // ADEV-266: an open handoff whose assignee went missing goes back to the agent that wrote it.
+    const branchAgent = branchMailbox(AGENT_BRANCH.exec(pr.headRefName)?.[1] ?? '')
+    if (branchAgent && !options.dryRun && !task.assignee?.id && isAwaitingDeployLane(task)) {
+      const agentId = await resolveAgentAuthorId({ mailbox: branchAgent, accessToken: token, warn: log })
+      if (orphanedHandoffOwner({ task, comments, agentId })) {
+        const put = await fetch(`${API}/api/v1/tasks/${task.id}`, {
+          method: 'PUT',
+          headers: { ...auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assigneeId: agentId, aiAgentId: agentId }),
+        })
+        log(`  ${task.identifier ?? task.id} had lost its assignee; reassigned to ${branchAgent} (HTTP ${put.status})`)
+        if (put.ok) task.assignee = { id: agentId, email: agentEmail(branchAgent) }
+      }
+    }
     const valid = coreHandoffEligible({ repo, pr, listId, task, comments })
     let resolved: CorePullRequest = { ...pr, cloudHandoffValid: valid }
     if (valid) {
