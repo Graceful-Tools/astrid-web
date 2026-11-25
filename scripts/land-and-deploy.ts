@@ -70,6 +70,7 @@ import {
   carriesTaskId,
   deployedCompletionComment,
   deployLanded,
+  deployRunOutcome,
   landedDespiteError,
   deployVerdict,
   landablePullRequests,
@@ -85,9 +86,14 @@ import {
   taskIdsInBranch,
   automaticDeployHold,
   type AwaitingDeployTask,
+  type DeployRunOutcome,
+  type DeployRunView,
   type PendingMigration,
   type PullRequestSummary,
 } from './lib/land-and-deploy'
+
+/** How long a tick follows the production run it dispatched (the job's own timeout is 55m). */
+const DEPLOY_WATCH_MS = 40 * 60_000
 
 loadScriptEnv()
 
@@ -804,6 +810,7 @@ async function main() {
   let verified = false
   let runUrl: string | undefined
   let runFailed: string[] = []
+  let runStillRunning = false
 
   if (verdict.deploy && !options.dryRun) {
     const previous = JSON.parse(run('gh', ['run', 'list', `--workflow=${WORKFLOW}`, '--commit', sha,
@@ -847,25 +854,28 @@ async function main() {
 
     if (dispatched) {
       // Watch to completion. A green early step is not a green pipeline — this
-      // rule was once rewritten from a check made 2m40s into ~10 minutes.
-      succeeds('gh', ['run', 'watch', String(dispatched.databaseId), '--exit-status'], 2_400_000)
-
-      // Which jobs failed, if any. "Deployed but unverified" and "the gate went
-      // red so nothing deployed" are different events and must not share a
-      // sentence — production is unchanged in the second.
-      try {
-        const view = JSON.parse(
-          run('gh', ['run', 'view', String(dispatched.databaseId), '--json', 'conclusion,jobs']),
-        ) as { conclusion: string; jobs: Array<{ name: string; conclusion: string }> }
-        if (view.conclusion !== 'success') {
-          runFailed = view.jobs
-            .filter(job => job.conclusion && !['success', 'skipped'].includes(job.conclusion))
-            .map(job => job.name)
-          if (!runFailed.length) runFailed = [`run ${view.conclusion}`]
+      // rule was once rewritten from a check made 2m40s into ~10 minutes. One
+      // `gh run watch` is not enough: it once returned minutes into a run still
+      // going (ADEV-268), so poll the run's own status until it completes.
+      const runId = String(dispatched.databaseId)
+      const deadline = Date.now() + DEPLOY_WATCH_MS
+      let outcome: DeployRunOutcome = { state: 'running' }
+      while (true) {
+        succeeds('gh', ['run', 'watch', runId, '--exit-status'], Math.max(deadline - Date.now(), 1_000))
+        try {
+          outcome = deployRunOutcome(
+            JSON.parse(run('gh', ['run', 'view', runId, '--json', 'status,conclusion,jobs'])) as DeployRunView,
+          )
+        } catch {
+          // Unreadable this time; keep polling until the deadline, then let the health check speak.
         }
-      } catch {
-        // Fall through to the health check, which is the stronger signal.
+        if (outcome.state !== 'running' || Date.now() >= deadline) break
+        await new Promise(resolve => setTimeout(resolve, 30_000))
       }
+      // "Deployed but unverified", "the gate went red so nothing deployed" and "still
+      // running" are different events and must not share a sentence.
+      if (outcome.state === 'failed') runFailed = outcome.failed
+      if (outcome.state === 'running') runStillRunning = true
     }
 
     // Then ask production, which is the only answer that counts (AWTD-959).
@@ -874,6 +884,7 @@ async function main() {
     verified = check.ok
     log(verified ? `  production is serving ${sha.slice(0, 8)}` : `  ⚠️  ${check.reason}`)
     if (runFailed.length) log(`  deploy run failed: ${runFailed.join(', ')}`)
+    if (runStillRunning && !verified) log('  deploy run is still running — the next tick verifies it')
   } else if (verdict.deploy) {
     log(`  would deploy ${sha.slice(0, 8)}`)
     verified = true
@@ -942,6 +953,7 @@ async function main() {
     dryRun: options.dryRun,
     deferred,
     runFailed,
+    runStillRunning,
     completedTasks,
     coreLanded: core.landed,
     coreCompleted: core.completed,
@@ -969,7 +981,8 @@ async function main() {
     }
   }
 
-  if (verdict.deploy) process.exit(verified ? 0 : 5)
+  // A run still going is not a failure: exit clean and let the next tick verify (ADEV-268).
+  if (verdict.deploy) process.exit(verified || runStillRunning ? 0 : 5)
   process.exit(verdict.code)
 }
 
