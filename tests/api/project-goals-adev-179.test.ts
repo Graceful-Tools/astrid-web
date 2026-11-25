@@ -14,7 +14,9 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     taskList: { findUnique: vi.fn(), findMany: vi.fn() },
     project: { findUnique: vi.fn(), update: vi.fn() },
-    comment: { findMany: vi.fn().mockResolvedValue([]) },
+    goalLink: { findMany: vi.fn().mockResolvedValue([]), deleteMany: vi.fn() },
+    task: { findMany: vi.fn().mockResolvedValue([]) },
+    $transaction: vi.fn().mockResolvedValue([]),
   },
 }))
 

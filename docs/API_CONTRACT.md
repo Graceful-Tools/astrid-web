@@ -662,13 +662,36 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
   same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
   listId | taskId }`.
-- GET adds `workByGoal: { [goalId]: taskCount }`: tasks of the project whose comments carry a
-  `GOAL: g1, g2` line. Agents end a completion or handback report with that line.
+- GET adds `workByGoal: { [goalId]: taskCount }`: tasks of the project linked to the goal (see
+  *Goal links* below), directly or through a list. Agents end a completion or handback report with a
+  `GOAL: g1, g2` line, which links the task.
 - An `enforced` guardrail may carry `check: { type: "policy", field, atLeast: "ask" | "never" }`
   (`field` is `merge`, `deploy`, `migrateAdditive`, `migrateDestructive`, `release` or `spend`). It is
   violated while the board's effective orchestration policy lets agents do `field` more freely than
   `atLeast`; `scripts/land-and-deploy.ts` then holds the merge, or the deploy and its migrations, and
   names the guardrail in the run summary. Custom script checks are not built yet.
+
+### GET|PUT|DELETE `/api/v1/tasks/{id}/goals` and `/api/v1/lists/{id}/goal-links`
+*Goal links* (ADEV-271, spec: `docs/specs/GOALS_GUARDRAILS_SIGNALS.md`): which of its project's goals a
+task or a list serves. Project Mode only (404 where it is compiled out, 403 `not_granted` without it).
+
+- **Task.** `GET` (scope `tasks:read`) answers `{ taskId, links }`: the task's own links plus the links of
+  its lists in the same project, computed on read, never copied down. Each link is `{ projectId,
+  projectName, goalId, statement, via: "task" | "list", listId?, source: "person" | "agent" | "report" }`.
+  A link to a goal id the project no longer states is left out.
+- `PUT { goalIds: ["g1"], projectId? }` (scope `tasks:write`) replaces the task's **own** links in one
+  project (`[]` clears them). `projectId` is needed only when the task's lists span several projects.
+  `DELETE { goalId | goalIds, projectId? }` removes own links; one inherited from a list is removed on
+  the list. Anyone who can write the task may do both, agents included (stored as `source: "agent"`).
+- **List.** `GET` (scope `lists:read`) answers `{ listId, projectId, links }` to anyone with a role on
+  the list. `PUT { goalIds }` and `DELETE { goalId | goalIds }` (scope `lists:write`) need list admin
+  (`canUserManageList`): 403 otherwise. A list in no project answers `projectId: null`.
+- A `goalId` the project does not state is a 400. Deleting a goal in `PUT /projects/{id}/goals` deletes
+  its links in the same transaction.
+- **The `GOAL: g1, g2` comment line still works**: creating a comment with it upserts a task link with
+  `source: "report"` (a link made by a person or agent is never rewritten). `workByGoal` on the goals
+  routes counts linked tasks, directly or through a list. `scripts/backfill-goal-links.ts` links the
+  reports written before the table existed.
 
 ### GET|POST `/api/v1/projects/{id}/decisions` and POST `…/decisions/{taskId}/decide`
 Decisions as a process (ADEV-180). **A decision is a task**: its description holds the Decision and

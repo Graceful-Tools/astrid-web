@@ -180,12 +180,24 @@ export async function createCommentWithSideEffects<TComment = CreatedComment>(
 
   // Each of these is best-effort and independently guarded: a comment that is
   // already stored must not fail its request because a downstream fan-out did.
+  await linkReportedGoals(task.id, comment.content, authorId)
   broadcastCommentCreated(comment, task, authorId, args.additionalAudience)
   pingOpenClawAssignee(comment, task, authorId)
   await runSideEffects(comment, task, authorId)
   await pushToGitHub(comment.id, task.id)
 
   return { kind: 'created', comment } as CreateCommentOutcome<TComment>
+}
+
+/** A `GOAL: g1` line in a work report links the task to that goal (ADEV-271). Best-effort like the rest. */
+async function linkReportedGoals(taskId: string, content: string, authorId: string): Promise<void> {
+  if (!content.includes('GOAL:')) return
+  try {
+    const { linkGoalsFromReport } = await import('@/services/goal-link.service')
+    await linkGoalsFromReport(taskId, content, authorId)
+  } catch (err) {
+    log.error({ err, taskId }, 'Failed to link the goals a report names')
+  }
 }
 
 /**
