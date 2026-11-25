@@ -11,6 +11,8 @@ import { ManageStatusesPanel } from "./list-admin/ManageStatusesPanel"
 import type { TaskList, User } from "../types/task"
 import { Lock, Unlock, Users, Settings, KanbanSquare, BarChart3 } from "lucide-react"
 import { ListInsightsPanel } from "./list-insights/ListInsightsPanel"
+import { GoalChips } from "./projects/GoalChips"
+import { useProjectMode } from "@/hooks/use-project-mode"
 
 interface ListSettingsPopoverProps {
   list: TaskList
@@ -62,6 +64,7 @@ export function ListSettingsPopover({
   // No longer need local filter props
 }: ListSettingsPopoverProps) {
   const { t } = useTranslations()
+  const projectMode = useProjectMode()
   // Membership is the first tab now that Sort & Filters has moved out to its
   // own control: what remains in this modal is what the list IS, shared by
   // everyone who can see it. (Task aa4e7eb0.)
@@ -169,6 +172,11 @@ export function ListSettingsPopover({
 
                 {canEditSettings && (
                   <TabsContent value="admin" className="mt-0">
+                    {projectMode && list.projectId && !list.isVirtual && (
+                      <div className="mb-4">
+                        <GoalChips kind="list" id={list.id} projectId={list.projectId} canEdit={canEditSettings} />
+                      </div>
+                    )}
                     <ListAdminSettings
                       list={list}
                       currentUser={currentUser}

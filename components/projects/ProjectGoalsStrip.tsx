@@ -7,9 +7,49 @@
  */
 import React from "react"
 import { ChevronDown, ChevronRight, Target } from "lucide-react"
-import { useTranslations } from "@/lib/i18n/client"
+import { useLocale, useTranslations } from "@/lib/i18n/client"
+import { formatRelativeFromNow } from "@/lib/i18n/date-format"
 import { useProjectGoals } from "@/hooks/use-project-goals"
-import { goalProgress, hasGoalsOrGuardrails, type ProjectGoal } from "@/lib/goals-guardrails"
+import { GoalSparkline } from "@/components/projects/GoalSparkline"
+import {
+  goalFreshness,
+  goalProgress,
+  goalSparkValues,
+  hasGoalsOrGuardrails,
+  type ProjectGoal,
+} from "@/lib/goals-guardrails"
+
+/** Where a goal's number comes from, how fresh it is, and how it moved (ADEV-276). Nothing for a prose goal. */
+function GoalSignal({ goal }: { goal: ProjectGoal }) {
+  const { t } = useTranslations()
+  const locale = useLocale()
+  const source = goal.metric?.source
+  const freshness = goalFreshness(goal)
+  const values = goalSparkValues(goal)
+  if (!source && !freshness && values.length < 2) return null
+  const age = freshness ? formatRelativeFromNow(-freshness.ageMs, locale) : null
+  return (
+    <span className="flex flex-wrap items-center gap-x-2 text-xs theme-text-secondary" data-testid="project-goal-signal">
+      {source && (
+        <span data-testid="project-goal-source">
+          {t("projectMode.goals.sourceName", { source: `${source.connectorId} · ${source.metricKey}` })}
+        </span>
+      )}
+      {freshness && (
+        <span
+          className={freshness.stale ? "text-danger" : undefined}
+          data-testid="project-goal-freshness"
+          data-stale={freshness.stale ? "true" : "false"}
+        >
+          {freshness.stale
+            ? t("projectMode.goals.staleSince", { age: age! })
+            : t("projectMode.goals.updatedAgo", { age: age! })}
+        </span>
+      )}
+      <GoalSparkline values={values} label={t("projectMode.goals.sparklineLabel", { goal: goal.measure ?? goal.statement })} />
+    </span>
+  )
+}
 
 export function ProjectGoalsStrip({ projectId }: { projectId: string }) {
   const { t } = useTranslations()
@@ -63,6 +103,7 @@ export function ProjectGoalsStrip({ projectId }: { projectId: string }) {
                           .join(" · ")}
                       </span>
                     )}
+                    <GoalSignal goal={goal} />
                   </li>
                 ))}
               </ol>

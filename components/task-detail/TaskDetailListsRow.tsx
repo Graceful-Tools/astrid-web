@@ -27,6 +27,7 @@ import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { TaskFieldRow } from "./TaskFieldRow"
 import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
 import { TaskDetailOccurrenceRow } from "./TaskDetailOccurrenceRow"
+import { TaskDetailGoalsRow } from "./TaskDetailGoalsRow"
 import { Globe, Users, X, Check, Hash, List as ListIcon, Tag, Milestone, CalendarRange } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
 import type { Task, TaskList } from "@/types/task"
@@ -223,6 +224,8 @@ export function TaskDetailListsRow({
         follows Lists: rendered here so TaskFieldEditors does not grow (size
         ratchet). Renders nothing unless the task is in a spawn-mode series. */}
     <TaskDetailOccurrenceRow task={task} />
+    {/* Goals the task serves (ADEV-276); nothing outside Project Mode. */}
+    <TaskDetailGoalsRow task={task} readOnly={readOnly} />
     </>
   )
 }

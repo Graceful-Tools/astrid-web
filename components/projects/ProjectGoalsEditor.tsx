@@ -15,6 +15,7 @@ import {
   GOALS_MAX,
   GUARDRAILS_MAX,
   STATEMENT_MAX_CHARS,
+  type GoalMetric,
   type GoalsAndGuardrails,
   type GuardrailKind,
   type ProjectGoal,
@@ -37,11 +38,28 @@ export function withoutDraftIds(value: GoalsAndGuardrails): unknown {
   return { goals: value.goals.map(strip), guardrails: value.guardrails.map(strip) }
 }
 
+/** A number field's text as a number: empty clears it, anything unreadable leaves it as it was. */
+function numberPatch(raw: string): number | undefined | null {
+  if (raw.trim() === "") return undefined
+  const n = Number(raw)
+  return Number.isFinite(n) ? n : null
+}
+
 export function ProjectGoalsEditor({ value, onChange }: ProjectGoalsEditorProps) {
   const { t } = useTranslations()
 
   const setGoal = (index: number, patch: Partial<ProjectGoal>) =>
     onChange({ ...value, goals: value.goals.map((goal, i) => (i === index ? { ...goal, ...patch } : goal)) })
+  /** Edit the metric block; keys the server writes (current, measuredAt) and the source ride along untouched. */
+  const setMetric = (index: number, patch: Partial<GoalMetric>) => {
+    const metric = value.goals[index].metric
+    if (!metric) return
+    setGoal(index, { metric: { ...metric, ...patch } })
+  }
+  const setMetricNumber = (index: number, key: "target" | "baseline" | "staleAfterHours", raw: string) => {
+    const n = numberPatch(raw)
+    if (n !== null) setMetric(index, { [key]: n })
+  }
   const setGuardrail = (index: number, patch: Partial<ProjectGuardrail>) =>
     onChange({ ...value, guardrails: value.guardrails.map((rail, i) => (i === index ? { ...rail, ...patch } : rail)) })
 
@@ -84,6 +102,64 @@ export function ProjectGoalsEditor({ value, onChange }: ProjectGoalsEditorProps)
                 />
               ))}
             </div>
+            {goal.metric ? (
+              <div className="space-y-1" data-testid="project-goal-metric">
+                <div className="grid grid-cols-3 gap-2">
+                  <Input
+                    value={goal.metric.unit ?? ""}
+                    maxLength={FIELD_MAX_CHARS}
+                    placeholder={t("projectMode.goals.unitPlaceholder")}
+                    aria-label={t("projectMode.goals.unitPlaceholder")}
+                    onChange={event => setMetric(index, { unit: event.target.value || undefined })}
+                  />
+                  <Select
+                    value={goal.metric.direction}
+                    onValueChange={direction => setMetric(index, { direction: direction as GoalMetric["direction"] })}
+                  >
+                    <SelectTrigger aria-label={t("projectMode.goals.directionLabel")} data-testid="project-goal-direction">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="up">{t("projectMode.goals.directionUp")}</SelectItem>
+                      <SelectItem value="down">{t("projectMode.goals.directionDown")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    data-testid="project-goal-remove-metric"
+                    onClick={() => setGoal(index, { metric: null })}
+                  >
+                    {t("projectMode.goals.removeMetric")}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["target", "baseline", "staleAfterHours"] as const).map(key => (
+                    <Input
+                      key={key}
+                      type="number"
+                      inputMode="decimal"
+                      value={goal.metric?.[key] ?? ""}
+                      placeholder={t(`projectMode.goals.metric_${key}`)}
+                      aria-label={t(`projectMode.goals.metric_${key}`)}
+                      data-testid={`project-goal-metric-${key}`}
+                      onChange={event => setMetricNumber(index, key, event.target.value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                data-testid="project-goal-add-metric"
+                onClick={() => setGoal(index, { metric: { direction: "up" } })}
+              >
+                {t("projectMode.goals.addMetric")}
+              </Button>
+            )}
           </div>
         ))}
         <Button

@@ -421,6 +421,33 @@ export function goalProgress(
   return { met: current >= target, percent: Math.max(0, Math.min(100, Math.round((current / target) * 100))) }
 }
 
+/** Default hours before a goal's `current` reads as stale (spec: metric.staleAfterHours). */
+export const GOAL_STALE_AFTER_HOURS = 48
+
+/**
+ * How fresh a goal's server-written reading is (ADEV-276): the reading time and whether it is older
+ * than `staleAfterHours`. Null when the goal has no timestamped reading, so nothing is drawn for it.
+ */
+export function goalFreshness(
+  goal: Pick<ProjectGoal, 'history'> & { metric?: GoalMetric | null },
+  now: number = Date.now(),
+): { measuredAt: string; ageMs: number; stale: boolean } | null {
+  const latest = goal.history?.length ? goal.history[goal.history.length - 1].at : undefined
+  const measuredAt = goal.metric?.measuredAt ?? latest
+  if (!measuredAt) return null
+  const time = Date.parse(measuredAt)
+  if (Number.isNaN(time)) return null
+  const ageMs = Math.max(0, now - time)
+  const limitHours = goal.metric?.staleAfterHours
+  const hours = typeof limitHours === 'number' && limitHours > 0 ? limitHours : GOAL_STALE_AFTER_HOURS
+  return { measuredAt, ageMs, stale: ageMs > hours * 3_600_000 }
+}
+
+/** The numeric readings in a goal's history, oldest first, for a sparkline. */
+export function goalSparkValues(goal: Pick<ProjectGoal, 'history'>): number[] {
+  return (goal.history ?? []).map(m => m.num).filter(finite)
+}
+
 /**
  * The goal ids a work report names with a line of its own: `GOAL: g1` or `GOAL: g1, g2`. Agents put
  * it in a completion or handback comment so a project can show the work per goal (ADEV-182).
