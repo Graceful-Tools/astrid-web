@@ -116,6 +116,7 @@ and stack versions with `npm run check:docs`.
 - **[Spec: prod Pointers for Dependency Repos](./specs/PROD_POINTERS_FOR_DEPENDENCIES.md)** - Decided (AWTD-1015): astrid-core and other non-deploying repos get `<app>-prod` branches and `<app>-v<version>` tags, moved by the consuming app's release
 - **[Spec: GitHub Projects White Label](./specs/GITHUB_PROJECTS_WHITELABEL.md)** - Proposal, decisions made (not implemented): Astrid as a multi-org white-label client for GitHub Projects v2 — write-path consolidation, login-provider registry, one GitHub App, GitHub-authoritative replica; lists five verified defects to fix first
 - **[Spec: Task Identifiers](./specs/TASK_IDENTIFIERS.md)** - Decided (AWTD-1010): short ids like `AWTD-1007` / `#1007` — uniqueness across astrid.cc, typing, visibility, where each client shows them
+- **[Spec: Goals, Guardrails and Signals](./specs/GOALS_GUARDRAILS_SIGNALS.md)** - Decided, not implemented (ADEV-269): task and list links to goals, measures read from outside metric sources, experiments and verification, impact and risk estimates, the trade-off policy and its sort, the Pending results lane; three open HTTP contracts
 - **[Task Cost Intelligence](./product/TASK_COST_INTELLIGENCE.md)** - Phases 0–1 built behind the `task_cost` flag (schema, `POST /api/v1/tasks/:id/cost`); estimates, rollups and UI not built
 - **[Astrid vs Linear](./product/ASTRID_VS_LINEAR.md)** - Re-review of 2026-08-19: where Astrid stands against Linear, row by row
 
