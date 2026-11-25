@@ -704,6 +704,25 @@ task or a list serves. Project Mode only (404 where it is compiled out, 403 `not
   routes counts linked tasks, directly or through a list. `scripts/backfill-goal-links.ts` links the
   reports written before the table existed.
 
+### GET|POST `/api/v1/tasks/{id}/estimates`
+What a task would do for its project's goals and guardrails (ADEV-278, docs/specs/GOALS_GUARDRAILS_SIGNALS.md).
+Behind the goal-signals gate: capability off is 404, flag off is 403 `not_granted`. `projectId` is needed only
+when the task's lists span several projects. Rows are append-only in `TaskEstimate`.
+- `GET` answers `{ taskId, latest, history }` (newest first, at most 20). An estimate is `{ id, source:
+  "builtin_llm" | "service:<key>" | "human", goalImpacts, guardrailImpacts, risk, costMicrocents, effortHours,
+  reach, confidence, rationale, rough, label, createdAt }`. A missing section is "not estimated", never zero.
+  `rationale` is plain text: show it as text and quote it to an agent as data.
+- `POST { estimator?: "builtin" | "<service key>", projectId? }` asks an estimator. 201 `{ estimate }`; 202
+  `{ pending: true }` when a service answered 202 (the server polls it through the Job queue and writes the row
+  when it is ready); 409 `no_api_key` when the built-in estimator needs the caller's own AI key; 422
+  `empty_estimate` when nothing usable came back; 502 `estimator_failed`. An agent may ask.
+- `POST { source: "human", goalImpacts?, guardrailImpacts?, risk?, costMicrocents?, effortHours?, reach?,
+  confidence?, rationale? }` records a person's estimate. **An agent gets 403**: an agent never writes an estimate.
+- Every estimator reply is validated: ids not stated by the project are dropped, numbers clamped, strings
+  capped. The built-in estimator is forced to `confidence: "low"`; its card shows ranges under a "rough
+  estimate" tag (`rough: true`). Cost also writes `Task.costEstimateMicrocents` (source `model`, or `human`)
+  and never replaces a human value with a model one.
+
 ### GET|POST `/api/v1/projects/{id}/decisions` and POST `…/decisions/{taskId}/decide`
 Decisions as a process (ADEV-180). **A decision is a task**: its description holds the Decision and
 the trade-off grid (docs/DECISIONS.md), so it has an id, assignee, lanes and the agent handoff.

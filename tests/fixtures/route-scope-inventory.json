@@ -125,6 +125,7 @@
   "tasks/[id]/comments/route.ts": "all:comments:read,comments:write",
   "tasks/[id]/copy/route.ts": "all:tasks:write",
   "tasks/[id]/cost/route.ts": "all:tasks:write",
+  "tasks/[id]/estimates/route.ts": "all:tasks:read,tasks:write",
   "tasks/[id]/fields/[fieldId]/route.ts": "all:tasks:write",
   "tasks/[id]/goals/route.ts": "all:tasks:read,tasks:write",
   "tasks/[id]/handoff/route.ts": "all:tasks:write",

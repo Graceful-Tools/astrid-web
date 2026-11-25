@@ -86,6 +86,17 @@ function signalEnv(): Record<string, string | undefined> {
   }
 }
 
+/** The environment's services of one kind. Empty when the capability is off. */
+export function signalServicesOfKind(
+  kind: SignalServiceKind,
+  env: Record<string, string | undefined> = signalEnv(),
+): SignalService[] {
+  if (!CAPABILITIES.goalSignals) return []
+  return parseSignalServices(env.ASTRID_SIGNAL_SERVICES).filter(s => s.kind === kind)
+}
+
+export const BUILTIN_ESTIMATOR = BUILTIN_ESTIMATOR_KEY
+
 const summary = (s: SignalService): SignalServiceSummary => ({ key: s.key, name: s.name })
 
 /** What `/api/v1/capabilities` publishes as `goalSignals`. Nothing when the capability is off. */

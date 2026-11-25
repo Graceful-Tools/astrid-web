@@ -83,7 +83,23 @@ export interface AgentWakePayload {
   eventAt: string
 }
 
+/** An estimator service answered 202; poll it until the estimate is ready (ADEV-278). */
+export interface EstimatorPollPayload {
+  taskId: string
+  projectId: string
+  /** The service's key in the environment registry. */
+  serviceKey: string
+  /** The service's own id for the pending estimate. */
+  estimateId: string
+  requestedById: string
+  inputsDigest: string
+  /** ISO time the request was accepted; a poll gives up an hour after it. */
+  startedAt: string
+}
+
 export interface JobPayloads {
+  /** One poll of a slow estimator service (services/task-estimate.service.ts). */
+  'estimator-poll': EstimatorPollPayload
   /** Astrid's server-side chat reply, handed off by a client (lib/astrid-handoff.ts). */
   'astrid-handoff': AstridHandoffPayload
   /** Astrid's reply to a comment that @-mentions her (lib/comments/post-comment-side-effects.ts). */
@@ -121,6 +137,9 @@ export const JOB_POLICIES: Record<JobKind, JobPolicy> = {
   // One GitHub call. A wake that arrives late is worth less each minute and the
   // 30-minute cron covers a dead one, so few attempts and a short backoff.
   'agent-wake': { maxAttempts: 3, baseBackoffMs: 30_000, lockMs: 60_000 },
+  // Each poll is one short GET; "still running" is a retry, so the first delay is short. The handler
+  // gives up after an hour of wall time, which the attempts below roughly match.
+  'estimator-poll': { maxAttempts: 12, baseBackoffMs: 15_000, lockMs: 60_000 },
 }
 
 /** An unknown kind (a row from a newer deploy, a typo) still has to back off and die. */
