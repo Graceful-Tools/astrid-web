@@ -140,6 +140,14 @@ export const CAPABILITIES = {
    */
   githubAgentLabels: explicitlyEnabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS', process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS)),
   taskCost: enabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', process.env.NEXT_PUBLIC_BRAND_ENABLE_TASK_COST)),
+  /**
+   * Goal signals: outside metric sources, experiments and impact estimates
+   * for a project's goals (docs/specs/GOALS_GUARDRAILS_SIGNALS.md → Gating,
+   * ADEV-269). OFF unless a deployment sets it, and it requires Project Mode
+   * (assertCoherentCapabilities). Distinct from the `goal_signals` runtime
+   * flag, which grants it per user.
+   */
+  goalSignals: explicitlyEnabled(brandEnv('NEXT_PUBLIC_BRAND_ENABLE_GOAL_SIGNALS', process.env.NEXT_PUBLIC_BRAND_ENABLE_GOAL_SIGNALS)),
 
   // --- Other services -----------------------------------------------------
   /** Creating tasks by emailing the inbound address. */
@@ -218,6 +226,13 @@ export function assertUsableAuthConfiguration(): void {
  * import items into lists that can never show their columns.
  */
 export function assertCoherentCapabilities(): void {
+  if (CAPABILITIES.goalSignals && !CAPABILITIES.projectMode) {
+    throw new Error(
+      'Brand configuration enables Goal Signals with Project Mode off — Goal Signals ' +
+        'requires Project Mode, because goals belong to a project. Leave ' +
+        'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE on, or drop NEXT_PUBLIC_BRAND_ENABLE_GOAL_SIGNALS.'
+    )
+  }
   if (CAPABILITIES.githubProjects && !CAPABILITIES.projectMode) {
     throw new Error(
       'Brand configuration enables GitHub Projects with Project Mode off — GitHub Projects ' +

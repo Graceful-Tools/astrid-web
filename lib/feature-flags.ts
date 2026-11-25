@@ -2,7 +2,7 @@ import { createHash } from 'crypto'
 import { prisma } from '@/lib/prisma'
 import { isProjectModeAllowlisted } from '@/lib/project-mode-allowlist'
 
-export const FEATURE_KEYS = ['google_tasks', 'project_mode', 'task_cost'] as const
+export const FEATURE_KEYS = ['google_tasks', 'project_mode', 'task_cost', 'goal_signals'] as const
 export type FeatureKey = typeof FEATURE_KEYS[number]
 export type RolloutMode = 'OFF' | 'ALL' | 'PERCENTAGE' | 'SELECTED_USERS'
 export type Treatment = 'INCLUDE' | 'EXCLUDE'

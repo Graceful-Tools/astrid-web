@@ -60,6 +60,7 @@
       "codingAgent": false,
       "projectMode": true,
       "taskCost": false,
+      "goalSignals": false,
       "integrationMcp": true,
       "integrationOpenClaw": false,
       "integrationChatGptActions": false,
