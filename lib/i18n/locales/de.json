@@ -1918,6 +1918,25 @@
       "targetMet": "Ziel erreicht",
       "workServed": "{count} Aufgaben dienten diesem Ziel"
     },
+    "connections": {
+      "title": "Connections",
+      "intro": "Outside services this project reads numbers from. A goal or an enforced guardrail can then be bound to one of their metrics.",
+      "none": "No connections yet.",
+      "stateOk": "Working",
+      "stateError": "Needs attention",
+      "credentialStored": "key stored",
+      "test": "Test",
+      "testOk": "The service answered.",
+      "testFailed": "The service did not answer correctly.",
+      "remove": "Remove connection",
+      "serviceLabel": "Service",
+      "customOption": "Custom endpoint",
+      "nameLabel": "Name (optional)",
+      "endpointLabel": "Endpoint URL (https)",
+      "credentialLabel": "Key (stored encrypted, never shown again)",
+      "add": "Add connection",
+      "saveFailed": "Could not change the connections. Try again."
+    },
     "decisions": {
       "title": "Entscheidungen",
       "intro": "Die Entscheidungen dieses Projekts. Jede ist eine Aufgabe mit der Frage und ihrer Abwägungstabelle; öffne eine, um sie auszufüllen.",

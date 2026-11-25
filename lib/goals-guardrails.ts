@@ -89,7 +89,35 @@ export interface PolicyGuardrailCheck {
   field: AutonomyField
   atLeast: 'ask' | 'never'
 }
-export type GuardrailCheck = PolicyGuardrailCheck
+/**
+ * A number from an outside source must stay on one side of a threshold (ADEV-277). `current` and
+ * `measuredAt` are written by the server's poll job, never by the editor. A stale or missing reading
+ * is unknown, and unknown is never passing.
+ */
+export interface MetricGuardrailCheck {
+  type: 'metric'
+  source: { connectorId: string; metricKey: string }
+  /** The reading must be `<=` or `>=` the threshold to pass. */
+  op: '<=' | '>='
+  threshold: number
+  unit?: string
+  current?: number
+  /** ISO timestamp. */
+  measuredAt?: string
+  /** How old `current` may get before it is unknown. Default 48. */
+  staleAfterHours?: number
+}
+export type GuardrailCheck = PolicyGuardrailCheck | MetricGuardrailCheck
+
+/** How old a reading may get before it is unknown, when nothing says otherwise. */
+export const DEFAULT_STALE_AFTER_HOURS = 48
+
+/** Whether a reading taken at `measuredAt` is still fresh at `now`. A missing or unreadable time is stale. */
+export function isReadingFresh(measuredAt: string | undefined, staleAfterHours: number | undefined, now: Date): boolean {
+  const taken = measuredAt ? Date.parse(measuredAt) : NaN
+  if (Number.isNaN(taken)) return false
+  return now.getTime() - taken <= (staleAfterHours ?? DEFAULT_STALE_AFTER_HOURS) * 3_600_000
+}
 
 export interface ProjectGuardrail {
   id: string
@@ -207,7 +235,39 @@ function parseMetric(raw: unknown): GoalMetric | null {
   return metric
 }
 
+function parseMetricCheck(raw: Record<string, unknown>): MetricGuardrailCheck | null {
+  if (!isRecord(raw.source)) return null
+  const connectorId = text(raw.source.connectorId)
+  const metricKey = text(raw.source.metricKey)
+  if (!connectorId || !metricKey) return null
+  if (raw.op !== '<=' && raw.op !== '>=') return null
+  if (!finite(raw.threshold)) return null
+  const check: MetricGuardrailCheck = {
+    type: 'metric',
+    source: { connectorId: connectorId.slice(0, ID_MAX_CHARS), metricKey: metricKey.slice(0, FIELD_MAX_CHARS) },
+    op: raw.op,
+    threshold: raw.threshold,
+  }
+  const unit = text(raw.unit)
+  if (unit) check.unit = unit.slice(0, FIELD_MAX_CHARS)
+  if (raw.current !== undefined && raw.current !== null) {
+    if (!finite(raw.current)) return null
+    check.current = raw.current
+  }
+  const measuredAt = text(raw.measuredAt)
+  if (measuredAt) {
+    if (Number.isNaN(Date.parse(measuredAt))) return null
+    check.measuredAt = measuredAt
+  }
+  if (raw.staleAfterHours !== undefined && raw.staleAfterHours !== null) {
+    if (!finite(raw.staleAfterHours) || raw.staleAfterHours <= 0) return null
+    check.staleAfterHours = raw.staleAfterHours
+  }
+  return check
+}
+
 function parseCheck(raw: unknown): GuardrailCheck | null {
+  if (isRecord(raw) && raw.type === 'metric') return parseMetricCheck(raw)
   if (!isRecord(raw) || raw.type !== 'policy') return null
   if (!AUTONOMY_FIELDS.includes(raw.field as AutonomyField)) return null
   if (raw.atLeast !== 'ask' && raw.atLeast !== 'never') return null
@@ -275,7 +335,7 @@ export function parseGoalsAndGuardrails(raw: unknown): ParseResult {
     if (r.check !== undefined && r.check !== null) {
       if (kind !== 'enforced') return { ok: false, error: 'Only an enforced guardrail can have a check' }
       const check = parseCheck(r.check)
-      if (!check) return { ok: false, error: `A check is { type: "policy", field: ${AUTONOMY_FIELDS.join('|')}, atLeast: "ask"|"never" }` }
+      if (!check) return { ok: false, error: `A check is { type: "policy", field: ${AUTONOMY_FIELDS.join('|')}, atLeast: "ask"|"never" } or { type: "metric", source: { connectorId, metricKey }, op: "<="|">=", threshold }` }
       entry.check = check
     }
     guardrails.push(id ? { id, ...entry } : entry)
@@ -376,6 +436,13 @@ export function withMeasurement(
   extra: { num?: number; source?: GoalMeasurementSource; externalId?: string } = {},
 ): ProjectGoal {
   const next = value.trim().slice(0, FIELD_MAX_CHARS)
+  // A pull that reads the value it already has confirms it: no history entry, but the reading is
+  // fresh again (ADEV-277), or an unchanging metric would go stale while its source is healthy.
+  if (next && next === goal.current && extra.source === 'pull' && goal.metric && extra.num !== undefined) {
+    const seen = goal.metric.measuredAt ? Date.parse(goal.metric.measuredAt) : NaN
+    if (!Number.isNaN(seen) && seen >= at.getTime()) return goal
+    return { ...goal, metric: { ...goal.metric, current: extra.num, measuredAt: at.toISOString() } }
+  }
   if (!next || next === goal.current) return goal
   // A prose goal keeps today's entry shape; the number is only read where a metric wants one.
   const num = extra.num ?? (goal.metric ? firstNumber(next) ?? undefined : undefined)
@@ -455,11 +522,19 @@ export function guardrailViolations(
   guardrails: ProjectGuardrail[],
   policy: OrchestrationPolicy,
   fields: AutonomyField[],
+  now: Date = new Date(),
 ): GuardrailViolation[] {
   const out: GuardrailViolation[] = []
   for (const rail of guardrails) {
     const check = rail.check
-    if (rail.kind !== 'enforced' || !check || !fields.includes(check.field)) continue
+    if (rail.kind !== 'enforced' || !check) continue
+    if (check.type === 'metric') {
+      // A number is not about one action, so it holds every action while it is out of bounds (ADEV-277).
+      const reason = metricCheckViolation(check, now)
+      if (reason) out.push({ guardrailId: rail.id, statement: rail.statement, reason })
+      continue
+    }
+    if (!fields.includes(check.field)) continue
     const actual = autonomyFor(policy, check.field)
     if (stricterAutonomy(actual, check.atLeast) === actual) continue
     out.push({
@@ -469,4 +544,19 @@ export function guardrailViolations(
     })
   }
   return out
+}
+
+/**
+ * Why a metric guardrail does not pass, or null when it does. A stale or missing reading is unknown,
+ * and unknown is never passing (ADEV-277): the guardrail cannot vouch for a number it cannot see.
+ */
+export function metricCheckViolation(check: MetricGuardrailCheck, now: Date = new Date()): string | null {
+  const unit = check.unit ? (/^[%°]/.test(check.unit) ? check.unit : ` ${check.unit}`) : ''
+  if (!finite(check.current)) return 'the metric has no reading yet, so it is unknown'
+  if (!isReadingFresh(check.measuredAt, check.staleAfterHours, now)) {
+    return `the metric's last reading (${check.current}${unit}, ${check.measuredAt ?? 'undated'}) is stale, so it is unknown`
+  }
+  const passes = check.op === '<=' ? check.current <= check.threshold : check.current >= check.threshold
+  if (passes) return null
+  return `the metric reads ${check.current}${unit} but this guardrail needs it ${check.op} ${check.threshold}${unit}`
 }

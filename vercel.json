@@ -12,6 +12,9 @@
     },
     "app/api/cron/github-sync/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/goal-signals-poll/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -42,6 +45,10 @@
     {
       "path": "/api/cron/waiting-settle",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/goal-signals-poll",
+      "schedule": "*/15 * * * *"
     },
     {
       "path": "/api/cron/binding-audit",
