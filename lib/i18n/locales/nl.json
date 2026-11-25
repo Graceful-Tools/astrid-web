@@ -1936,6 +1936,25 @@
       "viaList": "Van de lijst",
       "linkFailed": "De doelkoppeling kon niet worden gewijzigd. Probeer het opnieuw."
     },
+    "connections": {
+      "title": "Connections",
+      "intro": "Outside services this project reads numbers from. A goal or an enforced guardrail can then be bound to one of their metrics.",
+      "none": "No connections yet.",
+      "stateOk": "Working",
+      "stateError": "Needs attention",
+      "credentialStored": "key stored",
+      "test": "Test",
+      "testOk": "The service answered.",
+      "testFailed": "The service did not answer correctly.",
+      "remove": "Remove connection",
+      "serviceLabel": "Service",
+      "customOption": "Custom endpoint",
+      "nameLabel": "Name (optional)",
+      "endpointLabel": "Endpoint URL (https)",
+      "credentialLabel": "Key (stored encrypted, never shown again)",
+      "add": "Add connection",
+      "saveFailed": "Could not change the connections. Try again."
+    },
     "decisions": {
       "title": "Beslissingen",
       "intro": "De beslissingen van dit project. Elke beslissing is een taak met de vraag en haar afwegingstabel; open er een om die in te vullen.",

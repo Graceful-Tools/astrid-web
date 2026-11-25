@@ -1936,6 +1936,25 @@
       "viaList": "From the list",
       "linkFailed": "Could not change the goal link. Try again."
     },
+    "connections": {
+      "title": "Connections",
+      "intro": "Outside services this project reads numbers from. A goal or an enforced guardrail can then be bound to one of their metrics.",
+      "none": "No connections yet.",
+      "stateOk": "Working",
+      "stateError": "Needs attention",
+      "credentialStored": "key stored",
+      "test": "Test",
+      "testOk": "The service answered.",
+      "testFailed": "The service did not answer correctly.",
+      "remove": "Remove connection",
+      "serviceLabel": "Service",
+      "customOption": "Custom endpoint",
+      "nameLabel": "Name (optional)",
+      "endpointLabel": "Endpoint URL (https)",
+      "credentialLabel": "Key (stored encrypted, never shown again)",
+      "add": "Add connection",
+      "saveFailed": "Could not change the connections. Try again."
+    },
     "decisions": {
       "title": "Decisions",
       "intro": "This project's decisions. Each is a task holding the question and its trade-off grid; open one to fill it in.",

@@ -20,6 +20,7 @@ import { apiPatch } from "@/lib/api"
 import { renameLoadedProject } from "@/lib/client-projects"
 import { useTranslations } from "@/lib/i18n/client"
 import { ProjectGoalsEditor, withoutDraftIds } from "@/components/projects/ProjectGoalsEditor"
+import { ProjectConnectionsSection } from "@/components/projects/ProjectConnectionsSection"
 import { useProjectGoals } from "@/hooks/use-project-goals"
 import { EMPTY_GOALS_AND_GUARDRAILS, type GoalsAndGuardrails } from "@/lib/goals-guardrails"
 
@@ -116,6 +117,9 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
                 setGoalsTouched(true)
               }}
             />
+          </div>
+          <div className="max-h-72 overflow-y-auto border-t theme-border pt-3 empty:hidden">
+            <ProjectConnectionsSection projectId={projectId} />
           </div>
           {failed && (
             <p role="alert" className="text-xs text-danger">{t("projectMode.settingsSaveFailed")}</p>
