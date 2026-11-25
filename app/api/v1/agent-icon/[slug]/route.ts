@@ -29,6 +29,11 @@ interface AgentIconConfig {
    * sources, so production gets it whichever one answers.
    */
   padding?: number
+  /**
+   * Solid fill (hex without #) drawn behind the mark, for a mark that
+   * disappears on a dark avatar background (ADEV-267).
+   */
+  background?: string
 }
 
 export const AGENT_ICONS: Record<string, AgentIconConfig> = {
@@ -52,6 +57,7 @@ export const AGENT_ICONS: Record<string, AgentIconConfig> = {
     brandColor: '000000',  // GitHub Copilot black
     localFallback: 'copilot.svg',
     padding: 0.125,
+    background: 'FFFFFF',  // black mark is invisible on a dark avatar (ADEV-267)
   },
   // The local coding harnesses carry their brand marks in their own table, so
   // adding a CLI does not mean remembering to edit this one (AWTD-937).
@@ -69,6 +75,15 @@ function padViewBox(svg: string, padding: number): string {
       return `viewBox="${n(Number(x) - px)} ${n(Number(y) - py)} ${n(Number(w) + 2 * px)} ${n(Number(h) + 2 * py)}"`
     },
   )
+}
+
+/** Paint a rect behind the mark, covering the (already padded) viewBox. */
+function addBackground(svg: string, color: string): string {
+  const vb = svg.match(/viewBox="([-\d.]+)[ ,]+([-\d.]+)[ ,]+([-\d.]+)[ ,]+([-\d.]+)"/)
+  if (!vb) return svg
+  const [, x, y, w, h] = vb
+  const rect = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#${color}"/>`
+  return svg.replace(/<svg\b[^>]*>/, (open) => `${open}${rect}`)
 }
 
 // In-memory cache: slug -> { svg, fetchedAt }
@@ -114,7 +129,10 @@ async function getIcon(slug: string): Promise<string | null> {
     return cached.svg
   }
 
-  const shape = (svg: string) => (config.padding ? padViewBox(svg, config.padding) : svg)
+  const shape = (svg: string) => {
+    const padded = config.padding ? padViewBox(svg, config.padding) : svg
+    return config.background ? addBackground(padded, config.background) : padded
+  }
 
   // Try upstream
   const upstream = await fetchUpstreamIcon(config)
