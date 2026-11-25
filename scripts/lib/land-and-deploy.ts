@@ -493,6 +493,31 @@ export function deployedCompletionComment(input: { sha: string; servingSha: stri
 }
 
 /** The run news, for the list chat. One place, so the wording cannot drift. */
+export interface DeployRunView {
+  status: string
+  conclusion: string | null
+  jobs: Array<{ name: string; conclusion: string | null }>
+}
+
+export type DeployRunOutcome =
+  | { state: 'running' }
+  | { state: 'succeeded' }
+  | { state: 'failed'; failed: string[] }
+
+/**
+ * What the dispatched production run says, read by `status` FIRST (ADEV-268). A queued or
+ * in-progress run has an empty `conclusion`, and reading that as "not success" once
+ * reported a deploy that went on to succeed as "FAILED — production is unchanged".
+ */
+export function deployRunOutcome(view: DeployRunView): DeployRunOutcome {
+  if (view.status !== 'completed') return { state: 'running' }
+  if (view.conclusion === 'success') return { state: 'succeeded' }
+  const failed = view.jobs
+    .filter(job => job.conclusion && !['success', 'skipped'].includes(job.conclusion))
+    .map(job => job.name)
+  return { state: 'failed', failed: failed.length ? failed : [`run ${view.conclusion}`] }
+}
+
 export function summary(input: {
   landed: number[]
   skipped: Array<{ number: number; why: string }>
@@ -504,6 +529,8 @@ export function summary(input: {
   deferred?: number[]
   /** Jobs that failed in the dispatched run, if it did not succeed. */
   runFailed?: string[]
+  /** The dispatched run had not finished when this tick stopped watching (ADEV-268). */
+  runStillRunning?: boolean
   /** Awaiting-deploy tasks marked complete because production serves them (AWTD-1278). */
   completedTasks?: string[]
   /** astrid-core PRs merged this tick, as `<repo>#<n>` (AWTD-1682). */
@@ -524,6 +551,14 @@ export function summary(input: {
     // (AWTD-1429). `verified` is set for a dry run only to keep it clean.
     lines.push(
       `**Scheduled /fixall (web) dry run: would deploy \`${(input.sha ?? '').slice(0, 8)}\`.** ${landed}`,
+    )
+  } else if (input.verdict.deploy && !input.verified && input.runStillRunning) {
+    // Not a failure and not an outage: the run is still going (ADEV-268). The awaiting
+    // tasks stay in Doing, and the next tick verifies production and completes them.
+    lines.push(`**Scheduled /fixall (web): the deploy is still running.** ${landed}`)
+    lines.push(
+      `Dispatched \`${(input.sha ?? '').slice(0, 8)}\`${input.runUrl ? ` (${input.runUrl})` : ''}; ` +
+        'the next tick checks what production serves.',
     )
   } else if (input.verdict.deploy && !input.verified && input.runFailed?.length) {
     // Nothing reached production: `deploy-production` needs quality-gates to

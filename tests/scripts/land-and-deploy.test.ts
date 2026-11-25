@@ -17,6 +17,7 @@ import {
   carriesTaskId,
   deployedCompletionComment,
   deployLanded,
+  deployRunOutcome,
   deployVerdict,
   landedDespiteError,
   landablePullRequests,
@@ -589,5 +590,52 @@ describe('ADEV-20: the runner asks the stored policy', () => {
     const policy = ask({ migrate: { additive: 'allowed', destructive: 'allowed' } })
     expect(deployVerdict({ landedOrAlreadyOnMain: true, pending: [drop], predeployGreen: true, policy, agent: 'claude' }))
       .toMatchObject({ deploy: false, code: 3 })
+  })
+})
+
+describe('ADEV-268: a deploy that is still running is not a failed deploy', () => {
+  it('classifies an in-progress or queued run as running, whatever its empty conclusion says', () => {
+    for (const status of ['queued', 'in_progress', 'waiting', 'pending', 'requested']) {
+      expect(deployRunOutcome({ status, conclusion: '', jobs: [{ name: 'Database Migration', conclusion: '' }] }))
+        .toEqual({ state: 'running' })
+    }
+  })
+
+  it('classifies a completed green run as succeeded', () => {
+    expect(deployRunOutcome({ status: 'completed', conclusion: 'success', jobs: [] })).toEqual({ state: 'succeeded' })
+  })
+
+  it('names the failed jobs of a completed red run, skipping green and skipped ones', () => {
+    expect(deployRunOutcome({
+      status: 'completed',
+      conclusion: 'failure',
+      jobs: [
+        { name: 'Quality Gates', conclusion: 'failure' },
+        { name: 'Deploy to Production', conclusion: 'skipped' },
+        { name: 'Summary', conclusion: 'success' },
+      ],
+    })).toEqual({ state: 'failed', failed: ['Quality Gates'] })
+  })
+
+  it('falls back to the run conclusion when no job carries the failure', () => {
+    expect(deployRunOutcome({ status: 'completed', conclusion: 'cancelled', jobs: [] }))
+      .toEqual({ state: 'failed', failed: ['run cancelled'] })
+  })
+
+  it('reports a still-running deploy as running, never as FAILED or unchanged (run 45644585316)', () => {
+    const text = summary({
+      landed: [987],
+      skipped: [],
+      verdict: { deploy: true },
+      sha: 'a486ef67',
+      runUrl: 'https://github.com/x/y/actions/runs/45644889204',
+      verified: false,
+      runStillRunning: true,
+    })
+    expect(text).toMatch(/still running/i)
+    expect(text).toContain('45644889204')
+    expect(text).not.toMatch(/FAILED/)
+    expect(text).not.toMatch(/production is unchanged/i)
+    expect(text).not.toMatch(/could NOT verify/)
   })
 })
