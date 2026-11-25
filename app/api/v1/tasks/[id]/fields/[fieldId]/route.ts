@@ -17,6 +17,7 @@
 import { NextResponse } from 'next/server'
 import { withAuth } from '@/lib/api-auth-wrapper'
 import { getDeprecationWarning } from '@/lib/api-auth-middleware'
+import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { setProjectFieldValue } from '@/services/github-project-fields.service'
 import { createLogger } from '@/lib/logger'
 
@@ -30,7 +31,9 @@ export const dynamic = 'force-dynamic'
 export const PUT = withAuth<RouteContext>(
   { scopes: ['tasks:write'], capability: 'githubProjects', tag: 'v1.tasks.fields' },
   async (req, auth, { params }) => {
-    const { id: taskId, fieldId } = await params
+    const { id: rawId, fieldId } = await params
+    const taskId = await resolveTaskIdOrIdentifier(rawId)
+    if (!taskId) return NextResponse.json({ error: 'Task field not found' }, { status: 404 })
 
     let body: unknown
     try {
