@@ -199,6 +199,36 @@ export async function recordGoalMeasurement(
   return { ok: true, value: projectView(project, userId, value) }
 }
 
+/**
+ * Write a pulled reading onto every metric guardrail bound to that source and key (ADEV-277). The
+ * poll job calls this beside `recordGoalMeasurement`, with no user: the reading is the server's.
+ * A reading older than the one stored is ignored. Returns how many guardrails it updated.
+ */
+export async function recordGuardrailReading(
+  projectId: string,
+  source: { connectorId: string; metricKey: string },
+  reading: { value: number; at: Date },
+): Promise<number> {
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { goalsAndGuardrails: true } })
+  if (!project) return 0
+  const stored = storedGoalsAndGuardrails(project.goalsAndGuardrails)
+  let updated = 0
+  const guardrails = stored.guardrails.map(rail => {
+    const check = rail.check
+    if (check?.type !== 'metric' || check.source.connectorId !== source.connectorId || check.source.metricKey !== source.metricKey) return rail
+    const seen = check.measuredAt ? Date.parse(check.measuredAt) : NaN
+    if (!Number.isNaN(seen) && seen > reading.at.getTime()) return rail
+    updated++
+    return { ...rail, check: { ...check, current: reading.value, measuredAt: reading.at.toISOString() } }
+  })
+  if (!updated) return 0
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { goalsAndGuardrails: { ...stored, guardrails } as unknown as Prisma.InputJsonValue },
+  })
+  return updated
+}
+
 /** A submitted metric with the server-written reading (`current`, `measuredAt`) carried over from the stored one. */
 function mergeMetric(submitted: GoalMetric, stored: GoalMetric | undefined): GoalMetric {
   const { current: _c, measuredAt: _m, ...rest } = submitted
@@ -242,6 +272,22 @@ export async function setProjectGoals(projectId: string, userId: string, body: u
       return goal.current && goal.current !== before?.current ? withMeasurement({ ...kept, current: before?.current }, goal.current, userId, now) : kept
     }),
   }
+  // A metric check's reading is the server's too: carry it over while it still reads the same source.
+  value.guardrails = value.guardrails.map(rail => {
+    const check = rail.check
+    if (check?.type !== 'metric') return rail
+    const { current: _c, measuredAt: _m, ...rest } = check
+    const before = stored.guardrails.find(r => r.id === rail.id)?.check
+    const same = before?.type === 'metric' && before.source.connectorId === check.source.connectorId && before.source.metricKey === check.source.metricKey
+    return {
+      ...rail,
+      check: {
+        ...rest,
+        ...(same && before.current !== undefined ? { current: before.current } : {}),
+        ...(same && before.measuredAt ? { measuredAt: before.measuredAt } : {}),
+      },
+    }
+  })
   // Links to a goal the project no longer states go in the same transaction (ADEV-271).
   await prisma.$transaction([
     prisma.project.update({

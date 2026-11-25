@@ -723,6 +723,39 @@ when the task's lists span several projects. Rows are append-only in `TaskEstima
   estimate" tag (`rough: true`). Cost also writes `Task.costEstimateMicrocents` (source `model`, or `human`)
   and never replaces a human value with a model one.
 
+### Project connectors: `/api/v1/projects/{id}/connectors`
+A project's bindings to outside services (ADEV-277, spec: `docs/specs/GOALS_GUARDRAILS_SIGNALS.md` →
+*Connectors*). Behind the Goal Signals gate (404 where the capability is off, 403 `not_granted` without
+the flag). **Owner or admin only, never an agent**: a plain member gets 403, a stranger 404, an agent
+403 on every route here.
+
+- `GET` (scope `projects:read`) answers `{ connectors }`. `POST { kind, serviceKey, name?, endpointUrl?,
+  credential? }` (scope `projects:write`, 201) adds one. `kind` is `metric`, `experiment` or
+  `estimator`. `serviceKey` is a key the environment defines (`/api/v1/capabilities` → `goalSignals`) or
+  `custom`, which needs `endpointUrl` (https, public: the outbound guard refuses a private address) and
+  only where `ASTRID_SIGNALS_ALLOW_CUSTOM_ENDPOINTS` is on. A service from the environment takes no
+  `endpointUrl` or `credential`.
+- A connector is `{ id, projectId, kind, serviceKey, name, endpointUrl, hasCredential, state: "ok" |
+  "error", lastOkAt, lastError, createdAt }`. **The credential is stored encrypted and never returned.**
+- `PATCH …/{connectorId} { name?, endpointUrl?, credential? }` (`credential: null` removes it) and
+  `DELETE …/{connectorId}`. Removing a connector leaves a goal bound to it as it was: its reading ages
+  into "unknown".
+- `POST …/{connectorId}/test { metricKey? }` calls the service once and answers `{ ok, error, reading,
+  connector }`; a failed call is a 200 with `ok: false`. The outcome is recorded on the connector.
+- **Reading metrics.** A goal's `metric.source { connectorId, metricKey }` is read from a `metric`
+  connector by `/api/cron/goal-signals-poll` (every 15 minutes, bounded, stalest connector first) over
+  `astrid.metric-source/v1`: `POST {base}/metrics/query`, signed (`X-Astrid-Signature`,
+  `X-Astrid-Timestamp`) with the credential as bearer, 10 s and 256 KB, no redirects. A fresh reading is
+  written as a measurement with `source: "pull"`; one past `staleAfterHours` (default 48), `no_data` and
+  `unknown_metric` write nothing, so the value ages into unknown. 4xx is recorded in `lastError` and not
+  retried, 429 waits out `Retry-After`, 5xx and timeouts are retried by the next poll.
+- **Metric guardrail check.** An enforced guardrail may carry `check: { type: "metric", source: {
+  connectorId, metricKey }, op: "<=" | ">=", threshold, unit?, staleAfterHours? }`. `current` and
+  `measuredAt` on it are written by the server and kept across a goals `PUT`. It is violated while the
+  fresh reading is outside the threshold, **and while the reading is missing or stale: unknown is never
+  passing.** Unlike a policy check it is not about one action, so it holds every merge, deploy and
+  migration the project's tasks would make.
+
 ### GET|POST `/api/v1/projects/{id}/decisions` and POST `…/decisions/{taskId}/decide`
 Decisions as a process (ADEV-180). **A decision is a task**: its description holds the Decision and
 the trade-off grid (docs/DECISIONS.md), so it has an id, assignee, lanes and the agent handoff.

@@ -647,7 +647,7 @@ rules: the core PR and its fixtures land, then web re-pins and mirrors.
 | 1c | `GoalLink`, routes, `GOAL:` ingest, backfill, `workByGoal` | web | — |
 | 1d | Goal chips on tasks and lists; strip freshness | web | 1a, 1c |
 | 2a | Gate, service registry, capabilities | web | — |
-| 2b | `ProjectConnector`, metric-source client, metric guardrail check, poll job | web | 1a, 2a |
+| 2b | `ProjectConnector`, metric-source client, metric guardrail check, poll job (**built**, ADEV-277) | web | 1a, 2a |
 | 3a | `TaskEstimate`, estimator client, built-in estimator | web | 2a |
 | 3b | One-tap Estimate and the estimate card | web | 3a |
 | 4a | Trade-off rule, new autonomy actions, policy sort, fixtures | core first | — |

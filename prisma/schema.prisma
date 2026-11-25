@@ -338,6 +338,7 @@ model Project {
   fields               ProjectField[]
   goalLinks            GoalLink[]
   taskEstimates        TaskEstimate[]
+  connectors           ProjectConnector[]
 
   @@unique([key])
   @@index([ownerId])
@@ -2105,4 +2106,32 @@ model TaskEstimate {
   project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([taskId, createdAt])
+}
+
+/// A project's binding to one outside service (ADEV-269, ADEV-277). `kind` and
+/// `serviceKey` are strings, as RuntimeBinding's are, so a new kind is not a
+/// migration.
+model ProjectConnector {
+  id            String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  projectId     String
+  /// "metric" | "experiment" | "estimator"
+  kind          String
+  /// A key from the environment's service registry, or "custom".
+  serviceKey    String
+  name          String
+  /// Only for serviceKey "custom", and only where the deployment allows it.
+  endpointUrl   String?
+  /// encryptField() output. Never returned by any route.
+  credentialEnc String?
+  config        Json?
+  state         String    @default("ok")
+  lastOkAt      DateTime?
+  lastError     String?
+  /// When the poll job last read this connector, ok or not. Stalest first.
+  lastPolledAt  DateTime?
+  createdById   String
+  createdAt     DateTime  @default(now())
+  project       Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, kind])
 }
