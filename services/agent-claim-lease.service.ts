@@ -13,7 +13,7 @@
  */
 import { prisma } from '@/lib/prisma'
 import { DOING_STATUS_ROLE, READY_STATUS_ROLE } from '@/lib/task-status'
-import { decideExpiredLease, expiredLeaseComment } from '@/lib/agent-task-claim'
+import { decideExpiredLease, expiredLeaseComment, hasCurrentHandoffMarker } from '@/lib/agent-task-claim'
 
 /** One cron tick's ceiling; the rest wait five minutes for the next. */
 const EXPIRED_LEASE_BATCH = 200
@@ -52,9 +52,17 @@ export async function expireAgentClaimLeases(options: { now?: Date; limit?: numb
   for (const task of due) {
     const expiredAt = task.claimLeaseExpiresAt
     if (!expiredAt) continue
+    // ADEV-266: finished work awaiting its deploy or merge stays in Doing, assigned.
+    const comments = task.statusRole === DOING_STATUS_ROLE && !task.completed
+      ? await prisma.comment.findMany({
+          where: { taskId: task.id },
+          select: { content: true, createdAt: true, systemEventType: true },
+        })
+      : []
     const decision = decideExpiredLease({
       ...task,
       enrolled: task.lists.some(list => list.agentClaimRequired),
+      awaitingHandoff: hasCurrentHandoffMarker(comments),
     })
     // Every write is conditional on the lease being the one read: a heartbeat
     // that lands between the read and the write renews it, and wins.

@@ -74,6 +74,26 @@ export function latestHandoff(
   return null
 }
 
+/**
+ * ADEV-266: finished work whose assignee went missing. The ship job needs the assignee's own
+ * current marker, and two core handoffs lost the assignee after the marker (ADEV-263 was
+ * "reassigned from Claude Agent to Unassigned" ten seconds after it). Whatever did it, the
+ * marker's author is still on record: when the task is open in Doing/Testing with nobody on it
+ * and the newest handoff comment was written by `agentId`, that agent owns it again.
+ */
+export function orphanedHandoffOwner(input: {
+  task: CloudHandoffTask
+  comments: Array<{ authorId?: string | null; content?: string | null; createdAt?: string | Date | null }>
+  agentId: string | null
+}): boolean {
+  const { task, comments, agentId } = input
+  if (!agentId || task.assignee?.id || !isAwaitingDeployLane(task)) return false
+  const newest = [...comments]
+    .filter(comment => latestHandoff([comment]))
+    .sort((a, b) => time(b.createdAt) - time(a.createdAt))[0]
+  return newest?.authorId === agentId
+}
+
 /** A core PR as `gh pr list --repo <core> --json` reports it. */
 export interface CorePullRequest extends PullRequestSummary {
   baseRefName?: string
