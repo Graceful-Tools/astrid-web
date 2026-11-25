@@ -337,6 +337,7 @@ model Project {
   /// The GitHub project's own fields, on a GitHub-backed board only (AWTD-1117, §9.4).
   fields               ProjectField[]
   goalLinks            GoalLink[]
+  taskEstimates        TaskEstimate[]
   connectors           ProjectConnector[]
 
   @@unique([key])
@@ -394,6 +395,7 @@ model ProjectMember {
 
 model Task {
   goalLinks              GoalLink[]
+  estimates              TaskEstimate[]
   id                     String             @id @default(dbgenerated("(gen_random_uuid())::text"))
   title                  String
   description            String             @default("")
@@ -2067,6 +2069,43 @@ model GoalLink {
   @@unique([taskId, projectId, goalId])
   @@unique([listId, goalId])
   @@index([projectId, goalId])
+}
+
+/// One estimate of what a task would do (ADEV-278, docs/specs/GOALS_GUARDRAILS_SIGNALS.md → Estimates).
+/// Append-only: the latest row for a task is its current estimate, as TaskCostEvent is a ledger.
+/// Written by the server from a service reply, or by a person as source "human". Never by an agent.
+model TaskEstimate {
+  id               String   @id @default(dbgenerated("(gen_random_uuid())::text"))
+  taskId           String
+  projectId        String
+  /// "builtin_llm" | "service:<key>" | "human"
+  source           String
+  contractVersion  String
+  requestedById    String
+  createdAt        DateTime @default(now())
+  inputsDigest     String
+  /// [{ goalId, delta, low, high, unit, kind: "absolute" | "relative" }]
+  goalImpacts      Json
+  /// [{ guardrailId, delta, low, high, breachProbability }]
+  guardrailImpacts Json
+  /// { level: "low" | "medium" | "high", score?, factors: string[] }
+  risk             Json
+  costMicrocents   BigInt?
+  effortHours      Float?
+  /// { count, unit, period, share? }
+  reach            Json?
+  /// "low" | "medium" | "high"
+  confidence       String
+  rationale        String?
+  /// Written by the server when it evaluates the policy. Never by a client.
+  label            String?
+  labelReasons     Json?
+  sortKey          Json?
+  policyDigest     String?
+  task             Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, createdAt])
 }
 
 /// A project's binding to one outside service (ADEV-269, ADEV-277). `kind` and

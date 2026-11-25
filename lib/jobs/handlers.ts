@@ -25,6 +25,10 @@ export const JOB_HANDLERS: JobHandlers = {
     const { runTaskUpdatedJob } = await import('@/services/task-update-deferred-effects')
     await runTaskUpdatedJob(payload)
   },
+  'estimator-poll': async payload => {
+    const { runEstimatorPollJob } = await import('@/services/task-estimate.service')
+    await runEstimatorPollJob(payload)
+  },
   'agent-wake': async payload => {
     const { deliverAgentWake } = await import('@/lib/agent-wake')
     await deliverAgentWake(payload)
