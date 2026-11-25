@@ -688,6 +688,17 @@ describe.each(PROFILES)('brand profile: $name', (profile) => {
     expect(body.integrations.codingAgent).toBe(caps.codingAgent)
     // Additive (spec §11.2); off unless the brand turns it on (D5).
     expect(body.product.githubProjects).toBe(caps.githubProjects)
+    // Goal signals (ADEV-272): off unless the brand turns it on, and then it offers nothing
+    // beyond what the environment defines. Profiles that do not state it expect it off.
+    expect(body.goalSignals).toBeDefined()
+    if (!(caps.goalSignals ?? false)) {
+      expect(body.goalSignals).toEqual({
+        metricSources: [],
+        experimentSources: [],
+        estimators: [],
+        customEndpoints: false,
+      })
+    }
     expect(body.brand.appName).toBe(profile.expect.appName)
   })
 

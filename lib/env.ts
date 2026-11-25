@@ -313,6 +313,10 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_CALENDAR_FEED', scope: 'optional', description: 'Public .ics calendar feed.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_PROJECT_MODE', scope: 'optional', description: 'Projects and status boards. Off compiles back to the single-player to-do app.' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_TASK_COST', scope: 'optional', description: 'Per-task cost tracking.' },
+  { name: 'NEXT_PUBLIC_BRAND_ENABLE_GOAL_SIGNALS', scope: 'optional', description: 'Goal signals: metric sources, experiments and impact estimates for project goals. OFF unless set to true; requires Project Mode (ADEV-269).' },
+  { name: 'ASTRID_SIGNAL_SERVICES', scope: 'optional', description: 'Server-only. JSON [{ key, kind, name, baseUrl, secretEnv }]: the outside services this environment offers for goal signals. kind is metric, experiment or estimator; secretEnv names the variable holding the credential, never the credential itself (ADEV-269).' },
+  { name: 'ASTRID_SIGNALS_BUILTIN_ESTIMATOR', scope: 'optional', description: 'Server-only. The built-in impact estimator, which uses the requesting user own key. On unless set to false (ADEV-269).' },
+  { name: 'ASTRID_SIGNALS_ALLOW_CUSTOM_ENDPOINTS', scope: 'optional', description: 'Server-only. Lets a project owner enter their own signal service URL, which then passes the outbound guard. OFF unless set to true (ADEV-269).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS', scope: 'optional', description: 'GitHub Projects as a task backend. OFF unless set to true; never set for the default hosted deployment (spec D5).' },
   { name: 'NEXT_PUBLIC_BRAND_ENABLE_GITHUB_AGENT_LABELS', scope: 'optional', description: 'On GitHub Projects boards, mirror an AI agent assignment as an agent:<name> label on the issue. OFF unless set to true (spec C3).' },
 

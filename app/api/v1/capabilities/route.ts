@@ -21,6 +21,7 @@ import { BRAND } from '@/lib/brand/config'
 import { BRAND_COPY } from '@/lib/brand/copy'
 import { AUTH_PROVIDER_KINDS } from '@/lib/brand/auth-providers'
 import { SERVER_API_LEVEL } from '@/lib/api-level'
+import { goalSignalsOffering } from '@/lib/goal-signal-services'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,6 +72,9 @@ export async function GET() {
         // GitHub Projects boards (spec §11.2). Additive; absent reads as off.
         githubProjects: CAPABILITIES.githubProjects,
       },
+      // What goal signals offers here (ADEV-269). Empty lists and false mean
+      // "offer nothing", so a client shows only what exists. Absent reads as off.
+      goalSignals: goalSignalsOffering(),
       // The brand this deployment presents itself as. TEXT ONLY, and deliberately so:
       // one mobile binary can point at several deployments, so the brand cannot be a
       // purely build-time value on the client any more than the capability set could be.
