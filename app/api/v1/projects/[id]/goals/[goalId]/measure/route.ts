@@ -1,5 +1,5 @@
 /**
- * PUT /api/v1/projects/:id/goals/:goalId/measure { current, taskId? } — record a goal's new value (ADEV-182)
+ * PUT /api/v1/projects/:id/goals/:goalId/measure { current, taskId? } or { value, unit?, at?, externalId?, taskId? } — record a goal's new value (ADEV-182)
  *
  * Open to everyone working in the project, agents and scripts included (the statement itself is
  * not: see ../route.ts). Each change keeps who and when in the goal's history, and answers the
@@ -28,6 +28,6 @@ export const PUT = withAuth<RouteContext>(
     }
     // An agent signs with its mailbox, a person with their user id.
     const by = auth.agentUser?.email ?? (auth.isAIAgent ? auth.user.email : auth.user.id)
-    return goalsResponse(await recordGoalMeasurement(id, auth.userId, goalId, body, by), auth)
+    return goalsResponse(await recordGoalMeasurement(id, auth.userId, goalId, body, by, auth.isAIAgent ? 'agent' : 'human'), auth)
   },
 )

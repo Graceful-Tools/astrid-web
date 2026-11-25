@@ -662,6 +662,17 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
   same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
   listId | taskId }`.
+- **Typed metric (ADEV-270).** A goal may carry `metric: { unit?, direction: "up" | "down", target?,
+  baseline?, current?, measuredAt?, source?: { connectorId, metricKey }, staleAfterHours? }` beside its
+  free text. `current` and `measuredAt` are the server's: a `PUT …/goals` never overwrites them.
+  `direction: "down"` is met at or below `target`. **A `PUT …/goals` that leaves `metric` out keeps the
+  stored block; an explicit `metric: null` clears it.** Without `metric` a goal reads exactly as before
+  (first number in `target` / `current`). History entries gain `num?`, `source?: "human" | "agent" |
+  "push" | "pull"` and `externalId?`.
+- The measure `PUT` also accepts `{ value, unit?, at?, externalId?, taskId? }` (`value` a number or numeric
+  string; `at` an ISO time, default now). It records `num`, and updates `metric.current` / `measuredAt` when
+  the goal has a `metric`. **A repeated `externalId` already in the goal's history is a no-op** (200, same
+  body). `{ current }` still works.
 - GET adds `workByGoal: { [goalId]: taskCount }`: tasks of the project linked to the goal (see
   *Goal links* below), directly or through a list. Agents end a completion or handback report with a
   `GOAL: g1, g2` line, which links the task.
