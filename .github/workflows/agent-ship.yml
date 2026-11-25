@@ -63,6 +63,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Land eligible handoffs and reconcile production
+        id: land
         run: |
           mkdir -p .agent-output
           FLAGS=()
@@ -70,6 +71,14 @@ jobs:
           set -o pipefail
           npx tsx scripts/land-and-deploy.ts --list-id "${ASTRID_WEB_LIST_ID}" \
             --max-land 1 --core-repo Graceful-Tools/astrid-core "${FLAGS[@]}" 2>&1 | tee .agent-output/ship.log
+      # ADEV-265: one PR lands per run, core CI cannot start this workflow, and GitHub drops
+      # scheduled runs (10h with none on 2026-11-25). When a run landed something and more green
+      # PRs remain, start the next run now instead of waiting for a tick. workflow_dispatch with
+      # the built-in token is allowed to start a run. The script sets `more` only after progress,
+      # so a PR that cannot land does not loop.
+      - name: Chain the next run while eligible PRs remain
+        if: ${{ steps.land.outputs.more == 'true' }}
+        run: gh workflow run agent-ship.yml --ref main -f dry_run=false
       - name: Persist shipping evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

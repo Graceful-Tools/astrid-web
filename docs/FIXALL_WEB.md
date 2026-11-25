@@ -145,6 +145,11 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   green checks, a merge commit pinned to the head). Then it completes every task whose PR is
   merged at its recorded head, a PR a person merged included, and comments the merge sha.
   Core CI cannot start `agent-ship.yml`, so core handoffs land on its :17/:47 schedule.
+  GitHub drops scheduled runs (ADEV-265: none for 10h on 2026-11-25), so after a run that
+  landed a PR while more green ones remain, the workflow dispatches itself again. Chosen over
+  a cross-repo dispatch (needs an `actions: write` token on astrid-web) and a watchdog
+  (more machinery); it costs nothing and adds no credential. It does not cover a dropped
+  schedule with nothing yet landed, so the first PR still waits for a tick or a dispatch.
 - **The selected Copilot cloud worker is GitHub's built-in agent**, not a CLI
   replacement. `native-copilot-bridge.yml` has a disabled-by-default schedule,
   explicit exact-board claims, native issue assignment and task/PR comment relay.

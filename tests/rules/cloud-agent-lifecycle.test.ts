@@ -578,6 +578,19 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     expect(read('.github/workflows/agent-ship.yml')).toContain('--max-land 1 --core-repo Graceful-Tools/astrid-core')
   })
 
+  it('ADEV-265: the ship workflow chains itself while eligible PRs remain', () => {
+    const ship = yaml.load(read('.github/workflows/agent-ship.yml'))
+    const steps = ship.jobs.ship.steps as Array<Record<string, any>>
+    expect(steps.find(s => s.run?.includes('land-and-deploy.ts'))?.id).toBe('land')
+    const chain = steps.find(s => s.name?.startsWith('Chain the next run'))!
+    expect(chain.if).toContain("steps.land.outputs.more == 'true'")
+    expect(chain.run).toBe('gh workflow run agent-ship.yml --ref main -f dry_run=false')
+    const script = read('scripts/land-and-deploy.ts')
+    expect(script).toContain("'more=true\\n'")
+    // Progress guard: a PR that cannot land must not loop the chain.
+    expect(script).toContain('const progressed = landed.length > 0 || core.landed.length > 0')
+  })
+
   it('AWTD-1682: the runner prompt tells a core run how to hand off', () => {
     const prompt = read('.github/agent-run-prompt.md')
     expect(prompt).toContain('AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <full pushed HEAD sha>')
