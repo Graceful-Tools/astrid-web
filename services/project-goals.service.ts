@@ -20,7 +20,6 @@ import {
   EMPTY_GOALS_AND_GUARDRAILS,
   hasGoalsOrGuardrails,
   parseGoalsAndGuardrails,
-  goalIdsServed,
   storedGoalsAndGuardrails,
   withMeasurement,
   type GoalMeasurementSource,
@@ -81,22 +80,31 @@ function projectView(project: LoadedProject, userId: string, value?: GoalsAndGua
 }
 
 /**
- * How many tasks of the project's lists reported serving each goal. A report is a comment with a
- * `GOAL: <id>` line; a task counts once per goal however many comments name it.
+ * How many tasks of the project serve each goal (ADEV-271): tasks linked to it directly (a person,
+ * an agent, or a `GOAL: <id>` work report, which writes a `source: report` link) and tasks on a list
+ * linked to it. A task counts once per goal however it is linked.
  */
 async function workByGoal(projectId: string, goalIds: string[]): Promise<Record<string, number>> {
   if (!goalIds.length) return {}
-  const comments = await prisma.comment.findMany({
-    where: { content: { contains: 'GOAL:' }, task: { lists: { some: { projectId } } } },
-    select: { taskId: true, content: true },
-    take: 2000,
+  const links = await prisma.goalLink.findMany({
+    where: { projectId, goalId: { in: goalIds } },
+    select: { goalId: true, taskId: true, listId: true },
   })
   const tasksByGoal = new Map<string, Set<string>>()
-  for (const comment of comments) {
-    for (const id of goalIdsServed(comment.content)) {
-      if (!goalIds.includes(id)) continue
-      if (!tasksByGoal.has(id)) tasksByGoal.set(id, new Set())
-      tasksByGoal.get(id)!.add(comment.taskId)
+  const add = (goalId: string, taskId: string) => {
+    if (!tasksByGoal.has(goalId)) tasksByGoal.set(goalId, new Set())
+    tasksByGoal.get(goalId)!.add(taskId)
+  }
+  for (const link of links) if (link.taskId) add(link.goalId, link.taskId)
+  const listLinks = links.filter(link => link.listId)
+  if (listLinks.length) {
+    const tasks = await prisma.task.findMany({
+      where: { lists: { some: { id: { in: [...new Set(listLinks.map(l => l.listId!))] } } } },
+      select: { id: true, lists: { select: { id: true } } },
+      take: 5000,
+    })
+    for (const link of listLinks) {
+      for (const task of tasks) if (task.lists.some(l => l.id === link.listId)) add(link.goalId, task.id)
     }
   }
   return Object.fromEntries([...tasksByGoal].map(([id, tasks]) => [id, tasks.size]))
@@ -234,11 +242,15 @@ export async function setProjectGoals(projectId: string, userId: string, body: u
       return goal.current && goal.current !== before?.current ? withMeasurement({ ...kept, current: before?.current }, goal.current, userId, now) : kept
     }),
   }
-  await prisma.project.update({
-    where: { id: projectId },
-    // Nothing stated is SQL NULL, never a stored empty object.
-    data: { goalsAndGuardrails: hasGoalsOrGuardrails(value) ? (value as unknown as Prisma.InputJsonValue) : Prisma.DbNull },
-  })
+  // Links to a goal the project no longer states go in the same transaction (ADEV-271).
+  await prisma.$transaction([
+    prisma.project.update({
+      where: { id: projectId },
+      // Nothing stated is SQL NULL, never a stored empty object.
+      data: { goalsAndGuardrails: hasGoalsOrGuardrails(value) ? (value as unknown as Prisma.InputJsonValue) : Prisma.DbNull },
+    }),
+    prisma.goalLink.deleteMany({ where: { projectId, goalId: { notIn: value.goals.map(g => g.id) } } }),
+  ])
   return { ok: true, value: projectView(project, userId, value) }
 }
 
