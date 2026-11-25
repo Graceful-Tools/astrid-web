@@ -80,6 +80,8 @@ Taken by the agent as the recommended option, open to Jon's override:
 
 4. A new **Pending results** preset column (role `results`) with entry and exit rules.
    `testing` is unchanged: boards already use it as a column with no rules.
+   **Amended by Jon, 2026-11-25: no board gets this column unless a person adds it.**
+   Setting it up is one tap ([section 7](#7-the-pending-results-lane)).
 5. Results that pass move the task to Done by rule. A regression, an inconclusive result at
    the deadline, or a silent source hands the task back with a Decision. Nothing rolls back
    automatically.
@@ -473,6 +475,40 @@ A second opt-in preset beside `testing` (`lib/board-presets.ts`, core `PRESET_ST
 role `results`, named **Pending results**. The rules are core-first, modelled on the
 Waiting lane's.
 
+### A board has the column only if a person added it
+
+Jon, 2026-11-25: "we should not insert the Pending results for all boards unless the user
+configures a verification or experimentation column, but we should support it with easy
+configuration out of the box."
+
+**Nothing adds the column on its own.** Not turning the gate on, not adding a connector,
+not linking a task to an experiment, not a new board, not a migration, not an agent. A
+board's columns change only when its owner or an admin changes them.
+
+**Adding it is one tap, from two places:**
+
+- **Manage statuses.** "Pending results" is listed beside "Testing" among the presets a
+  board can add (`availableBoardPresets`). It is listed only while the gate is on for the
+  board's project; a column that refuses every entry helps nobody.
+- **An offer where it becomes useful.** The first time a task on a board without the
+  column is linked to an experiment or given a verification window, the experiment row
+  shows one line to the board's owner or admin: "Hold tasks like this in a Pending results
+  column until the result is in? Add column." One tap adds it, placed after Doing (after
+  Testing where the board has it). Dismissing it is remembered per board, and the offer is
+  not made again. Members who cannot edit the board's columns never see it.
+
+There is nothing else to configure: the column works with whatever connectors and
+verification the project already has. Removing it is the ordinary remove-a-status path;
+tasks in it go where that path sends them, and their experiments stay linked.
+
+**A board without the column loses the lane, not the results.** Experiments and
+verification still link, refresh and report on the task: the experiment row, the verdict
+and a system comment when a result arrives. The task follows the board's own flow, and
+nothing completes it, moves it or hands it back by rule. P1 to P4 below apply only to a
+task that is in the column.
+
+### The rules
+
 - **P1 — entry needs something to wait for:** an open `TaskExperiment`, or a verification
   with `decideBy` in the future. Otherwise the write is refused with
   `RESULTS_NEEDS_CONDITION`, the client's cue to show the picker (link an experiment, or
@@ -488,7 +524,8 @@ Waiting lane's.
 
 **Settle job:** `/api/cron/results-settle`, every 15 minutes, `requireCronSecret` and
 `runCronJob`, a bounded stalest-first pass on the `lib/sync/github/sync-all-links.ts`
-template. A manual Refresh on the task settles it at once. Metric sources bound to goals
+template. A manual Refresh on the task settles it at once. For a task outside the column
+the same pass refreshes the result and records it, and changes nothing else. Metric sources bound to goals
 are polled by the same template on their own route.
 
 ---
@@ -583,6 +620,8 @@ Two layers, the capability first, as everywhere (`lib/brand/capabilities.ts`, th
 - **Not agent-written** goals, guardrails, policies, connectors or estimates.
 - **Not a hosted model.** The built-in estimator uses the requester's own key.
 - **Not a change to `testing`** or to the decision grid.
+- **Not a new default column.** No board gains Pending results unless its owner or an
+  admin adds it.
 
 ## Risks
 
@@ -615,7 +654,7 @@ rules: the core PR and its fixtures land, then web re-pins and mirrors.
 | 4b | Re-pin, evaluate on write, sort option, policy editor | web | 4a, 3a |
 | 5a | `results` preset and lane rules, fixtures | core first | — |
 | 5b | `TaskExperiment`, experiment client, settle job, lane wiring | web | 5a, 2a |
-| 5c | Experiment row and lane cards | web | 5b |
+| 5c | Experiment row, lane cards, the one-tap "Add column" offer | web | 5b |
 | 6a | Acting on labels: approvals for the three new actions | web | 4b, 5b |
 | 6b | MCP tools | web | 3a, 5b |
 | 7 | Native clients read links, estimates and results | core, then clients | 6a, 6b |
