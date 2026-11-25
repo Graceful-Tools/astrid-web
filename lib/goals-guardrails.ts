@@ -36,7 +36,32 @@ export interface ProjectGoal {
   current?: string
   /** The latest changes to `current`, oldest first. Written by the server, never by the editor. */
   history?: GoalMeasurement[]
+  /**
+   * The typed number behind the free text (ADEV-270). Absent on a goal that is only prose, which then
+   * reads exactly as before. `null` is only ever a submitted "clear it" (see `parseGoalsAndGuardrails`);
+   * nothing stores it.
+   */
+  metric?: GoalMetric | null
 }
+
+/** A goal's measure as numbers, with an optional outside source to read it from. */
+export interface GoalMetric {
+  unit?: string
+  /** Which way is better. */
+  direction: 'up' | 'down'
+  target?: number
+  baseline?: number
+  /** Written by the server. */
+  current?: number
+  /** ISO timestamp. Written by the server. */
+  measuredAt?: string
+  source?: { connectorId: string; metricKey: string }
+  /** How old `current` may get before it is unknown. Default 48. */
+  staleAfterHours?: number
+}
+
+export const GOAL_MEASUREMENT_SOURCES = ['human', 'agent', 'push', 'pull'] as const
+export type GoalMeasurementSource = (typeof GOAL_MEASUREMENT_SOURCES)[number]
 
 /** One recorded change of a goal's `current` value. */
 export interface GoalMeasurement {
@@ -47,6 +72,11 @@ export interface GoalMeasurement {
   at: string
   /** The task whose work moved it, when there is one. */
   taskId?: string
+  /** The number, when the value reads as one. */
+  num?: number
+  source?: GoalMeasurementSource
+  /** The sender's id for this reading; a repeat of one already in the history is a no-op. */
+  externalId?: string
 }
 
 /**
@@ -85,6 +115,7 @@ export const STATEMENT_MAX_CHARS = 500
 export const FIELD_MAX_CHARS = 120
 export const GOAL_HISTORY_MAX = 20
 const ID_MAX_CHARS = 40
+const EXTERNAL_ID_MAX_CHARS = 120
 
 export type ParseResult = { ok: true; value: GoalsAndGuardrails } | { ok: false; error: string }
 
@@ -129,14 +160,51 @@ function parseHistory(raw: unknown): GoalMeasurement[] | null {
     const at = text(m.at)
     if (!value || !by || !at || Number.isNaN(Date.parse(at))) return null
     const taskId = text(m.taskId)
+    const externalId = text(m.externalId)
     out.push({
       value: value.slice(0, FIELD_MAX_CHARS),
       by: by.slice(0, ID_MAX_CHARS),
       at,
       ...(taskId ? { taskId: taskId.slice(0, ID_MAX_CHARS) } : {}),
+      ...(finite(m.num) ? { num: m.num } : {}),
+      ...(GOAL_MEASUREMENT_SOURCES.includes(m.source as GoalMeasurementSource) ? { source: m.source as GoalMeasurementSource } : {}),
+      ...(externalId ? { externalId: externalId.slice(0, EXTERNAL_ID_MAX_CHARS) } : {}),
     })
   }
   return out.slice(-GOAL_HISTORY_MAX)
+}
+
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
+
+/** Read a submitted metric block, or null when it is not one. Unknown keys are dropped. */
+function parseMetric(raw: unknown): GoalMetric | null {
+  if (!isRecord(raw)) return null
+  if (raw.direction !== 'up' && raw.direction !== 'down') return null
+  const metric: GoalMetric = { direction: raw.direction }
+  const unit = text(raw.unit)
+  if (unit) metric.unit = unit.slice(0, FIELD_MAX_CHARS)
+  for (const key of ['target', 'baseline', 'current'] as const) {
+    if (raw[key] === undefined || raw[key] === null) continue
+    if (!finite(raw[key])) return null
+    metric[key] = raw[key] as number
+  }
+  const measuredAt = text(raw.measuredAt)
+  if (measuredAt) {
+    if (Number.isNaN(Date.parse(measuredAt))) return null
+    metric.measuredAt = measuredAt
+  }
+  if (raw.source !== undefined && raw.source !== null) {
+    if (!isRecord(raw.source)) return null
+    const connectorId = text(raw.source.connectorId)
+    const metricKey = text(raw.source.metricKey)
+    if (!connectorId || !metricKey) return null
+    metric.source = { connectorId: connectorId.slice(0, ID_MAX_CHARS), metricKey: metricKey.slice(0, FIELD_MAX_CHARS) }
+  }
+  if (raw.staleAfterHours !== undefined && raw.staleAfterHours !== null) {
+    if (!finite(raw.staleAfterHours) || raw.staleAfterHours <= 0) return null
+    metric.staleAfterHours = raw.staleAfterHours
+  }
+  return metric
 }
 
 function parseCheck(raw: unknown): GuardrailCheck | null {
@@ -182,6 +250,12 @@ export function parseGoalsAndGuardrails(raw: unknown): ParseResult {
       const history = parseHistory(g.history)
       if (!history) return { ok: false, error: "A goal's history is a list of { value, by, at }" }
       if (history.length) goal.history = history
+    }
+    if (g.metric === null) goal.metric = null
+    else if (g.metric !== undefined) {
+      const metric = parseMetric(g.metric)
+      if (!metric) return { ok: false, error: `A goal's metric is { direction: "up"|"down", unit?, target?, baseline?, source?, staleAfterHours? }` }
+      goal.metric = metric
     }
     // Keep a stable key order (id first) so stored JSON and the fixture read the same everywhere.
     goals.push(goal.id ? { id: goal.id, ...goal } : goal)
@@ -293,11 +367,34 @@ export function goalsOfFirstList(
  * Record a new `current` value for a goal (ADEV-182), who and when. A value equal to the present one
  * records nothing. Returns a new goal; the history keeps the latest GOAL_HISTORY_MAX changes.
  */
-export function withMeasurement(goal: ProjectGoal, value: string, by: string, at: Date, taskId?: string): ProjectGoal {
+export function withMeasurement(
+  goal: ProjectGoal,
+  value: string,
+  by: string,
+  at: Date,
+  taskId?: string,
+  extra: { num?: number; source?: GoalMeasurementSource; externalId?: string } = {},
+): ProjectGoal {
   const next = value.trim().slice(0, FIELD_MAX_CHARS)
   if (!next || next === goal.current) return goal
-  const entry: GoalMeasurement = { value: next, by, at: at.toISOString(), ...(taskId ? { taskId } : {}) }
-  return { ...goal, current: next, history: [...(goal.history ?? []), entry].slice(-GOAL_HISTORY_MAX) }
+  // A prose goal keeps today's entry shape; the number is only read where a metric wants one.
+  const num = extra.num ?? (goal.metric ? firstNumber(next) ?? undefined : undefined)
+  const entry: GoalMeasurement = {
+    value: next,
+    by,
+    at: at.toISOString(),
+    ...(taskId ? { taskId } : {}),
+    ...(num !== undefined ? { num } : {}),
+    ...(extra.source ? { source: extra.source } : {}),
+    ...(extra.externalId ? { externalId: extra.externalId } : {}),
+  }
+  const metric = goal.metric && num !== undefined ? { ...goal.metric, current: num, measuredAt: entry.at } : goal.metric
+  return {
+    ...goal,
+    current: next,
+    ...(metric ? { metric } : {}),
+    history: [...(goal.history ?? []), entry].slice(-GOAL_HISTORY_MAX),
+  }
 }
 
 function firstNumber(v: string | undefined): number | null {
@@ -310,11 +407,16 @@ function firstNumber(v: string | undefined): number | null {
  * is met when current is at or below it (no percent); otherwise higher is better and `percent` is
  * current/target, capped at 100. Null when either side has no number, so a prose measure shows none.
  */
-export function goalProgress(goal: Pick<ProjectGoal, 'target' | 'current'>): { met: boolean; percent: number | null } | null {
-  const target = firstNumber(goal.target)
-  const current = firstNumber(goal.current)
+export function goalProgress(
+  goal: Pick<ProjectGoal, 'target' | 'current'> & { metric?: GoalMetric | null },
+): { met: boolean; percent: number | null } | null {
+  // A metric block with both numbers wins (ADEV-270); direction `down` reads like a "≤" target.
+  const metric = goal.metric && finite(goal.metric.target) && finite(goal.metric.current) ? goal.metric : null
+  const target = metric ? metric.target! : firstNumber(goal.target)
+  const current = metric ? metric.current! : firstNumber(goal.current)
   if (target === null || current === null) return null
-  if (/^\s*(≤|<=|<|at most|max)/i.test(goal.target ?? '')) return { met: current <= target, percent: null }
+  const lowerIsBetter = metric ? metric.direction === 'down' : /^\s*(≤|<=|<|at most|max)/i.test(goal.target ?? '')
+  if (lowerIsBetter) return { met: current <= target, percent: null }
   if (target <= 0) return { met: current >= target, percent: null }
   return { met: current >= target, percent: Math.max(0, Math.min(100, Math.round((current / target) * 100))) }
 }
