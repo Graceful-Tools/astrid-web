@@ -29,7 +29,10 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe('PostHog is gone', () => {
-  it('is not referenced anywhere in source or config', () => {
+  // ADEV-256: a synchronous whole-tree walk finishes in ~1s alone but blew the
+  // 15s default when predeploy ran it beside the rest of the suite on a loaded
+  // machine. The work is unchanged; only the budget is sized for contention.
+  it('is not referenced anywhere in source or config', { timeout: 120_000 }, () => {
     const offenders = walk(ROOT)
       .filter((f) => !f.endsWith('tests/lib/no-posthog.test.ts'))
       .filter((f) => /posthog/i.test(readFileSync(f, 'utf8')))
