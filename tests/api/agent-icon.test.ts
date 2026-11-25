@@ -77,6 +77,18 @@ describe('GET /api/v1/agent-icon/[slug]', () => {
     expect(svg).toContain(PADDED_VIEWBOX)
   })
 
+  /** ADEV-267: the black Copilot mark vanished on a dark avatar background. */
+  it('draws a white background behind the Copilot mark, covering the padded viewBox (ADEV-267)', async () => {
+    const svg = await (await getIcon('copilot')).text()
+    expect(svg).toContain('<rect x="-3" y="-3" width="30" height="30" fill="#FFFFFF"/>')
+    expect(svg.indexOf('<rect')).toBeLessThan(svg.indexOf('<path'))
+  })
+
+  it('leaves other agents without a background rect (ADEV-267)', async () => {
+    const svg = await (await getIcon('claude')).text()
+    expect(svg).not.toContain('<rect x="-3"')
+  })
+
   /**
    * Same contract, same failure mode, a different agent: Muse's fallback was a
    * redraw rather than Meta's mark. Production reached it — the route only falls
