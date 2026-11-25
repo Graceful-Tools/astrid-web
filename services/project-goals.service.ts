@@ -23,6 +23,8 @@ import {
   goalIdsServed,
   storedGoalsAndGuardrails,
   withMeasurement,
+  type GoalMeasurementSource,
+  type GoalMetric,
   type GoalsAndGuardrails,
   type ProjectGoal,
 } from '@/lib/goals-guardrails'
@@ -133,20 +135,70 @@ export async function recordGoalMeasurement(
   goalId: string,
   body: unknown,
   by: string,
+  source: GoalMeasurementSource = 'human',
 ): Promise<GoalsResult<ProjectGoalsView>> {
   const project = await loadProject(projectId)
   if (!project || !worksInProject(project, userId)) return { ok: false, status: 404, error: 'Project not found' }
-  const input = (body && typeof body === 'object' ? body : {}) as { current?: unknown; taskId?: unknown }
-  if (typeof input.current !== 'string' || !input.current.trim()) return { ok: false, status: 400, error: 'Send { current: "<value>" }' }
+  const input = (body && typeof body === 'object' ? body : {}) as {
+    current?: unknown
+    value?: unknown
+    unit?: unknown
+    at?: unknown
+    externalId?: unknown
+    taskId?: unknown
+  }
   const taskId = typeof input.taskId === 'string' && input.taskId.trim() ? input.taskId.trim() : undefined
   const stored = storedGoalsAndGuardrails(project.goalsAndGuardrails)
-  if (!stored.goals.some(g => g.id === goalId)) return { ok: false, status: 404, error: 'Goal not found' }
+  const goal = stored.goals.find(g => g.id === goalId)
+  if (!goal) return { ok: false, status: 404, error: 'Goal not found' }
+
+  let text: string
+  let num: number | undefined
+  let at = new Date()
+  let externalId: string | undefined
+  let readingSource = source
+  if (input.value !== undefined) {
+    // A numeric reading, usually pushed by a script or a metrics service (ADEV-270).
+    const n = typeof input.value === 'string' && input.value.trim() ? Number(input.value) : input.value
+    if (typeof n !== 'number' || !Number.isFinite(n)) return { ok: false, status: 400, error: 'Send { value: <number> }' }
+    num = n
+    const unit = typeof input.unit === 'string' && input.unit.trim() ? input.unit.trim() : goal.metric?.unit
+    text = `${n}${unit ? (/^[%°]/.test(unit) ? '' : ' ') + unit : ''}`
+    if (input.at !== undefined) {
+      const parsedAt = typeof input.at === 'string' ? new Date(input.at) : null
+      if (!parsedAt || Number.isNaN(parsedAt.getTime())) return { ok: false, status: 400, error: '`at` is an ISO timestamp' }
+      at = parsedAt
+    }
+    if (input.externalId !== undefined) {
+      if (typeof input.externalId !== 'string' || !input.externalId.trim()) return { ok: false, status: 400, error: '`externalId` is a non-empty string' }
+      externalId = input.externalId.trim().slice(0, 120)
+      // A repeat of a reading already kept changes nothing.
+      if (goal.history?.some(m => m.externalId === externalId)) return { ok: true, value: projectView(project, userId, stored) }
+    }
+    if (readingSource === 'human') readingSource = 'push'
+  } else if (typeof input.current === 'string' && input.current.trim()) {
+    text = input.current
+  } else {
+    return { ok: false, status: 400, error: 'Send { current: "<value>" } or { value: <number> }' }
+  }
   const value: GoalsAndGuardrails = {
     ...stored,
-    goals: stored.goals.map(g => (g.id === goalId ? withMeasurement(g, input.current as string, by, new Date(), taskId) : g)),
+    goals: stored.goals.map(g =>
+      g.id === goalId ? withMeasurement(g, text, by, at, taskId, { num, source: readingSource, externalId }) : g,
+    ),
   }
   await prisma.project.update({ where: { id: projectId }, data: { goalsAndGuardrails: value as unknown as Prisma.InputJsonValue } })
   return { ok: true, value: projectView(project, userId, value) }
+}
+
+/** A submitted metric with the server-written reading (`current`, `measuredAt`) carried over from the stored one. */
+function mergeMetric(submitted: GoalMetric, stored: GoalMetric | undefined): GoalMetric {
+  const { current: _c, measuredAt: _m, ...rest } = submitted
+  return {
+    ...rest,
+    ...(stored?.current !== undefined ? { current: stored.current } : {}),
+    ...(stored?.measuredAt ? { measuredAt: stored.measuredAt } : {}),
+  }
 }
 
 /** `{ goals, guardrails }` replaces what is stored; both empty (or `null`) clears it. */
@@ -168,8 +220,17 @@ export async function setProjectGoals(projectId: string, userId: string, body: u
     ...parsed.value,
     goals: parsed.value.goals.map(goal => {
       const before = stored.goals.find(g => g.id === goal.id)
-      const { history: _submitted, ...rest } = goal
-      const kept: ProjectGoal = before?.history ? { ...rest, history: before.history } : rest
+      const { history: _submitted, metric: submittedMetric, ...rest } = goal
+      // Preserve on omit: only an explicit `null` clears the stored metric. `current` and `measuredAt`
+      // are the server's, so an editor's copy of them never overwrites the stored reading.
+      const nextMetric =
+        submittedMetric === null
+          ? undefined
+          : submittedMetric === undefined
+            ? before?.metric ?? undefined
+            : mergeMetric(submittedMetric, before?.metric ?? undefined)
+      const withMetric: ProjectGoal = nextMetric ? { ...rest, metric: nextMetric } : rest
+      const kept: ProjectGoal = before?.history ? { ...withMetric, history: before.history } : withMetric
       return goal.current && goal.current !== before?.current ? withMeasurement({ ...kept, current: before?.current }, goal.current, userId, now) : kept
     }),
   }
