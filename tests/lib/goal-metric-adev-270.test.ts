@@ -8,6 +8,8 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     project: { findUnique: vi.fn(), update: vi.fn() },
     comment: { findMany: vi.fn().mockResolvedValue([]) },
+    $transaction: vi.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
+    goalLink: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }), findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
