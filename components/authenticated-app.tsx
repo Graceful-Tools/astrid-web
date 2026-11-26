@@ -6,7 +6,13 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { offlineDB } from "@/lib/offline-db"
 import { useListPermissionsState } from "@/hooks/useBrowserCoreRules"
-import { ListPermissionsUnavailableNotice } from "@/components/list-permissions-unavailable-notice"
+import dynamic from "next/dynamic"
+
+// Only shown in the rare "unavailable" state, so it costs no route first-load JavaScript (ADEV-304).
+const ListPermissionsUnavailableNotice = dynamic(
+  () => import("@/components/list-permissions-unavailable-notice").then((m) => m.ListPermissionsUnavailableNotice),
+  { ssr: false },
+)
 
 interface AuthenticatedAppProps {
   initialSelectedListId?: string

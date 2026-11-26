@@ -59,10 +59,11 @@ describe('ADEV-304: the app shell waits for the browser permission rules', () =>
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
-  it('draws the app read-only with a notice when permissions are unavailable', () => {
+  it('draws the app read-only with a notice when permissions are unavailable', async () => {
     render(<AuthenticatedApp />)
     settle('unavailable')
     expect(screen.getByTestId('task-manager')).toBeTruthy()
-    expect(screen.getByRole('alert').textContent).toMatch(/permission rules/)
+    // The notice is lazy-loaded (it costs no first-load JS), so it arrives a tick later.
+    expect((await screen.findByRole('alert')).textContent).toMatch(/permission rules/)
   })
 })
