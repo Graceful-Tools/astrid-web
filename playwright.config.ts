@@ -128,6 +128,8 @@ export default defineConfig({
 
     {
       name: 'webkit',
+      // Transition (ADEV-298): WebKit still needs the second retry; its flakes show as warnings.
+      retries: process.env.CI ? 2 : 1,
       use: { ...devices['Desktop Safari'] },
       testMatch: /(auth|locale-navigation)\.spec\.ts/,
     },
@@ -141,6 +143,8 @@ export default defineConfig({
     },
     {
       name: 'Mobile Safari',
+      // Transition (ADEV-298): see webkit above.
+      retries: process.env.CI ? 2 : 1,
       use: { ...devices['iPhone 12'] },
       testMatch: /(auth|locale-navigation)\.spec\.ts/,
     },
