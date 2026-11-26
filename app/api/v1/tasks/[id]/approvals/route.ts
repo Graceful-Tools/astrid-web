@@ -1,9 +1,11 @@
 /**
  * POST /api/v1/tasks/:id/approvals — post an approval card (AWTD-1694).
  *
- *   { action: "deploy" | "migrate", sha: "<40-hex commit>", summary: "<what will run>", aiAgentId? }
+ *   { action: "deploy" | "migrate" | "promoteIdea" | "experimentStart" | "experimentStop",
+ *     sha: "<40-hex commit, or snapshot digest>", summary: "<what will run>", aiAgentId? }
  *
- * The card is bound to that action and commit. Needs write access to the task, like any comment.
+ * The card is bound to that action and commit (or, for the Goal signals actions, the digest of the
+ * estimate or experiment snapshot; ADEV-284). Needs write access to the task, like any comment.
  * Deciding it is POST /api/v1/tasks/:id/approvals/:commentId.
  */
 import { NextResponse } from 'next/server'
@@ -11,7 +13,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess } from '@/lib/api-auth-middleware'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
 import { resolveAgentAuthor, validateMcpAgentSelection } from '@/lib/ai-agent-author'
-import { isApprovalAction, isFullSha } from '@/lib/approvals'
+import { APPROVAL_ACTIONS, isApprovalAction, isFullSha } from '@/lib/approvals'
 import { requestApproval } from '@/services/approval.service'
 
 type RouteContext = { params: Promise<{ id: string }> }
@@ -31,8 +33,8 @@ export const POST = withAuth<RouteContext>(
     }
     if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
 
-    if (!isApprovalAction(body.action)) return NextResponse.json({ error: 'action must be "deploy" or "migrate"' }, { status: 400 })
-    if (!isFullSha(body.sha)) return NextResponse.json({ error: 'sha must be a full 40-character commit sha' }, { status: 400 })
+    if (!isApprovalAction(body.action)) return NextResponse.json({ error: `action must be one of ${APPROVAL_ACTIONS.join(', ')}` }, { status: 400 })
+    if (!isFullSha(body.sha)) return NextResponse.json({ error: 'sha must be a full 40-character commit sha (or snapshot digest)' }, { status: 400 })
     if (typeof body.summary !== 'string' || !body.summary.trim()) {
       return NextResponse.json({ error: 'summary must say exactly what will run' }, { status: 400 })
     }

@@ -472,6 +472,8 @@ Wait for user feedback if needed before proceeding.
 
 ### Step 3: Implementation — RED-GREEN TDD (Mandatory for bug fixes)
 
+> Which tier a test belongs in, naming (task id in the `describe`, not the filename) and the route-test harness: [docs/context/testing.md](docs/context/testing.md).
+
 Bug fixes MUST follow red-green test-driven development:
 
 1. **RED** — first write a failing test that reproduces the bug. Run it and

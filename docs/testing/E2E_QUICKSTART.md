@@ -1,5 +1,7 @@
 # Playwright E2E Testing - Quick Start Guide
 
+> Which test goes in which tier, and how the ratchets work: [Testing Strategy](../context/testing.md).
+
 ## ⚡ 3-Step Setup
 
 ### 1. Install Browser Binaries (One-Time)

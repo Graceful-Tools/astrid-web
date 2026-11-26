@@ -55,6 +55,7 @@ import { connectorFailureText, recordConnectorOutcome, sourceTargetFor } from '@
 import { recordGoalMeasurement } from '@/services/project-goals.service'
 import { completeTask } from '@/services/complete-task'
 import { updateTaskWithSideEffects } from '@/services/task.service'
+import { actOnGoalSignal } from '@/services/goal-action.service'
 
 const log = createLogger('task-experiment')
 
@@ -417,6 +418,11 @@ export async function refreshExperimentRow(row: Row, options: RefreshOptions = {
     ? await refreshVerificationKind(row, project, now, options.fetchImpl)
     : await refreshExperimentKind(row, project, now, options.fetchImpl)
   const concluded = !isOpenExperiment(updated)
+  // A service that recommends starting or stopping may be obeyed, as the board's policy says (ADEV-284).
+  const recommended = (updated.recommendation as ExperimentRecommendation | null)?.action
+  if (!concluded && (recommended === 'start' || recommended === 'stop')) {
+    await actOnGoalSignal(updated.taskId, recommended === 'start' ? 'experimentStart' : 'experimentStop', { experimentId: updated.id })
+  }
   if (concluded) {
     // Once: only the refresh that took it from open to concluded reports.
     await postSystemComment(updated.taskId, reportOf(updated), 'EXPERIMENT_RESULT').catch(error => {

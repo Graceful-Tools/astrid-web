@@ -611,6 +611,14 @@ claims, questions go to the list owner.
   a `do-now` idea, with confidence at least `minConfidenceToAct`, to Ready), `experimentStart` and `experimentStop`.
   A write that changes `tradeoff` queues a bounded re-evaluation of the project's latest estimates; stored labels
   follow within a job or two.
+- **Acting on a label** (ADEV-284). `POST /api/v1/tasks/{id}/approvals` accepts `promoteIdea`, `experimentStart` and
+  `experimentStop` beside `deploy` and `migrate`. For these the card's `sha` is a 40-hex **digest of the estimate or
+  experiment snapshot** it was asked about, not a commit; a newer snapshot has a new digest and needs a new card, and
+  approving a card whose digest is no longer current answers 409 `STALE_SNAPSHOT`. The server asks the policy on its own
+  when an estimate is labelled `do-now` or an experiment's recommendation is `start`/`stop`: `allowed` moves the idea
+  to Ready or calls the service's `/experiments/action`, `ask` posts the card first, `never` (the default) leaves a
+  recommendation. An estimate below `minConfidenceToAct`, and any built-in estimate, never acts, and any error resolving
+  the policy is `never`.
 - `PUT { "policy": <PolicyOverride> | null }`. `null` clears it. A value the rules do not know
   (`"merge": "sometimes"`, a probability of 1.5) is a 400, and so is an unknown key. People named under `escalation` must
   be on the list, or on one of the project's boards.
@@ -679,6 +687,13 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
   same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
   listId | taskId }`.
+- **Goal-signal MCP tools (ADEV-283).** `link_task_goal { taskId, goalId, projectId? }` (adds to the
+  task's own links over `PUT tasks/:id/goals`), `get_task_estimate { taskId, projectId? }`,
+  `request_estimate { taskId, estimator?, projectId? }`, `link_task_experiment { taskId, kind, … }` and
+  `get_experiment_status { taskId }`, proxies over `tasks/:id/{goals,estimates,experiment}`. Replies are
+  wrapped in `<untrusted_goal_signals>`. No tool writes an estimate, policy or connector. **Behaviour
+  change:** `POST tasks/:id/estimates` from an agent that resolves to the built-in estimator returns
+  `403 { reason: "spend_not_allowed" }` unless every board the task is on lets that agent `spend` alone.
 - **Typed metric (ADEV-270).** A goal may carry `metric: { unit?, direction: "up" | "down", target?,
   baseline?, current?, measuredAt?, source?: { connectorId, metricKey }, staleAfterHours? }` beside its
   free text. `current` and `measuredAt` are the server's: a `PUT …/goals` never overwrites them.
