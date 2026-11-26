@@ -79,14 +79,9 @@ describe('AWTD-1554 queue shadow', () => {
     })
   })
 
-  it.skip('enforcement follow-up: stored Off polling-only mailbox receives no queued work', async () => {
-    const result = await buildAgentQueue({
-      agent: 'codex',
-      userId: 'user-1',
-    })
-    expect(result.mode).toBe('off')
-    expect(result.queue).toEqual([])
-  })
+  // AWTD-1554 enforcement follow-up (docs/AGENT_POLLING_MODE.md: needs its own review after shadow evidence).
+  // Intended: buildAgentQueue({ agent: 'codex', userId }) returns mode 'off' and an empty queue.
+  it.todo('AWTD-1554 enforcement follow-up: stored Off polling-only mailbox receives no queued work')
 })
 
 describe('buildAgentQueue', () => {
