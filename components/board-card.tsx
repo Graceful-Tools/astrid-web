@@ -9,6 +9,7 @@
 import React from "react"
 import { TaskRowContent } from "@/components/task-row-content"
 import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
+import { EstimateControl } from "@/components/projects/EstimateControl"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import type { Task, TaskList } from "@/types/task"
 
@@ -53,6 +54,7 @@ export function BoardCard({
   onPointerEnd,
   consumeSuppressedClick,
 }: BoardCardProps) {
+  const isIdea = !task.completed && !task.statusRole && !!task.lists?.some(list => list.projectId)
   return (
     <div
       data-testid={testId}
@@ -99,7 +101,14 @@ export function BoardCard({
         onCopyPublic={onCopyPublic ?? (() => {})}
         identifier={shouldShowTaskIdentifier(task, "row-board", lists) ? task.identifier : null}
         currentListId={currentListId}
-        belowTitle={isDone ? <BoardCompletedOnPill task={task} /> : null}
+        belowTitle={
+          isDone ? (
+            <BoardCompletedOnPill task={task} />
+          ) : isIdea ? (
+            /* An idea is an open Inbox card (ADEV-280); draws nothing outside Project Mode. */
+            <EstimateControl taskId={task.id} projectId={task.lists?.find(list => list.projectId)?.projectId} compact />
+          ) : null
+        }
         onOpenOptions={onOpenOptions}
       />
     </div>
