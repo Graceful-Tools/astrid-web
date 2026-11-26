@@ -17,7 +17,7 @@ import type { OrchestrationPolicy } from '@/lib/orchestration-autonomy'
 
 const policy = (over: Partial<OrchestrationPolicy['autonomy']> = {}): OrchestrationPolicy => ({
   routing: { assignTo: null, agents: null },
-  autonomy: { merge: 'allowed', deploy: 'allowed', migrate: { additive: 'allowed', destructive: 'ask' }, release: 'ask', spend: 'ask', ...over },
+  autonomy: { merge: 'allowed', deploy: 'allowed', migrate: { additive: 'allowed', destructive: 'ask' }, release: 'ask', spend: 'ask', promoteIdea: 'never', experimentStart: 'never', experimentStop: 'never', ...over },
   escalation: { to: 'listOwner' },
 })
 

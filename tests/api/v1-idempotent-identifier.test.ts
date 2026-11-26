@@ -24,18 +24,25 @@ import fs from 'fs'
 
 const service = fs.readFileSync('services/task.service.ts', 'utf8')
 const v1Route = fs.readFileSync('app/api/v1/tasks/route.ts', 'utf8')
+const membership = fs.readFileSync('services/task-list-membership.ts', 'utf8')
 
 describe('task create identifier minting (task 5bcd426b, epic 9dedd8aa)', () => {
   it('mints exactly once, not once per branch', () => {
     // The UPDATE verb mints too since AWTD-1016 — a task moved onto a project
-    // list gets its identifier then — so count each verb on its own side.
+    // list gets its identifier then — so count each verb on its own side. The
+    // update's mint lives in its list-membership write (ADEV-279 moved it to
+    // services/task-list-membership.ts), called once from the update verb.
     const updateAt = service.indexOf('export async function updateTaskWithSideEffects')
     expect(updateAt).toBeGreaterThan(-1)
     const createMints = service.slice(0, updateAt).match(/await mintTaskIdentifierBestEffort\(/g) ?? []
     const updateMints = service.slice(updateAt).match(/await mintTaskIdentifierBestEffort\(/g) ?? []
+    const membershipWrites = service.slice(updateAt).match(/await resolveListMembershipWrite\(/g) ?? []
+    const membershipMints = membership.match(/await mintTaskIdentifierBestEffort\(/g) ?? []
 
     expect(createMints).toHaveLength(1)
-    expect(updateMints).toHaveLength(1)
+    expect(updateMints).toHaveLength(0)
+    expect(membershipWrites).toHaveLength(1)
+    expect(membershipMints).toHaveLength(1)
   })
 
   it('has exactly one create for the mint to sit above', () => {
