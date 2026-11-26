@@ -29,9 +29,15 @@ import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
 import { TaskDetailOccurrenceRow } from "./TaskDetailOccurrenceRow"
 import { TaskDetailGoalsRow } from "./TaskDetailGoalsRow"
 import { Globe, Users, X, Check, Hash, List as ListIcon, Tag, Milestone, CalendarRange } from "lucide-react"
+import dynamic from "next/dynamic"
 import { useTranslations } from "@/lib/i18n/client"
 import { TaskDetailEstimateRow } from "./TaskDetailEstimateRow"
-import { TaskDetailExperimentRow } from "./TaskDetailExperimentRow"
+
+// Loaded on demand: the row and its picker are not needed to paint the first screen.
+const TaskDetailExperimentRow = dynamic(
+  () => import("./TaskDetailExperimentRow").then((m) => m.TaskDetailExperimentRow),
+  { ssr: false },
+)
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskDetailListsRowProps {
