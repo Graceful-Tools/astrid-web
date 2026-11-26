@@ -15,7 +15,7 @@ import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { useSelectedProjectId } from "@/hooks/use-selected-project"
 import { useSidebarProjectActions } from "@/hooks/task-manager/useSidebarProjectActions"
 import { LoadingScreen } from "./loading-screen"
-import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
+import { useTaskPanePosition } from "@/hooks/task-manager/useTaskPanePosition"
 import { Input } from "@/components/ui/input"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 import { AddTaskInput } from "./add-task-input"
@@ -550,40 +550,10 @@ const TaskManagerView = memo(function TaskManagerView({
   // (removed local ref creation to use refs from useTaskManagerLayout)
 
   // Calculate task pane position based on layout type and component widths
-  React.useEffect(() => {
-    const calculatePosition = () => {
-      if (sidebarRef.current && taskManagerRef.current && (selectedTaskId || settingsSubPage) && !is1Column) {
-        const sidebarRect = sidebarRef.current.getBoundingClientRect()
-        const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
-
-        // Layout-aware positioning (pure math in task-pane-position). The window
-        // width keeps the panel on screen when messages is hidden (AWTD-1205).
-        const leftOffset = computeTaskPaneLeftOffset(sidebarRect.width, taskManagerRect.width,
-          { is2Column, is3Column, showHamburgerMenu }, window.innerWidth)
-
-        // Update the task pane position
-        setTaskPanePosition({ left: leftOffset })
-      }
-    }
-
-    calculatePosition()
-    window.addEventListener('resize', calculatePosition)
-
-    // ADEV-288: the main column can change width without a window resize (messages
-    // pane toggled, list view settling, sidebar collapsing). Re-measure then too,
-    // or the panel opens at a stale offset, over or away from the list.
-    let observer: ResizeObserver | undefined
-    if (typeof ResizeObserver !== 'undefined') {
-      observer = new ResizeObserver(calculatePosition)
-      if (sidebarRef.current) observer.observe(sidebarRef.current)
-      if (taskManagerRef.current) observer.observe(taskManagerRef.current)
-    }
-
-    return () => {
-      window.removeEventListener('resize', calculatePosition)
-      observer?.disconnect()
-    }
-  }, [selectedTaskId, settingsSubPage, is1Column, is2Column, is3Column, showHamburgerMenu, setTaskPanePosition, sidebarRef, taskManagerRef])
+  useTaskPanePosition({
+    active: Boolean(selectedTaskId || settingsSubPage), is1Column, is2Column, is3Column,
+    showHamburgerMenu, sidebarRef, taskManagerRef, setTaskPanePosition,
+  })
 
   // Keyboard shortcuts setup
   const keyboardShortcutHandlers: KeyboardShortcutHandlers = {
