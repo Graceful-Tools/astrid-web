@@ -1430,7 +1430,10 @@ All errors follow this format:
 ### Hosted MCP authentication challenges
 
 `/mcp` validates bearer credentials before initialization, tool discovery, or
-dispatch; `/mcp/messages` revalidates them before an SSE message is dispatched.
+dispatch. It speaks Streamable HTTP only: POST a JSON-RPC message and read the
+reply from the response body; an authenticated GET opens the optional listen
+stream, which stays open and sends no events. The legacy SSE transport and its
+`/mcp/messages` URL were retired in AWTD-1569.
 OAuth and legacy MCP bearer tokens remain supported, as do Basic client
 credentials and the existing `X-Astrid-*` headers. Browser sessions cannot
 substitute for an invalid hosted bearer.
@@ -1441,7 +1444,7 @@ Rejected bearer credentials return HTTP 401 with:
 WWW-Authenticate: Bearer resource_metadata="https://www.astrid.cc/.well-known/oauth-protected-resource/mcp", error="invalid_token"
 ```
 
-On `/mcp` and `/mcp/messages` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
+On `/mcp` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
 falling back to the request's Host only when that is unset, so a proxy's `localhost` Host is
 never advertised (ADEV-99); `/api/mcp/operations` uses the request origin. Missing credentials receive the same
 discovery challenge without `error="invalid_token"`. `/api/mcp/operations` also
@@ -1455,8 +1458,6 @@ database. Remote backends must support `GET /api/v1/oauth/validate`: token-only,
 no scope requirement, no cookie fallback, HTTP 204 with an empty body for a valid
 OAuth/legacy bearer, HTTP 401 for rejection, HTTP 500 for backend failure.
 Validation never follows redirects or returns token/account metadata.
-SSE messages must match the retained stream's effective credential and backend;
-the retained options, not an independently selected POST credential, are revalidated.
 
 Hosted backend overrides require public HTTPS without URL credentials, query,
 or fragment. Every outbound validation, token exchange, and API request rejects

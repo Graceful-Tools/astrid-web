@@ -252,6 +252,16 @@ describe('applyListDefaults', () => {
 })
 
 describe('mapTaskDataForApi', () => {
+  it('ADEV-297: keeps parentTaskId, so a subtask added in task detail is created under its parent', () => {
+    const apiData = mapTaskDataForApi({
+      title: 'Child',
+      listIds: ['list-123'],
+      parentTaskId: 'parent-1',
+    })
+
+    expect(apiData.parentTaskId).toBe('parent-1')
+  })
+
   it('should send dueDateTime field with time preserved', () => {
     const testDate = new Date('2025-01-15T14:30:00')
     const taskData = {

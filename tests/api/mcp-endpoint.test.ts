@@ -11,8 +11,8 @@
  * body — so connecting Astrid meant discovering the split-URL SSE setup, which
  * is precisely the difficulty this task reports.
  *
- * These pin the Streamable HTTP handshake on the one URL, without disturbing
- * the SSE path that existing clients may still use.
+ * These pin the Streamable HTTP handshake on the one URL. (The SSE transport
+ * itself was retired in AWTD-1569; see tests/contracts/mcp-streamable-http-awtd-1569.test.ts.)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Readable } from 'stream'
@@ -124,7 +124,7 @@ describe('/mcp Streamable HTTP endpoint (task a0e0808c)', () => {
     expect(statusCode).toBe(401)
   })
 
-  it('advertises POST alongside the SSE GET', async () => {
+  it('advertises POST alongside the listen-stream GET', async () => {
     const req = Object.assign(Readable.from([]), { method: 'OPTIONS', headers: {}, query: {} })
     const headers: Record<string, string> = {}
     const res = {
@@ -137,7 +137,7 @@ describe('/mcp Streamable HTTP endpoint (task a0e0808c)', () => {
 
     await handler(req as never, res as never)
 
-    // SSE clients still need GET; Streamable HTTP clients need POST.
+    // Streamable HTTP clients POST messages and may GET a listen stream.
     expect(headers.Allow).toContain('POST')
     expect(headers.Allow).toContain('GET')
   })

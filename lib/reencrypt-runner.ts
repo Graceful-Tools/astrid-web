@@ -176,7 +176,7 @@ async function walkColumns(
 
 /**
  * The whole pass against one database: every column, then every mcpSettings
- * blob. tests/integration/postgres-risk.test.ts proves it on a real database.
+ * blob. tests/integration/postgres/postgres-risk.test.ts proves it on a real database.
  */
 export async function reencrypt(
   prisma: PrismaClient,

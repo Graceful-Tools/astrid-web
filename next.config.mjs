@@ -141,10 +141,6 @@ const nextConfig = {
           source: '/mcp',
           destination: '/api/mcp',
         },
-        {
-          source: '/mcp/messages',
-          destination: '/api/mcp/messages',
-        },
         // A missing root-level file (/nope.png, /apple-touch-icon-precomposed.png,
         // /nope.md) is a 404, not the app (AWTD-1599). The middleware cannot say
         // so: its matcher skips file-shaped addresses so it does not run on every

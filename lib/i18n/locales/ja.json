@@ -1161,8 +1161,7 @@
         "note": "この URL をアシスタントの MCP 設定に追加してください。{appName} へのサインインを求められます — コピーするキーはありません。",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "プロジェクトに .vscode/mcp.json として保存し、サーバーの Start を押します",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "SSE トランスポートしか使えない古いクライアントは、同じ URL に GET し、/mcp/messages に POST でメッセージを送れます。"
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "ステップ1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "プロジェクトに .vscode/mcp.json として保存し、サーバーの Start を押します",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "SSE トランスポートしか使えない古いクライアントは、同じ URL に GET し、/mcp/messages に POST でメッセージを送れます。",
         "claudeNote": "コマンド 1 つ。ブラウザーが開いてアクセスを承認するだけで、キーのコピーは不要です",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI でも同じ 1 コマンドで接続できます",

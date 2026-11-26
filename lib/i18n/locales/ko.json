@@ -1161,8 +1161,7 @@
         "note": "이 URL을 어시스턴트의 MCP 설정에 추가하세요. {appName}에 로그인하라는 안내가 나타납니다 — 복사할 키는 없습니다.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "프로젝트에 .vscode/mcp.json으로 저장한 다음 서버에서 Start를 누르세요",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "SSE 전송만 지원하는 이전 클라이언트는 같은 URL에 GET 요청을 보내고 /mcp/messages로 POST 메시지를 보낼 수 있습니다."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "단계 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "프로젝트에 .vscode/mcp.json으로 저장한 다음 서버에서 Start를 누르세요",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "SSE 전송만 지원하는 이전 클라이언트는 같은 URL에 GET 요청을 보내고 /mcp/messages로 POST 메시지를 보낼 수 있습니다.",
         "claudeNote": "명령 하나면 됩니다. 브라우저가 열려 액세스를 승인하고, 복사할 키는 없습니다",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI에서도 동일하게 명령 하나로 연결합니다",
