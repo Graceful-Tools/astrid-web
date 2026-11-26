@@ -69,6 +69,9 @@ jobs:
         run: npm run playwright:setup:ci-auth
       - name: Run authenticated critical paths
         run: npm run test:e2e:authenticated-critical
+      - name: Fail on flaky tests (ADEV-298)
+        if: ${{ !cancelled() }}
+        run: node scripts/check-playwright-flaky.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
@@ -158,6 +161,10 @@ jobs:
           NEXTAUTH_URL: http://localhost:3000
           NEXT_AUTH_PUBLIC_URL: http://localhost:3000
 
+      - name: Fail on flaky tests (ADEV-298)
+        if: ${{ !cancelled() }}
+        run: node scripts/check-playwright-flaky.mjs
+
       - name: Upload test results
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
@@ -245,6 +252,10 @@ jobs:
           NEXTAUTH_SECRET: test-secret-at-least-32-characters-long-for-ci
           NEXTAUTH_URL: http://localhost:3000
           NEXT_AUTH_PUBLIC_URL: http://localhost:3000
+
+      - name: Fail on flaky tests (ADEV-298)
+        if: ${{ !cancelled() }}
+        run: node scripts/check-playwright-flaky.mjs
 
       - name: Upload mobile test results
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

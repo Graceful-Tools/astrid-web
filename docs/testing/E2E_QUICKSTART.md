@@ -192,3 +192,14 @@ View results in GitHub Actions → Test reports uploaded as artifacts
 - [ ] Integrate into CI/CD pipeline
 
 **You're ready to test!** 🚀
+
+## Flaky tests fail CI (ADEV-298)
+
+Playwright retries once (`retries: 1`). A test that fails and then passes is reported `flaky`,
+and `scripts/check-playwright-flaky.mjs` fails each E2E job on it (pass
+`--warn` for a warning only). `KNOWN_FLAKY` in that script may
+only shrink. Fix the race instead of adding to it:
+
+- **Passkey button:** wait on `data-passkey-support` leaving `pending` (the app sets it once detection
+  has run), never on `isEnabled()`. This replaces the "Firefox E2E is flaky on PRs" workaround.
+- **Anything that saves:** wait on the save response, or repeat the gesture until its result shows.

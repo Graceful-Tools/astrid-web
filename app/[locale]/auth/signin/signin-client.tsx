@@ -48,6 +48,7 @@ export function SignInContent() {
   // Passkey support
   const {
     isSupported: isPasskeySupported,
+    isDetected: passkeyDetected,
     isLoading: isPasskeyLoading,
     error: passkeyError,
     registerPasskey,
@@ -320,6 +321,7 @@ export function SignInContent() {
                     setShowPasskeyEmailPrompt(true)
                   }}
                   disabled={loading || isPasskeyLoading || !isPasskeySupported}
+                  data-passkey-support={passkeyDetected ? (isPasskeySupported ? "supported" : "unsupported") : "pending"}
                   className={`w-full font-medium h-12 rounded-xl shadow-sm ${
                     isPasskeySupported
                       ? "theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary border theme-border-input"
@@ -330,7 +332,7 @@ export function SignInContent() {
                   <KeyRound className="w-5 h-5 mr-2" />
                   {t('auth.continueWith', { provider: t('signInPage.passkey') })}
                 </Button>
-                {!isPasskeySupported && (
+                {passkeyDetected && !isPasskeySupported && (
                   <p className="text-xs theme-text-muted text-center -mt-2">
                     {t('signInPage.passkeysNotSupported')}
                   </p>

@@ -71,7 +71,16 @@ test.describe('Project status board', () => {
     for (const [from, to, saved] of steps) {
       const left = order.indexOf(from) < order.indexOf(to) ? from : to
       await column(left).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
-      await card.dragTo(column(to))
+      if (to === 'waiting' || to === 'done') {
+        await card.dragTo(column(to))
+      } else {
+        // A drag dispatched before the card's handlers attach lands nowhere (ADEV-298):
+        // repeat it until the lane shows the card, rather than assume the first one took.
+        await expect(async () => {
+          if (!(await column(to).innerText()).includes(task.title)) await card.dragTo(column(to))
+          await expect(column(to)).toContainText(task.title, { timeout: 3000 })
+        }).toPass({ timeout: 20_000 })
+      }
       if (to === 'waiting') {
         // A move into Waiting asks what it waits for (Jon, 2026-11-12). Cancel leaves the card…
         const prompt = page.getByTestId('waiting-prompt')
@@ -105,7 +114,7 @@ test.describe('Project status board', () => {
         .poll(async () => {
           const current = await readTask(request, task.id)
           return { completed: current.completed, statusRole: current.statusRole ?? null }
-        })
+        }, { timeout: 15_000 })
         .toEqual(saved)
     }
   })

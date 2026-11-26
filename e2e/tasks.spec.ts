@@ -42,6 +42,12 @@ async function copiedTaskId(response: Promise<Response>): Promise<string> {
 const copyResponse = (page: Page) =>
   page.waitForResponse((r) => /\/api\/v1\/tasks\/[^/]+\/copy$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST')
 
+/** A write to the task (any non-GET on its URL) finishing OK. */
+const taskSaved = (page: Page, taskId: string) =>
+  page.waitForResponse(
+    (r) => new URL(r.url()).pathname.endsWith(`/tasks/${taskId}`) && r.request().method() !== 'GET' && r.ok(),
+  )
+
 async function commentsOf(request: APIRequestContext, taskId: string): Promise<string[]> {
   const body = (await (await request.get(`/api/v1/tasks/${taskId}/comments`)).json()) as {
     comments: Array<{ content: string }>
@@ -77,7 +83,10 @@ test.describe('Task detail edits (AWTD-1419)', () => {
     const when = detail(page).getByTestId('when-date')
     await expect(when).toHaveText('No date')
     await when.getByText('No date').click()
+    // Wait on the save itself, so the read-back never races it (ADEV-298).
+    const saved = taskSaved(page, task.id)
     await page.getByRole('button', { name: 'Tomorrow', exact: true }).click()
+    await saved
 
     const tomorrow = new Date()
     tomorrow.setDate(tomorrow.getDate() + 1)
@@ -86,7 +95,9 @@ test.describe('Task detail edits (AWTD-1419)', () => {
     await expect(when).toHaveText('Tomorrow')
 
     await when.click()
+    const cleared = taskSaved(page, task.id)
     await page.getByRole('button', { name: 'No date', exact: true }).click()
+    await cleared
     await expect.poll(async () => (await readTask(request, task.id))?.dueDateTime).toBeNull()
     await expect(when).toHaveText('No date')
   })

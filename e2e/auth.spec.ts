@@ -61,17 +61,9 @@ test.describe('Authentication Flow', () => {
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
     await expect(passkeyButton).toBeVisible()
 
-    // Observe whichever state the button settles into, rather than guessing
-    // browser capability via page.evaluate. WebKit (and especially Playwright's
-    // WebKit) can race: PublicKeyCredential may be exposed by the time the
-    // test queries window, but the React useEffect that reads it ran earlier
-    // and missed it — leaving the button disabled. Let the rendered DOM be
-    // the source of truth.
-    await expect(async () => {
-      const enabled = await passkeyButton.isEnabled()
-      const notSupportedMsg = await page.getByText('Passkeys not supported in this browser').isVisible().catch(() => false)
-      expect(enabled || notSupportedMsg).toBe(true)
-    }).toPass({ timeout: 15000 })
+    // The button reports when detection has run (ADEV-298), so wait for that
+    // rather than polling isEnabled(), which reads the same pre-effect state.
+    await expect(passkeyButton).not.toHaveAttribute('data-passkey-support', 'pending', { timeout: 15000 })
 
     if (await passkeyButton.isEnabled()) {
       // Passkeys ARE supported - verify the full passkey flow
@@ -104,14 +96,8 @@ test.describe('Authentication Flow', () => {
 
     const passkeyButton = page.getByRole('button', { name: /continue with passkey/i })
 
-    // Let the button settle into either enabled (supported) or paired with
-    // the "not supported" message. Reading window.PublicKeyCredential races
-    // against React hydration in WebKit, so observe the DOM instead.
-    await expect(async () => {
-      const enabled = await passkeyButton.isEnabled()
-      const notSupportedMsg = await page.getByText('Passkeys not supported in this browser').isVisible().catch(() => false)
-      expect(enabled || notSupportedMsg).toBe(true)
-    }).toPass({ timeout: 15000 })
+    // Wait for the app's own detection signal (ADEV-298), not a poll on isEnabled().
+    await expect(passkeyButton).not.toHaveAttribute('data-passkey-support', 'pending', { timeout: 15000 })
 
     if (!(await passkeyButton.isEnabled())) {
       await expect(passkeyButton).toBeDisabled()

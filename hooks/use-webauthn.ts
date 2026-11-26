@@ -29,6 +29,9 @@ export function useWebAuthn() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSupported, setIsSupported] = useState(false)
+  // False until the check below has run, so a reader can tell "not yet known"
+  // from "unsupported" (ADEV-298).
+  const [isDetected, setIsDetected] = useState(false)
   const { t } = useTranslations()
 
   // Check WebAuthn support after hydration to avoid SSR mismatch
@@ -37,6 +40,7 @@ export function useWebAuthn() {
       typeof window !== "undefined" &&
       window.PublicKeyCredential !== undefined
     )
+    setIsDetected(true)
   }, [])
 
   const registerPasskey = useCallback(async (email?: string, name?: string) => {
@@ -267,6 +271,7 @@ export function useWebAuthn() {
 
   return {
     isSupported,
+    isDetected,
     isLoading,
     error,
     registerPasskey,

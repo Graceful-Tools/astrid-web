@@ -73,8 +73,9 @@ export default defineConfig({
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
-  /* Retry on failure - helps with flaky server warmup race conditions */
-  retries: process.env.CI ? 2 : 1,
+  /* One retry absorbs server warmup; a test that needs it is reported flaky and
+     fails CI via scripts/check-playwright-flaky.mjs (ADEV-298). */
+  retries: 1,
   /* Limit workers to reduce server contention during parallel browser tests */
   workers: process.env.CI ? 1 : 3,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
@@ -83,7 +84,9 @@ export default defineConfig({
     // auto-launched report browser when a flake happens
     ['html', { open: 'never' }],
     ['list'],
-    process.env.CI ? ['github'] : ['list']
+    process.env.CI ? ['github'] : ['list'],
+    // Read by scripts/check-playwright-flaky.mjs; outside playwright-report/, which the html reporter clears.
+    ['json', { outputFile: 'playwright-results.json' }],
   ],
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
