@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import type { APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, Locator } from '@playwright/test'
 import { gotoWithRetry } from './utils/test-helpers'
 
 /**
@@ -68,6 +68,13 @@ test.describe('Project status board', () => {
       ['ready', 'doing', { completed: false, statusRole: 'doing' }],
       ['doing', 'done', { completed: true, statusRole: null }],
     ]
+    // A drag started while the card is still settling after a Cancel can miss the
+    // drop (ADEV-298), so repeat it until the drop is acknowledged by the prompt.
+    const dragUntilVisible = (source: Locator, target: Locator, ack: Locator) =>
+      expect(async () => {
+        await source.dragTo(target)
+        await expect(ack).toBeVisible({ timeout: 2000 })
+      }).toPass({ timeout: 15000 })
     for (const [from, to, saved] of steps) {
       const left = order.indexOf(from) < order.indexOf(to) ? from : to
       await column(left).evaluate(el => el.scrollIntoView({ inline: 'start', block: 'nearest' }))
@@ -80,8 +87,7 @@ test.describe('Project status board', () => {
         await expect(prompt).toBeHidden()
         await expect(column(from)).toContainText(task.title)
         // …and a date moves it.
-        await card.dragTo(column(to))
-        await expect(prompt).toBeVisible()
+        await dragUntilVisible(card, column(to), prompt)
         const tomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10)
         await page.getByTestId('waiting-prompt-date').fill(tomorrow)
         await page.getByTestId('waiting-prompt-confirm').click()
@@ -95,8 +101,7 @@ test.describe('Project status board', () => {
         await expect(confirm).toBeHidden()
         await expect(column(from)).toContainText(task.title)
         // …and Complete moves it.
-        await card.dragTo(column(to))
-        await expect(confirm).toBeVisible()
+        await dragUntilVisible(card, column(to), confirm)
         await confirm.getByRole('button', { name: 'Complete' }).click()
         await expect(confirm).toBeHidden()
       }

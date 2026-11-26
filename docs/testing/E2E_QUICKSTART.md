@@ -79,6 +79,19 @@ npm run test:e2e           # Run all tests (headless)
 
 ---
 
+## 🎲 Flaky tests (ADEV-298)
+
+CI retries a failing test once. A test that needs the retry is reported `flaky`, and
+`scripts/check-playwright-flaky.ts` fails the job and lists it in the job summary, so a
+retry no longer hides a race. Fix the race rather than adding the title to
+`KNOWN_FLAKY` (shrink-only).
+
+The old "Firefox E2E is flaky on PRs" note is retired. The cause was never Firefox:
+the signed-out passkey button is disabled before WebAuthn detection runs, so tests that
+polled `isEnabled()` raced hydration. Wait on `data-passkey-support` (`pending` →
+`supported|unsupported`) instead. The board-drag race was a drag started while the card
+was still settling after a Cancel; repeat the drag until the prompt confirms the drop.
+
 ## 🔧 Writing Your First Test
 
 Create a new file in `e2e/` directory:
