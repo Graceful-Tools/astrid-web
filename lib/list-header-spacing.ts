@@ -20,3 +20,18 @@ export function listHeaderBottomMarginClass({
 }): string {
   return boardMode ? 'mb-0' : 'mb-6'
 }
+
+/**
+ * The bottom margin of the list title row itself (name, description, view
+ * controls) — ADEV-289. In list view `mb-4` adds to the header's `mb-6` above
+ * "Add a task...". On the board nothing follows the row, so the margin only
+ * stacked with the block's `pb-5` into a tall blank band above the boards.
+ */
+export function listTitleRowBottomMarginClass({
+  boardMode,
+}: {
+  /** The list has a project board AND the board surface is showing. */
+  boardMode: boolean
+}): string {
+  return boardMode ? 'mb-0' : 'mb-4'
+}

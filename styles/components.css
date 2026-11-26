@@ -311,9 +311,11 @@ html, body {
 }
 
 /* The well. Its foot is never tighter than its sides: the Mac's one padding
-   runs round the cards, which leaves compact 10 below and none above. */
+   runs round the cards, which leaves compact 10 below. Its top is never tighter
+   than the gap between two cards, so the first card never touches the header's
+   divider (ADEV-289: compact had none above). */
 .board-column-body {
-  padding: var(--board-column-body-padding-y) var(--board-column-body-padding-x)
+  padding: max(var(--board-column-body-padding-y), var(--board-card-gap)) var(--board-column-body-padding-x)
     max(var(--board-column-body-padding-y), var(--board-column-body-padding-x));
   margin-inline: var(--board-column-wall);
 }
