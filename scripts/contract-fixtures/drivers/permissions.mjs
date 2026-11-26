@@ -28,6 +28,19 @@ if (!webRoot) {
 
 registerWebAliases(webRoot)
 
+// Since ADEV-304 the server refuses what astrid-core cannot answer, and this driver runs as the
+// server would: install the vendored core, so the fixture records the core's answers (the
+// TypeScript, now only the browser's rule, is held to them by the parity test).
+{
+  const { installListPermissionsCore } = await import(
+    pathToFileURL(join(webRoot, 'lib/core-rules/list-permissions-core.ts')).href
+  )
+  if (!installListPermissionsCore('')) {
+    console.error('permissions: packages/astrid-rules did not load; list permissions cannot be answered')
+    process.exit(1)
+  }
+}
+
 const permissions = await import(
   pathToFileURL(join(webRoot, 'lib/list-permissions.ts')).href
 )

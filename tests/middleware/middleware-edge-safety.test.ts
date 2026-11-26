@@ -98,6 +98,22 @@ describe('middleware edge-runtime safety (task fd217729)', () => {
     ).toEqual([])
   })
 
+  // ADEV-304: astrid-core is the only list-permissions rule, and it is WebAssembly read from disk,
+  // which the edge cannot load. So nothing installs it at the edge, and a permission check there
+  // would be refused every time: an edge caller would silently deny everything. Middleware asks no
+  // permission question today; this keeps it that way, so the choice is made on purpose (a server
+  // route) rather than discovered as a wall of 403s.
+  it('ADEV-304: asks no list-permission question (lib/list-permissions.ts cannot decide at the edge)', () => {
+    const offenders = graph.files.filter(file => file === 'lib/list-permissions.ts' || file.endsWith('/lib/list-permissions.ts'))
+
+    expect(
+      offenders,
+      offenders.length
+        ? `middleware transitively imports lib/list-permissions.ts via ${offenders.map(o => graph.importedBy[o]?.join(', ')).join(' | ')}; astrid-core cannot load at the edge, so every check there is refused`
+        : '',
+    ).toEqual([])
+  })
+
   it('actually walked the graph — a guard that inspects nothing always passes', () => {
     // Without this, a resolver change that silently returns an empty graph
     // would turn the three assertions above into decoration.

@@ -50,6 +50,17 @@ process.env.NEXT_PUBLIC_BRAND_ENABLE_GITHUB_PROJECTS = 'true'
 registerWebAliases(webRoot)
 
 const load = (rel) => import(pathToFileURL(join(webRoot, rel)).href)
+
+// The list shaper asks lib/list-permissions.ts whether the viewer may manage members, and since
+// ADEV-304 only astrid-core answers that: install the vendored core the way the server does, or
+// every viewer would be refused and the fixture would record a refusal.
+{
+  const { installListPermissionsCore } = await load('lib/core-rules/list-permissions-core.ts')
+  if (!installListPermissionsCore('')) {
+    console.error('wire-shapes: packages/astrid-rules did not load; list permissions cannot be answered')
+    process.exit(1)
+  }
+}
 const { shapeV1Task, shapeV1ListPageTask, v1TaskListSelect, v1TaskPageMeta, V1_TASK_READ_INCLUDE } =
   await load('lib/tasks/v1-task-shape.ts')
 const { parseOmittedTaskFields } = await load('lib/tasks/v1-task-omit.ts')
