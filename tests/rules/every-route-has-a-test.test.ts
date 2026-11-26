@@ -49,14 +49,7 @@ function isTested(route: string): boolean {
 }
 
 /** Shrink-only. Remove an entry when its route gets a test. */
-export const UNTESTED_ROUTES: readonly string[] = [
-  // Possibly dead: no web caller found for sync, but astrid-ios calls /api/* too. Check it, then delete or test.
-  'app/api/mcp/sync/route.ts',
-  // Read-only, live (hooks/use-coding-workflow.ts calls it).
-  'app/api/coding-workflow/status/[taskId]/route.ts',
-  // Read-only.
-  'app/api/v1/contacts/recommended/route.ts',
-]
+export const UNTESTED_ROUTES: readonly string[] = []
 
 describe('every API route is referenced by a test (ADEV-293)', () => {
   const untested = routes.filter(r => !isTested(r))
