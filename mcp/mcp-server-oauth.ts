@@ -34,6 +34,7 @@ import { createLogger } from "../lib/logger"
 import { OAuthAPIClient, type OAuthAPIClientOptions } from "./oauth-api-client"
 import { fetchListMessages } from "./list-chat"
 import { callSideTool } from "./side-tools"
+import { compactQueue, compactTask, pageComments, toolJson } from "./compact-projection"
 
 const log = createLogger("mcp.server-oauth")
 
@@ -101,6 +102,7 @@ export default class AstridMCPServerOAuth {
       options.clientSecret,
       options.accessToken || null,
       options.hosted,
+      options.localDispatch,
     )
     this.defaultListId =
       options.defaultListId ??
@@ -259,9 +261,7 @@ export default class AstridMCPServerOAuth {
     // this server learns whose name to sign its comments with (AWTD-878).
     this.agentIdentity.observe(data)
 
-    return {
-      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-    }
+    return { content: [{ type: "text", text: toolJson(compactQueue(data, args), args.compact) }] }
   }
 
   private async getTasks(args: any) {
@@ -311,14 +311,7 @@ export default class AstridMCPServerOAuth {
       `/api/v1/tasks/${taskId}`
     )
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(data.task, null, 2),
-        },
-      ],
-    }
+    return { content: [{ type: "text", text: toolJson(compactTask(data.task, args), args.compact) }] }
   }
 
   private async createTask(args: any) {
@@ -486,8 +479,9 @@ export default class AstridMCPServerOAuth {
       `/api/v1/tasks/${taskId}/comments`
     )
 
-    const body = { taskId, comments: data.comments }
-    return { content: [{ type: "text", text: JSON.stringify(body, null, 2) }] }
+    const page = pageComments(data.comments, args)
+    const body = page ? { taskId, ...page } : { taskId, comments: data.comments }
+    return { content: [{ type: "text", text: toolJson(body, args.compact) }] }
   }
 
   private logStartup(transportLabel: string) {

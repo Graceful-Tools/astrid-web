@@ -61,11 +61,14 @@ const FRAME_HOSTS = [
  *   WebAssembly and nothing else (JS eval stays blocked). Only astrid-core's
  *   browser build needs it (AWTD-1586), so it follows that build's flag, which
  *   is on unless set to "off" since ADEV-304 (lib/core-rules/browser-flag.ts).
+ * @param upgradeInsecure emit `upgrade-insecure-requests`; see
+ *   {@link shouldUpgradeInsecureRequests} for the per-request answer.
  */
 export function buildContentSecurityPolicy(
   nonce: string,
   isProduction: boolean,
   allowWasm: boolean = browserCoreRulesFlagOn(),
+  upgradeInsecure: boolean = isProduction,
 ): string {
   const directives = [
     `default-src 'self'`,
@@ -86,10 +89,24 @@ export function buildContentSecurityPolicy(
     `form-action 'self'`,
     `base-uri 'self'`,
     `object-src 'none'`,
-    ...(isProduction ? ['upgrade-insecure-requests'] : []),
+    ...(upgradeInsecure ? ['upgrade-insecure-requests'] : []),
   ]
 
   return directives.join('; ').replace(/\s{2,}/g, ' ').trim()
+}
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]'])
+
+/**
+ * Whether this request's policy should carry `upgrade-insecure-requests`.
+ * Production yes, except a plain-http loopback page (a production build run
+ * locally or in CI): WebKit, unlike Chromium and Firefox, applies the upgrade
+ * to localhost, fetches every chunk over https from a server that speaks only
+ * http, and the page never hydrates (ADEV-298).
+ */
+export function shouldUpgradeInsecureRequests(isProduction: boolean, url: URL): boolean {
+  if (!isProduction) return false
+  return !(url.protocol === 'http:' && LOOPBACK_HOSTS.has(url.hostname))
 }
 
 /** A fresh base64 nonce. Uses Web Crypto, so it works in the edge runtime. */

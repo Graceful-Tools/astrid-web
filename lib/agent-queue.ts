@@ -253,6 +253,7 @@ export interface AgentQueueOptions {
    * discoverable solely by the binding's enrolled runtime (`runtimeSubjectId`).
    */
   runtimePrincipal?: string | null
+  identityOnly?: boolean // who the agent is, no queue read (AWTD-1553)
 }
 
 /**
@@ -323,6 +324,7 @@ export async function buildAgentQueue({
   includeUnassigned = false,
   includeChat = false,
   runtimePrincipal = null,
+  identityOnly = false,
 }: AgentQueueOptions): Promise<AgentQueueResult> {
   // No default identity, ever. A loop that guesses which agent it is claims
   // another harness's work — the one failure here that costs duplicated effort
@@ -415,10 +417,12 @@ export async function buildAgentQueue({
   }
 
   // An agent identity that does not exist yet is an empty queue, not an error:
-  // the row is created the first time someone assigns work to it.
-  if (!agentUser?.isAIAgent) {
+  // the row is created the first time someone assigns work to it. `identityOnly` (AWTD-1553): same shape, with the id.
+  if (!agentUser?.isAIAgent || identityOnly) {
     // An identity nobody has used yet has nothing to answer either.
-    return emptyAgentQueue({ mailbox, email, id: null }, mode, nothingAssignedHint(mailbox), runtimeBinding)
+    const id = agentUser?.isAIAgent ? agentUser.id : null
+    const { hint, ...empty } = emptyAgentQueue({ mailbox, email, id }, mode, nothingAssignedHint(mailbox), runtimeBinding)
+    return identityOnly ? empty : { ...empty, hint }
   }
 
 
