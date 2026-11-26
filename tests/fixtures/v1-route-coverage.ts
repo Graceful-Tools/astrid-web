@@ -53,7 +53,7 @@ export const V1_ROUTE_FAMILY_COVERAGE = {
   'secure-files': { mode: 'parity', tests: ['tests/api/v1-secure-files-methods.test.ts'] },
   'secure-upload': {
     mode: 'parity',
-    tests: ['tests/lib/secure-upload-extension-parity.test.ts'],
+    tests: ['tests/rules/secure-upload-extension-parity.test.ts'],
   },
   shortcodes: { mode: 'direct', tests: ['tests/api/v1-shortcodes.test.ts'] },
   storage: { mode: 'direct', tests: ['tests/api/self-hosted-storage-flow.test.ts'] },
