@@ -15,7 +15,7 @@ import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { useSelectedProjectId } from "@/hooks/use-selected-project"
 import { useSidebarProjectActions } from "@/hooks/task-manager/useSidebarProjectActions"
 import { LoadingScreen } from "./loading-screen"
-import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
+import { useTaskPanePositionMeasure } from "@/hooks/task-manager/useTaskPanePositionMeasure"
 import { Input } from "@/components/ui/input"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 import { AddTaskInput } from "./add-task-input"
@@ -549,30 +549,8 @@ const TaskManagerView = memo(function TaskManagerView({
   // Refs are now passed as props from parent component
   // (removed local ref creation to use refs from useTaskManagerLayout)
 
-  // Calculate task pane position based on layout type and component widths
-  React.useEffect(() => {
-    const calculatePosition = () => {
-      if (sidebarRef.current && taskManagerRef.current && (selectedTaskId || settingsSubPage) && !is1Column) {
-        const sidebarRect = sidebarRef.current.getBoundingClientRect()
-        const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
-
-        // Layout-aware positioning (pure math in task-pane-position). The window
-        // width keeps the panel on screen when messages is hidden (AWTD-1205).
-        const leftOffset = computeTaskPaneLeftOffset(sidebarRect.width, taskManagerRect.width,
-          { is2Column, is3Column, showHamburgerMenu }, window.innerWidth)
-
-        // Update the task pane position
-        setTaskPanePosition({ left: leftOffset })
-      }
-    }
-
-    calculatePosition()
-    window.addEventListener('resize', calculatePosition)
-
-    return () => {
-      window.removeEventListener('resize', calculatePosition)
-    }
-  }, [selectedTaskId, settingsSubPage, is1Column, is2Column, is3Column, showHamburgerMenu, setTaskPanePosition, sidebarRef, taskManagerRef])
+  // Where the list-view details pane sits (ADEV-288: measured from the main column).
+  useTaskPanePositionMeasure({ taskManagerRef, open: Boolean(selectedTaskId || settingsSubPage), is1Column, is2Column, is3Column, showHamburgerMenu, isBoardMode, isSettingsActive, setTaskPanePosition })
 
   // Keyboard shortcuts setup
   const keyboardShortcutHandlers: KeyboardShortcutHandlers = {
