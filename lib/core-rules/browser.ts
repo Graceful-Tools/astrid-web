@@ -17,6 +17,7 @@
  * literally so Next can inline it (lib/env.ts).
  */
 
+import { setBoardCore } from '@/lib/board-core-hook'
 import { setListPermissionsCore } from '@/lib/list-permissions'
 
 export interface BrowserCoreRules {
@@ -89,6 +90,13 @@ export function loadBrowserCoreRules(
         } catch {
           // keep the TypeScript rules
         }
+        // The board's columns too (ADEV-307): same lazy load, same fallback.
+        try {
+          const { installBrowserBoard } = await import('./browser-board')
+          installBrowserBoard(loaded)
+        } catch {
+          // keep the TypeScript rules
+        }
         return loaded
       })
       .catch(() => null)
@@ -121,4 +129,5 @@ export function resetBrowserCoreRulesForTests(
   rowsCore = adapters.rows ?? null
   smartParseCore = adapters.smartParse ?? null
   setListPermissionsCore(null)
+  setBoardCore(null)
 }
