@@ -70,11 +70,17 @@ describe('AWTD-1603: sonner-era screens reach the mounted toaster', () => {
       for (const entry of readdirSync(dir)) {
         if (['node_modules', '.next', '.git', 'coverage', 'test-results', 'playwright-report'].includes(entry)) continue
         const full = path.join(dir, entry)
-        if (statSync(full).isDirectory()) walk(full)
-        else if (/\.(tsx?|jsx?|mjs|cjs)$/.test(entry) && full !== __filename) {
-          if (/from\s+['"]sonner['"]|require\(\s*['"]sonner['"]\s*\)|vi\.mock\(\s*['"]sonner['"]/.test(readFileSync(full, 'utf8'))) {
-            offenders.push(path.relative(root, full))
+        // ADEV-311: other test files create and delete tests/tmp-* fixtures while this walk
+        // runs in parallel, so an entry can vanish between readdir and stat/read.
+        try {
+          if (statSync(full).isDirectory()) walk(full)
+          else if (/\.(tsx?|jsx?|mjs|cjs)$/.test(entry) && full !== __filename) {
+            if (/from\s+['"]sonner['"]|require\(\s*['"]sonner['"]\s*\)|vi\.mock\(\s*['"]sonner['"]/.test(readFileSync(full, 'utf8'))) {
+              offenders.push(path.relative(root, full))
+            }
           }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
         }
       }
     }
