@@ -20,6 +20,7 @@ import { useTranslations } from "@/lib/i18n/client"
 import { useProjectGoals } from "@/hooks/use-project-goals"
 import { useProjectMode } from "@/hooks/use-project-mode"
 import { EstimateCard, type EstimateCardData } from "./EstimateCard"
+import { EstimateLabelChip } from "./EstimateLabelChip"
 
 interface EstimatorChoice {
   key: string
@@ -186,6 +187,9 @@ export function EstimateControl({ taskId, projectId, compact = false, canEdit = 
       >
         <div className="flex flex-wrap items-center gap-1.5">
           {controls}
+          {latest?.label && (
+            <EstimateLabelChip estimate={{ label: latest.label, labelReasons: latest.labelReasons ?? null }} project={project} />
+          )}
           <PopoverTrigger asChild>
             <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" data-testid="estimate-show">
               {t("projectMode.estimate.show")}

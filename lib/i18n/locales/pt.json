@@ -1943,7 +1943,30 @@
       "opportunity": "Oportunidade",
       "notEstimated": "Não estimado",
       "effort": "{hours} h de esforço",
-      "opportunityRange": "{low} a {high} {unit} / {period}"
+      "opportunityRange": "{low} a {high} {unit} / {period}",
+      "label": {
+        "do-now": "Fazer agora",
+        "experiment-first": "Experimentar primeiro",
+        "needs-review": "Precisa de revisão",
+        "dont": "Não fazer",
+        "chipAria": "Recomendação: {label}. Mostrar por quê.",
+        "reasonsHeading": "Por quê"
+      },
+      "reason": {
+        "noEstimate": "Ainda não há uma estimativa.",
+        "stale": "A estimativa está desatualizada.",
+        "guardrailAtRefuse": "{name}: a probabilidade de violação {probability} está no limite de {threshold}.",
+        "guardrailAtReview": "{name}: a probabilidade de violação {probability} está no ponto de revisão de {threshold}.",
+        "riskAtRefuse": "O risco é {level}, igual ou acima do limite de {threshold}.",
+        "riskAtReview": "O risco é {level}, igual ou acima do ponto de revisão de {threshold}.",
+        "riskUnknown": "O estimador não informou o risco, e o desconhecido nunca é bom.",
+        "guardrailsUnknown": "O estimador não informou o efeito sobre os limites, e o desconhecido nunca é bom.",
+        "confidenceLow": "A confiança é baixa ou não foi informada.",
+        "experimentFirst": "A confiança é {confidence} e o risco é {risk}.",
+        "builtinCapped": "Uma estimativa integrada nunca é melhor do que experimentar primeiro.",
+        "goalImproves": "Espera-se que {name} melhore ({delta}).",
+        "noGoalImproves": "Não se espera que nenhuma meta melhore."
+      }
     },
     "goals": {
       "title": "Objetivos e limites",
@@ -2052,7 +2075,8 @@
       "who": "Quem",
       "completed": "Feitas primeiro",
       "incomplete": "A fazer primeiro",
-      "manual": "Manual"
+      "manual": "Manual",
+      "policy": "Política"
     },
     "show": {
       "allTasks": "Todas as tarefas",
@@ -3198,7 +3222,32 @@
       "migrateAdditive": "Migrações aditivas",
       "migrateDestructive": "Migrações destrutivas",
       "release": "Lançamentos nas lojas",
-      "spend": "Gastar dinheiro"
+      "spend": "Gastar dinheiro",
+      "promoteIdea": "Mover uma ideia de fazer agora para Pronto",
+      "experimentStart": "Iniciar experimentos",
+      "experimentStop": "Parar experimentos"
+    },
+    "tradeoff": {
+      "title": "Política de equilíbrio",
+      "switch": "Definir uma política de equilíbrio",
+      "stated": "Definida",
+      "none": "Nenhuma definida",
+      "help": "Rotula cada ideia estimada (fazer agora, experimentar primeiro, precisa de revisão, não fazer) e define a ordem da classificação por política. Sem uma política definida, nada é rotulado e não há classificação por política.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Revisar quando o risco for de pelo menos",
+        "riskRefuseAt": "Não fazer quando o risco for de pelo menos",
+        "confidenceBelow": "Experimentar primeiro quando a confiança for inferior a",
+        "experimentRiskAtLeast": "…e o risco for de pelo menos",
+        "minConfidenceToAct": "Um agente pode promover com confiança de pelo menos",
+        "guardrailReview": "Revisar com probabilidade de violação de",
+        "guardrailRefuse": "Não fazer com probabilidade de violação de"
+      },
+      "goalOrder": "Prioridade das metas",
+      "goalOrderHelp": "Ideias empatadas em tudo o que está acima são ordenadas pelo efeito sobre estas metas, a mais importante primeiro.",
+      "goalOrderReset": "Usar a ordem padrão",
+      "moveUp": "Mover {goal} para cima",
+      "moveDown": "Mover {goal} para baixo"
     },
     "autonomy": {
       "allowed": "Permitido",

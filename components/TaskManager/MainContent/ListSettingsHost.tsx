@@ -33,7 +33,7 @@ import { isSystemListId } from "@/lib/list-permissions"
 
 type DueDateFilter = DueDateWindow
 type CompletionFilter = "completed" | "incomplete" | "all" | "default"
-type SortBy = "auto" | "priority" | "when" | "completedAt" | "manual"
+type SortBy = "auto" | "priority" | "when" | "completedAt" | "manual" | "policy"
 
 /** Mirrors the filter slice FixedListSettingsPopover consumes. */
 interface FilterState {
