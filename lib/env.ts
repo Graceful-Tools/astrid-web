@@ -233,7 +233,6 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_OAUTH_CLIENT_ID', scope: 'optional', description: 'OAuth client the MCP server authenticates as.' },
   { name: 'ASTRID_OAUTH_CLIENT_SECRET', scope: 'optional', description: 'Secret for that OAuth client.' },
   { name: 'ASTRID_OAUTH_LIST_ID', scope: 'optional', description: 'Default list the MCP server scopes to.' },
-  { name: 'ASTRID_MCP_AUTH_TOKEN', scope: 'optional', description: 'Static access token for the MCP server, instead of client credentials.' },
   { name: 'ASTRID_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound AI-agent webhooks.' },
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
   { name: 'ASTRID_CORE_PUSH', scope: 'tooling', description: 'Set by agent-run.yml: 1 when the runner can push to astrid-core, 0 when it cannot, so claim-next-fixall-task.ts skips core tasks.' },
