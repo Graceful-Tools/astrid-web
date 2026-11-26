@@ -4,7 +4,7 @@
  *
  * Owned here, in the app. services/copilot-gateway/src/contract.ts is a
  * byte-identical copy, because the gateway is built from its own directory and
- * cannot import across the repo; tests/lib/copilot-gateway-contract-sync.test.ts
+ * cannot import across the repo; tests/rules/copilot-gateway-contract-sync.test.ts
  * fails if the two ever differ. Types only: no imports, no runtime code.
  */
 
