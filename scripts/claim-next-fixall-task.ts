@@ -15,6 +15,11 @@
  * A core task (titled `[core]` or naming astrid-core) is passed over with `--no-core`, or
  * when the runner found it cannot push to astrid-core (`ASTRID_CORE_PUSH=0`).
  *
+ * A task whose identifier is in the head branch of an open PR is passed over too (ADEV-310):
+ * its work exists, and a lapsed lease is no reason to build it twice. A task sent back to be
+ * resumed from that branch (a rework or a release) is still claimed. The PR lookup is
+ * `gh pr list` and fails open: if it errors, claiming goes on without the guard.
+ *
  * Exit codes, matching claim-fixall-task.ts and agent-queue-status.ts:
  *   0  `CLAIMED <id> <identifier> — <title>`: the task is this session's, in Doing. When the
  *      runner already claimed one for this worker (`ASTRID_CLAIMED_TASK`), that one, unasked.
@@ -22,9 +27,17 @@
  *   1  could not tell (auth, network, a non-409 refusal). Not the same as empty.
  */
 
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { loadScriptEnv } from './lib/load-env'
-import { claimNextReady, isCoreCandidate, runnerClaimedTask, type ClaimCandidate } from './lib/claim-next'
+import {
+  claimNextReady,
+  isCoreCandidate,
+  openPrBranches,
+  runnerClaimedTask,
+  skipTasksWithOpenPr,
+  type ClaimCandidate,
+} from './lib/claim-next'
 import { recordClaim, requestFixallClaim } from './lib/fixall-claim-request'
 import { scriptClient } from './lib/script-client'
 import { FIXALL_CLAIM_MAILBOXES } from '@/lib/fixall-claim'
@@ -77,22 +90,39 @@ async function main() {
     return Array.isArray(queue) ? (queue as unknown as ClaimCandidate[]) : []
   }
 
+  const log = (line: string) => console.error(line)
+  // Read once per run: the open PRs do not change in the seconds a walk takes.
+  const branches = openPrBranches(() => {
+    const repo = process.env.GITHUB_REPOSITORY
+    const out = execFileSync(
+      'gh',
+      ['pr', 'list', ...(repo ? ['--repo', repo] : []), '--state', 'open', '--limit', '500', '--json', 'headRefName', '--jq', '.[].headRefName'],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 30_000 },
+    )
+    return out.split('\n').map(line => line.trim())
+  }, log)
+
   const result = await claimNextReady({
     initial: snapshotQueue(preflight),
     refresh,
-    skip: noCore ? isCoreCandidate : undefined,
+    skip: skipTasksWithOpenPr({
+      openBranches: branches,
+      comments: task => client.getComments(task.id),
+      log,
+      otherwise: noCore ? isCoreCandidate : undefined,
+    }),
     claim: async task => {
       const attempt = await requestFixallClaim({ client, taskId: task.id, action: 'ready', agent, listId })
       if (attempt.status === 'conflict' && attempt.reason) console.error(`  server said: ${attempt.reason}`)
       return attempt.status
     },
-    log: line => console.error(line),
+    log,
   })
 
   if (!result.claimed) {
     console.log(
       `NO_READY_TASK: nothing left to claim (${result.conflicts.length} taken by peers` +
-        `${result.skipped.length ? `, ${result.skipped.length} core task(s) skipped` : ''})`,
+        `${result.skipped.length ? `, ${result.skipped.length} skipped (core, or an open PR)` : ''})`,
     )
     process.exit(3)
   }

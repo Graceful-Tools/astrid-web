@@ -5,8 +5,13 @@ import type { Task } from "@/types/task"
  * `sortTasksByListSetting`). Web also sorted by `assignee`, `completed` and `incomplete`; no other
  * client had them, and since AWTD-1583 (astrid-core D33) a saved one reads as auto, as an unknown
  * order always has. `createdAt` is newest first.
+ *
+ * `policy` (ADEV-281, astrid-core D75) orders by the sort key the server stored on each task's latest
+ * estimate under the trade-off policy. It compares; it never evaluates. It is offered only where a
+ * policy is stated (components/list-settings/filter-options.tsx), and a client pinned before it reads
+ * a saved `policy` as auto.
  */
-export type TaskSortBy = "auto" | "priority" | "when" | "completedAt" | "manual" | "createdAt"
+export type TaskSortBy = "auto" | "priority" | "when" | "completedAt" | "manual" | "createdAt" | "policy"
 
 const RETIRED_SORTS = new Set(["assignee", "completed", "incomplete"])
 
@@ -21,6 +26,15 @@ const createdAtOf = (task: Partial<Pick<Task, 'createdAt'>>) => (task.createdAt 
 export const newestFirst = (a: Partial<Pick<Task, 'createdAt'>>, b: Partial<Pick<Task, 'createdAt'>>) => {
   const [aCreated, bCreated] = [createdAtOf(a), createdAtOf(b)]
   return aCreated === bCreated ? 0 : bCreated > aCreated ? 1 : -1
+}
+
+/** Two stored sort keys, lexicographically, smaller first; a key that is a prefix of the other comes first. */
+export function compareSortKeys(a: readonly number[], b: readonly number[]): number {
+  const shared = Math.min(a.length, b.length)
+  for (let i = 0; i < shared; i++) {
+    if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1
+  }
+  return a.length - b.length
 }
 
 /** Earlier due dates first; undated after every dated task. */
@@ -58,6 +72,18 @@ export function compareTasksBySort(
 
     case "createdAt":
       return newestFirst(a, b)
+
+    case "policy": {
+      // The core's `policy` arm (D75): a finished task sinks, then the stored keys are compared, a
+      // task with no key goes after every task with one, and ties fall back to the auto order.
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+      const aKey = a.estimate?.sortKey
+      const bKey = b.estimate?.sortKey
+      if (aKey && bKey) return compareSortKeys(aKey, bKey) || compareTasksBySort(a, b, "auto")
+      if (aKey) return -1
+      if (bKey) return 1
+      return compareTasksBySort(a, b, "auto")
+    }
 
     case "completedAt": {
       // Most recently completed first. Completed tasks lead — the sort exists

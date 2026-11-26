@@ -578,6 +578,37 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     expect(read('.github/workflows/agent-ship.yml')).toContain('--max-land 1 --core-repo Graceful-Tools/astrid-core')
   })
 
+  it('ADEV-265: the ship workflow chains itself while PRs are landable or still in CI', () => {
+    const ship = yaml.load(read('.github/workflows/agent-ship.yml'))
+    const steps = ship.jobs.ship.steps as Array<Record<string, any>>
+    expect(steps.find(s => s.run?.includes('land-and-deploy.ts'))?.id).toBe('land')
+    const chain = steps.find(s => s.name?.startsWith('Chain the next run'))!
+    expect(chain.if).toContain("steps.land.outputs.more == 'true'")
+    expect(chain.if).toContain("steps.land.outputs.wait == 'true'")
+    expect(chain.run).toContain('gh workflow run agent-ship.yml --ref main -f dry_run=false -f chain_depth=$((DEPTH + 1))')
+    // Bounded: a PR whose CI never finishes cannot chain forever.
+    expect(chain.env.CHAIN_LIMIT).toBeGreaterThan(0)
+    expect(chain.run).toContain('-ge "${CHAIN_LIMIT}"')
+    expect(ship.on.workflow_dispatch.inputs.chain_depth.default).toBe(0)
+    const script = read('scripts/land-and-deploy.ts')
+    // Progress guard: a PR that cannot land must not loop the `more` chain.
+    expect(script).toContain('const more = progressed && (deferred.length > 0 || core.deferred > 0)')
+    expect(script).toContain('const wait = waiting.length > 0 || core.waiting > 0')
+  })
+
+  it('ADEV-265: a skipped run cannot cancel a pending one (concurrency is on the job)', () => {
+    const ship = yaml.load(read('.github/workflows/agent-ship.yml'))
+    expect(ship.concurrency).toBeUndefined()
+    expect(ship.jobs.ship.concurrency).toEqual({ group: 'astrid-web-ship', 'cancel-in-progress': false })
+  })
+
+  it('ADEV-265: a cloud worker finishing starts the ship job, which then watches a core PR', () => {
+    const ship = yaml.load(read('.github/workflows/agent-ship.yml'))
+    expect(ship.on.workflow_run.workflows).toContain('Agent Run')
+    expect(yaml.load(read('.github/workflows/agent-run.yml')).name).toBe('Agent Run')
+    expect(ship.jobs.ship.if).toContain("github.event.workflow_run.name == 'Agent Run'")
+  })
+
   it('AWTD-1682: the runner prompt tells a core run how to hand off', () => {
     const prompt = read('.github/agent-run-prompt.md')
     expect(prompt).toContain('AWAITING-MERGE: Graceful-Tools/astrid-core#<n> <full pushed HEAD sha>')

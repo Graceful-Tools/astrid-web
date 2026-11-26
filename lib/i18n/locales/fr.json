@@ -1998,7 +1998,30 @@
       "opportunity": "Opportunité",
       "notEstimated": "Non estimé",
       "effort": "{hours} h d'effort",
-      "opportunityRange": "{low} à {high} {unit} / {period}"
+      "opportunityRange": "{low} à {high} {unit} / {period}",
+      "label": {
+        "do-now": "À faire maintenant",
+        "experiment-first": "Expérimenter d'abord",
+        "needs-review": "À examiner",
+        "dont": "À ne pas faire",
+        "chipAria": "Recommandation : {label}. Voir pourquoi.",
+        "reasonsHeading": "Pourquoi"
+      },
+      "reason": {
+        "noEstimate": "Il n'y a pas encore d'estimation.",
+        "stale": "L'estimation est périmée.",
+        "guardrailAtRefuse": "{name} : la probabilité de dépassement {probability} atteint la limite de {threshold}.",
+        "guardrailAtReview": "{name} : la probabilité de dépassement {probability} atteint le seuil d'examen de {threshold}.",
+        "riskAtRefuse": "Le risque est {level}, égal ou supérieur à la limite de {threshold}.",
+        "riskAtReview": "Le risque est {level}, égal ou supérieur au seuil d'examen de {threshold}.",
+        "riskUnknown": "L'estimateur n'a donné aucun risque, et l'inconnu n'est jamais bon.",
+        "guardrailsUnknown": "L'estimateur n'a donné aucun effet sur les garde-fous, et l'inconnu n'est jamais bon.",
+        "confidenceLow": "La confiance est faible, ou n'a pas été indiquée.",
+        "experimentFirst": "La confiance est {confidence} alors que le risque est {risk}.",
+        "builtinCapped": "Une estimation intégrée n'est jamais meilleure que « Expérimenter d'abord ».",
+        "goalImproves": "{name} devrait s'améliorer ({delta}).",
+        "noGoalImproves": "Aucun objectif ne devrait s'améliorer."
+      }
     },
     "goals": {
       "title": "Objectifs et garde-fous",
@@ -2107,7 +2130,8 @@
       "who": "Qui",
       "completed": "Terminées d'abord",
       "incomplete": "À faire d'abord",
-      "manual": "Manuel"
+      "manual": "Manuel",
+      "policy": "Politique"
     },
     "show": {
       "allTasks": "Toutes les tâches",
@@ -3253,7 +3277,32 @@
       "migrateAdditive": "Migrations additives",
       "migrateDestructive": "Migrations destructives",
       "release": "Publications sur les stores",
-      "spend": "Dépenser de l'argent"
+      "spend": "Dépenser de l'argent",
+      "promoteIdea": "Passer une idée à faire maintenant à Prêt",
+      "experimentStart": "Lancer des expériences",
+      "experimentStop": "Arrêter des expériences"
+    },
+    "tradeoff": {
+      "title": "Politique d'arbitrage",
+      "switch": "Définir une politique d'arbitrage",
+      "stated": "Définie",
+      "none": "Aucune définie",
+      "help": "Étiquette chaque idée estimée (à faire maintenant, expérimenter d'abord, à examiner, à ne pas faire) et ordonne le tri par politique. Sans politique définie, rien n'est étiqueté et il n'y a pas de tri par politique.",
+      "probability": "{pct} %",
+      "field": {
+        "riskReviewAt": "Examiner quand le risque est d'au moins",
+        "riskRefuseAt": "Ne pas faire quand le risque est d'au moins",
+        "confidenceBelow": "Expérimenter d'abord quand la confiance est inférieure à",
+        "experimentRiskAtLeast": "…et que le risque est d'au moins",
+        "minConfidenceToAct": "Un agent peut promouvoir avec une confiance d'au moins",
+        "guardrailReview": "Examiner à la probabilité de dépassement de",
+        "guardrailRefuse": "Ne pas faire à la probabilité de dépassement de"
+      },
+      "goalOrder": "Priorité des objectifs",
+      "goalOrderHelp": "Les idées à égalité sur tout ce qui précède sont ordonnées selon leur effet sur ces objectifs, le plus important d'abord.",
+      "goalOrderReset": "Utiliser l'ordre par défaut",
+      "moveUp": "Monter {goal}",
+      "moveDown": "Descendre {goal}"
     },
     "autonomy": {
       "allowed": "Autorisé",

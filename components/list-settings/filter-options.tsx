@@ -39,6 +39,16 @@ export interface FilterOption {
   label: string
   /** Colour class, applied via a span exactly as both originals did. */
   className?: string
+  /**
+   * Offered only where the project states a trade-off policy (ADEV-281): `visibleOptions` drops it
+   * otherwise. With no policy there is nothing to sort by, so there is no entry.
+   */
+  requiresPolicy?: boolean
+}
+
+/** The options to show: the ones that need a stated policy only when there is one. */
+export function visibleOptions(options: readonly FilterOption[], policyStated: boolean): readonly FilterOption[] {
+  return policyStated ? options : options.filter(option => !option.requiresPolicy)
 }
 
 /**
@@ -59,6 +69,8 @@ export const SORT_BY_OPTIONS: readonly FilterOption[] = [
   { value: "when", labelKey: "listSettings.sort.date", label: "Date" },
   { value: "completedAt", labelKey: "listSettings.sort.recentlyCompleted", label: "Recently completed" },
   { value: "manual", labelKey: "listSettings.sort.manual", label: "Manual" },
+  // The trade-off policy's order (ADEV-281, astrid-core D75): the label, then the owner's stated priorities.
+  { value: "policy", labelKey: "listSettings.sort.policy", label: "Policy", requiresPolicy: true },
 ]
 
 /** Which tasks are shown at all. */
