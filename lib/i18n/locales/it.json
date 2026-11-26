@@ -1904,6 +1904,61 @@
     "deleteProjectDetail": "Le sue liste restano, fuori da qualsiasi progetto. Le colonne proprie della bacheca vengono eliminate con esso.",
     "deleteProjectAction": "Elimina",
     "deleteProjectFailed": "Impossibile eliminare il progetto",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Stima",
       "button": "Stima",
@@ -1943,7 +1998,30 @@
       "opportunity": "Opportunità",
       "notEstimated": "Non stimato",
       "effort": "{hours} h di lavoro",
-      "opportunityRange": "da {low} a {high} {unit} / {period}"
+      "opportunityRange": "da {low} a {high} {unit} / {period}",
+      "label": {
+        "do-now": "Da fare subito",
+        "experiment-first": "Prima sperimentare",
+        "needs-review": "Da rivedere",
+        "dont": "Non fare",
+        "chipAria": "Raccomandazione: {label}. Mostra perché.",
+        "reasonsHeading": "Perché"
+      },
+      "reason": {
+        "noEstimate": "Non c'è ancora una stima.",
+        "stale": "La stima non è aggiornata.",
+        "guardrailAtRefuse": "{name}: la probabilità di violazione {probability} è al limite di {threshold}.",
+        "guardrailAtReview": "{name}: la probabilità di violazione {probability} è alla soglia di revisione di {threshold}.",
+        "riskAtRefuse": "Il rischio è {level}, pari o superiore al limite di {threshold}.",
+        "riskAtReview": "Il rischio è {level}, pari o superiore alla soglia di revisione di {threshold}.",
+        "riskUnknown": "Lo stimatore non ha indicato il rischio, e l'ignoto non è mai buono.",
+        "guardrailsUnknown": "Lo stimatore non ha indicato l'effetto sui vincoli, e l'ignoto non è mai buono.",
+        "confidenceLow": "La fiducia è bassa o non è stata indicata.",
+        "experimentFirst": "La fiducia è {confidence} mentre il rischio è {risk}.",
+        "builtinCapped": "Una stima integrata non è mai migliore di «Prima sperimentare».",
+        "goalImproves": "Si prevede che {name} migliori ({delta}).",
+        "noGoalImproves": "Non si prevede che nessun obiettivo migliori."
+      }
     },
     "goals": {
       "title": "Obiettivi e vincoli",
@@ -2052,7 +2130,8 @@
       "who": "Chi",
       "completed": "Fatte prima",
       "incomplete": "Da fare prima",
-      "manual": "Manuale"
+      "manual": "Manuale",
+      "policy": "Policy"
     },
     "show": {
       "allTasks": "Tutte le attività",
@@ -3198,7 +3277,32 @@
       "migrateAdditive": "Migrazioni additive",
       "migrateDestructive": "Migrazioni distruttive",
       "release": "Pubblicazioni negli store",
-      "spend": "Spendere denaro"
+      "spend": "Spendere denaro",
+      "promoteIdea": "Portare un'idea da fare subito a Pronto",
+      "experimentStart": "Avviare esperimenti",
+      "experimentStop": "Interrompere esperimenti"
+    },
+    "tradeoff": {
+      "title": "Policy di compromesso",
+      "switch": "Definire una policy di compromesso",
+      "stated": "Definita",
+      "none": "Nessuna definita",
+      "help": "Etichetta ogni idea stimata (da fare subito, prima sperimentare, da rivedere, non fare) e ordina l'ordinamento per policy. Senza una policy definita, nulla viene etichettato e non c'è l'ordinamento per policy.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Rivedere quando il rischio è almeno",
+        "riskRefuseAt": "Non fare quando il rischio è almeno",
+        "confidenceBelow": "Prima sperimentare quando la fiducia è inferiore a",
+        "experimentRiskAtLeast": "…e il rischio è almeno",
+        "minConfidenceToAct": "Un agente può promuovere con una fiducia di almeno",
+        "guardrailReview": "Rivedere a una probabilità di violazione di",
+        "guardrailRefuse": "Non fare a una probabilità di violazione di"
+      },
+      "goalOrder": "Priorità degli obiettivi",
+      "goalOrderHelp": "Le idee in parità su tutto quanto sopra sono ordinate in base a come influiscono su questi obiettivi, dal più importante.",
+      "goalOrderReset": "Usa l'ordine predefinito",
+      "moveUp": "Sposta {goal} in su",
+      "moveDown": "Sposta {goal} in giù"
     },
     "autonomy": {
       "allowed": "Consentito",

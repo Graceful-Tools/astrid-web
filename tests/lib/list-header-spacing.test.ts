@@ -6,14 +6,11 @@
  * which the board view does not render. With nothing below it, that margin plus
  * the row's own `mb-4` and the block's `pb-5` all stacked above the funnel.
  *
- * The MainContent half pins the wiring at the source, for the reason
- * tests/components/main-content-board-height.test.ts gives: no jsdom test can
- * render that component.
+ * The MainContent half (the header really takes this margin) renders the
+ * component: tests/components/main-content-render.test.tsx.
  */
 
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { listHeaderBottomMarginClass } from '@/lib/list-header-spacing'
 
 describe('listHeaderBottomMarginClass (AWTD-1264)', () => {
@@ -26,20 +23,3 @@ describe('listHeaderBottomMarginClass (AWTD-1264)', () => {
   })
 })
 
-describe('MainContent list header wiring (AWTD-1264)', () => {
-  const src = readFileSync(
-    join(process.cwd(), 'components/TaskManager/MainContent/MainContent.tsx'),
-    'utf8',
-  )
-
-  it('takes the header bottom margin from the helper, in board mode on the board', () => {
-    expect(src).toContain("from '@/lib/list-header-spacing'")
-    expect(src).toMatch(
-      /listHeaderBottomMarginClass\(\{\s*boardMode: Boolean\(hasProjectBoard && taskViewMode === 'board'\)/,
-    )
-  })
-
-  it('no longer hardcodes mb-6 on the centered header', () => {
-    expect(src).not.toContain('<div className="text-center mb-6">')
-  })
-})

@@ -29,6 +29,10 @@ export const JOB_HANDLERS: JobHandlers = {
     const { runEstimatorPollJob } = await import('@/services/task-estimate.service')
     await runEstimatorPollJob(payload)
   },
+  'tradeoff-reevaluate': async payload => {
+    const { runTradeoffReevaluationJob } = await import('@/services/tradeoff-evaluation.service')
+    await runTradeoffReevaluationJob(payload)
+  },
   'agent-wake': async payload => {
     const { deliverAgentWake } = await import('@/lib/agent-wake')
     await deliverAgentWake(payload)

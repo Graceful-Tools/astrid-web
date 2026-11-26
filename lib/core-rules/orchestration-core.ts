@@ -23,6 +23,7 @@ import { createLogger } from '@/lib/logger'
 import {
   runOrchestrationTs,
   type EscalationAnswer,
+  type EstimateRef,
   type MayAnswer,
   type MigrationKind,
   type OrchestrationAction,
@@ -105,8 +106,19 @@ export function orchestrationMay(
   agent: string,
   action: OrchestrationAction,
   migration?: MigrationKind | null,
+  estimate?: EstimateRef | null,
 ): OrchestrationAnswer<MayAnswer> {
-  return valueOf(runOrchestration({ kind: 'orchestrationMay', ...stored, agent, action, migration: migration ?? null }))
+  return valueOf(
+    runOrchestration({
+      kind: 'orchestrationMay',
+      ...stored,
+      agent,
+      action,
+      migration: migration ?? null,
+      label: estimate?.label ?? null,
+      confidence: estimate?.confidence ?? null,
+    }),
+  )
 }
 
 /** Who receives a question about a task on this list, and who the task goes back to. */

@@ -9,7 +9,7 @@ import { detail, freshList, listTasks, readTask, row, seedTask } from './utils/v
  * Drag was tested only on the project board. Here a list in manual-sort mode is reordered by
  * dragging a row, the order survives a reload, a subtask is created from task detail, and a drag
  * of that subtask onto the "move out of subtask" strip promotes it (PROMOTE_DROP_TARGET_ID, which
- * tests/components/task-row-drag-capability-wiring.test.ts can only pin as a string).
+ * tests/components/main-content-render.test.tsx finds in jsdom).
  * The order and the parent are read back from the API, so a pass means they were saved.
  */
 

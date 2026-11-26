@@ -1,4 +1,6 @@
 /**
+ * Spec module, test-only by design: its value is the test that pins it.
+ *
  * Canonical iOS-facing response shapes for legacy /api/* endpoints.
  *
  * Why: Phase 1 of the v1 migration extracts shared handlers between

@@ -14,6 +14,9 @@
  * take. Only when a fresh read holds nothing untried is the answer "no Ready task left".
  */
 
+import { EXPIRED_LEASE_MARKER } from '@/lib/agent-task-claim'
+import { RELEASE_MARKER, REWORK_MARKER } from './doing-release'
+
 export interface ClaimCandidate {
   id: string
   identifier?: string | null
@@ -50,7 +53,7 @@ export async function claimNextReady(input: {
   claim: (task: ClaimCandidate) => Promise<'claimed' | 'conflict'>
   /** A fresh read of the live queue. */
   refresh: () => Promise<ClaimCandidate[]>
-  skip?: (task: ClaimCandidate) => boolean
+  skip?: (task: ClaimCandidate) => boolean | Promise<boolean>
   /** Fresh reads after the snapshot is exhausted. Bounded, so a flapping board cannot spin. */
   maxRefreshes?: number
   log?: (line: string) => void
@@ -65,7 +68,7 @@ export async function claimNextReady(input: {
   for (let read = 0; ; read++) {
     for (const task of candidates) {
       if (!task?.id || tried.has(task.id) || skipped.has(task.id)) continue
-      if (input.skip?.(task)) {
+      if (await input.skip?.(task)) {
         skipped.add(task.id)
         log(`SKIP ${task.identifier ?? task.id}`)
         continue
@@ -83,4 +86,87 @@ export async function claimNextReady(input: {
     candidates = fresh
   }
   return { claimed: null, conflicts, skipped: [...skipped] }
+}
+
+/**
+ * The open PR branch that already carries this task's work, or undefined (ADEV-310).
+ *
+ * A claim lease that lapses mid-work puts the task back in Ready while its PR is open, and
+ * the next worker builds it again (#1015/#1016, #1018/#1020). Once work has a PR nobody
+ * else starts it. The identifier must stand alone in the branch name: `ADEV-31` is not
+ * `ADEV-310`.
+ */
+export function openPrBranchFor(task: ClaimCandidate, openBranches: readonly string[]): string | undefined {
+  const identifier = task.identifier?.trim()
+  if (!identifier || !/^[A-Za-z0-9]+-\d+$/.test(identifier)) return undefined
+  const standalone = new RegExp(`(^|[^A-Za-z0-9])${identifier}($|[^0-9])`, 'i')
+  return openBranches.find(branch => standalone.test(branch))
+}
+
+/**
+ * The head branches of the repo's open PRs. FAIL-OPEN: a lookup that errors returns []
+ * and says so, because a missed duplicate costs one PR and a blocked claim costs the run.
+ */
+export function openPrBranches(listOpenPrBranches: () => string[], log: (line: string) => void = () => {}): string[] {
+  try {
+    return listOpenPrBranches().filter(branch => typeof branch === 'string' && branch.length > 0)
+  } catch (error) {
+    log(`OPEN_PR_LOOKUP_FAILED: ${error instanceof Error ? error.message : error} — claiming without the open-PR guard`)
+    return []
+  }
+}
+
+export interface ClaimComment {
+  content?: string | null
+  createdAt?: string | Date | null
+}
+
+/**
+ * Was this task SENT BACK to be resumed from `branch`? Then its open PR is not a reason to
+ * pass it over: the ship workflow returns a PR that cannot land to Ready on purpose
+ * (REWORK_MARKER, ADEV-200), and a stale-Doing release names the branch to continue from
+ * (RELEASE_MARKER). The duplicate this guard stops is the other way back to Ready, an
+ * expired lease (EXPIRED_LEASE_MARKER), so the newer of the two decides.
+ */
+export function sentBackToResume(comments: readonly ClaimComment[], branch: string): boolean {
+  const at = (comment: ClaimComment) => {
+    const time = comment.createdAt ? new Date(comment.createdAt).getTime() : NaN
+    return Number.isNaN(time) ? 0 : time
+  }
+  const newest = (match: (content: string) => boolean) =>
+    Math.max(0, ...comments.filter(comment => match(comment.content ?? '')).map(at))
+  const sentBack = newest(content =>
+    (content.startsWith(REWORK_MARKER) || content.startsWith(RELEASE_MARKER)) && content.includes(branch))
+  const leaseExpired = newest(content => content.startsWith(EXPIRED_LEASE_MARKER))
+  return sentBack > 0 && sentBack > leaseExpired
+}
+
+/**
+ * A `skip` for claimNextReady: pass over a task whose work already has an open PR, and log
+ * which PR branch, unless the task was sent back to be resumed from that branch. Reads the
+ * task's comments only when an open PR matches. FAIL-OPEN: a comment read that errors
+ * claims the task. Composes with another skip (e.g. isCoreCandidate) when given one.
+ */
+export function skipTasksWithOpenPr(input: {
+  openBranches: readonly string[]
+  comments: (task: ClaimCandidate) => Promise<readonly ClaimComment[]>
+  log: (line: string) => void
+  otherwise?: (task: ClaimCandidate) => boolean
+}): (task: ClaimCandidate) => Promise<boolean> {
+  return async task => {
+    if (input.otherwise?.(task)) return true
+    const branch = openPrBranchFor(task, input.openBranches)
+    if (!branch) return false
+    try {
+      if (sentBackToResume(await input.comments(task), branch)) {
+        input.log(`OPEN_PR_RESUME ${task.identifier}: sent back to be resumed from ${branch} — claiming it`)
+        return false
+      }
+    } catch (error) {
+      input.log(`OPEN_PR_LOOKUP_FAILED: ${task.identifier} comments: ${error instanceof Error ? error.message : error} — claiming it`)
+      return false
+    }
+    input.log(`SKIP_OPEN_PR ${task.identifier}: open PR on ${branch} already carries this task — trying the next Ready task`)
+    return true
+  }
 }

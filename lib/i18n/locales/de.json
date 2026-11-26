@@ -1904,6 +1904,61 @@
     "deleteProjectDetail": "Die Listen bleiben erhalten, außerhalb jedes Projekts. Die eigenen Spalten des Boards werden mit gelöscht.",
     "deleteProjectAction": "Löschen",
     "deleteProjectFailed": "Das Projekt konnte nicht gelöscht werden",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Schätzung",
       "button": "Schätzen",
@@ -1943,7 +1998,30 @@
       "opportunity": "Potenzial",
       "notEstimated": "Nicht geschätzt",
       "effort": "{hours} Std. Aufwand",
-      "opportunityRange": "{low} bis {high} {unit} / {period}"
+      "opportunityRange": "{low} bis {high} {unit} / {period}",
+      "label": {
+        "do-now": "Jetzt erledigen",
+        "experiment-first": "Erst experimentieren",
+        "needs-review": "Prüfung nötig",
+        "dont": "Nicht tun",
+        "chipAria": "Empfehlung: {label}. Begründung anzeigen.",
+        "reasonsHeading": "Warum"
+      },
+      "reason": {
+        "noEstimate": "Es gibt noch keine Schätzung.",
+        "stale": "Die Schätzung ist veraltet.",
+        "guardrailAtRefuse": "{name}: Die Überschreitungswahrscheinlichkeit {probability} liegt an der Grenze von {threshold}.",
+        "guardrailAtReview": "{name}: Die Überschreitungswahrscheinlichkeit {probability} liegt am Prüfpunkt von {threshold}.",
+        "riskAtRefuse": "Das Risiko ist {level} und liegt auf oder über der Grenze von {threshold}.",
+        "riskAtReview": "Das Risiko ist {level} und liegt auf oder über dem Prüfpunkt von {threshold}.",
+        "riskUnknown": "Die Schätzung nennt kein Risiko, und unbekannt ist nie gut.",
+        "guardrailsUnknown": "Die Schätzung nennt keine Auswirkung auf die Leitplanken, und unbekannt ist nie gut.",
+        "confidenceLow": "Das Vertrauen ist niedrig oder wurde nicht angegeben.",
+        "experimentFirst": "Das Vertrauen liegt bei {confidence}, das Risiko bei {risk}.",
+        "builtinCapped": "Eine integrierte Schätzung ist nie besser als „Erst experimentieren“.",
+        "goalImproves": "{name} wird sich voraussichtlich verbessern ({delta}).",
+        "noGoalImproves": "Es wird erwartet, dass sich kein Ziel verbessert."
+      }
     },
     "goals": {
       "title": "Ziele & Leitplanken",
@@ -2052,7 +2130,8 @@
       "who": "Wer",
       "completed": "Erledigt zuerst",
       "incomplete": "Offen zuerst",
-      "manual": "Manuell"
+      "manual": "Manuell",
+      "policy": "Richtlinie"
     },
     "show": {
       "allTasks": "Alle Aufgaben",
@@ -3198,7 +3277,32 @@
       "migrateAdditive": "Additive Migrationen",
       "migrateDestructive": "Destruktive Migrationen",
       "release": "Store-Veröffentlichungen",
-      "spend": "Geld ausgeben"
+      "spend": "Geld ausgeben",
+      "promoteIdea": "Eine „Jetzt erledigen“-Idee auf Bereit setzen",
+      "experimentStart": "Experimente starten",
+      "experimentStop": "Experimente beenden"
+    },
+    "tradeoff": {
+      "title": "Abwägungsrichtlinie",
+      "switch": "Eine Abwägungsrichtlinie festlegen",
+      "stated": "Festgelegt",
+      "none": "Keine festgelegt",
+      "help": "Kennzeichnet jede geschätzte Idee (jetzt erledigen, erst experimentieren, Prüfung nötig, nicht tun) und bestimmt die Reihenfolge der Richtlinien-Sortierung. Ohne festgelegte Richtlinie wird nichts gekennzeichnet und es gibt keine Richtlinien-Sortierung.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Prüfen bei einem Risiko von mindestens",
+        "riskRefuseAt": "Nicht tun bei einem Risiko von mindestens",
+        "confidenceBelow": "Erst experimentieren bei einem Vertrauen unter",
+        "experimentRiskAtLeast": "…und das Risiko mindestens",
+        "minConfidenceToAct": "Ein Agent darf befördern ab einem Vertrauen von mindestens",
+        "guardrailReview": "Prüfen bei Überschreitungswahrscheinlichkeit",
+        "guardrailRefuse": "Nicht tun bei Überschreitungswahrscheinlichkeit"
+      },
+      "goalOrder": "Zielpriorität",
+      "goalOrderHelp": "Ideen, die bei allem oben gleichauf liegen, werden danach geordnet, wie sie sich auf diese Ziele auswirken, das wichtigste zuerst.",
+      "goalOrderReset": "Standardreihenfolge verwenden",
+      "moveUp": "{goal} nach oben verschieben",
+      "moveDown": "{goal} nach unten verschieben"
     },
     "autonomy": {
       "allowed": "Erlaubt",

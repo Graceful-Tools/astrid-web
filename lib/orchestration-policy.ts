@@ -456,6 +456,93 @@ export function withAutonomy(override: PolicyOverride | null, field: AutonomyFie
   return parseCanonical(next)
 }
 
+/** The three-step scale risk and confidence are written in. */
+export type Level = EstimateLevel
+export const LEVELS = ESTIMATE_LEVELS
+
+/** The trade-off thresholds the settings UI edits one at a time, flattened like the autonomy fields. */
+export const TRADEOFF_LEVEL_FIELDS = ['riskReviewAt', 'riskRefuseAt', 'confidenceBelow', 'experimentRiskAtLeast', 'minConfidenceToAct'] as const
+export const TRADEOFF_PROBABILITY_FIELDS = ['guardrailReview', 'guardrailRefuse'] as const
+export type TradeoffLevelField = (typeof TRADEOFF_LEVEL_FIELDS)[number]
+export type TradeoffProbabilityField = (typeof TRADEOFF_PROBABILITY_FIELDS)[number]
+export type TradeoffField = TradeoffLevelField | TradeoffProbabilityField
+
+/** One threshold of a resolved trade-off policy, by its flattened name. */
+export function tradeoffFor(policy: TradeoffPolicy, field: TradeoffLevelField): Level
+export function tradeoffFor(policy: TradeoffPolicy, field: TradeoffProbabilityField): number
+export function tradeoffFor(policy: TradeoffPolicy, field: TradeoffField): Level | number {
+  switch (field) {
+    case 'riskReviewAt': return policy.risk.reviewAt
+    case 'riskRefuseAt': return policy.risk.refuseAt
+    case 'confidenceBelow': return policy.experimentFirst.confidenceBelow
+    case 'experimentRiskAtLeast': return policy.experimentFirst.riskAtLeast
+    case 'minConfidenceToAct': return policy.minConfidenceToAct
+    case 'guardrailReview': return policy.guardrail.reviewAtBreachProbability
+    case 'guardrailRefuse': return policy.guardrail.refuseAtBreachProbability
+  }
+}
+
+/** One threshold an override states, or undefined when it inherits. */
+export function overrideTradeoffFor(override: PolicyOverride | null, field: TradeoffField): Level | number | undefined {
+  const t = override?.tradeoff
+  switch (field) {
+    case 'riskReviewAt': return t?.risk?.reviewAt
+    case 'riskRefuseAt': return t?.risk?.refuseAt
+    case 'confidenceBelow': return t?.experimentFirst?.confidenceBelow
+    case 'experimentRiskAtLeast': return t?.experimentFirst?.riskAtLeast
+    case 'minConfidenceToAct': return t?.minConfidenceToAct
+    case 'guardrailReview': return t?.guardrail?.reviewAtBreachProbability
+    case 'guardrailRefuse': return t?.guardrail?.refuseAtBreachProbability
+  }
+}
+
+/**
+ * A copy of `override` with one trade-off threshold set, or inheriting when `value` is undefined.
+ * Setting one states a policy (the other fields take the defaults); clearing the last leaves `{}`,
+ * which still states one. Only `withTradeoffStated(…, false)` takes the policy away.
+ */
+export function withTradeoffField(override: PolicyOverride | null, field: TradeoffField, value: Level | number | undefined): PolicyOverride | null {
+  const t: TradeoffOverride = {
+    ...(override?.tradeoff ?? {}),
+    risk: { ...(override?.tradeoff?.risk ?? {}) },
+    guardrail: { ...(override?.tradeoff?.guardrail ?? {}) },
+    experimentFirst: { ...(override?.tradeoff?.experimentFirst ?? {}) },
+  }
+  const put = <T extends object, K extends keyof T>(group: T, key: K) => {
+    if (value === undefined) delete group[key]
+    else group[key] = value as T[K]
+  }
+  switch (field) {
+    case 'riskReviewAt': put(t.risk!, 'reviewAt'); break
+    case 'riskRefuseAt': put(t.risk!, 'refuseAt'); break
+    case 'confidenceBelow': put(t.experimentFirst!, 'confidenceBelow'); break
+    case 'experimentRiskAtLeast': put(t.experimentFirst!, 'riskAtLeast'); break
+    case 'minConfidenceToAct': put(t, 'minConfidenceToAct'); break
+    case 'guardrailReview': put(t.guardrail!, 'reviewAtBreachProbability'); break
+    case 'guardrailRefuse': put(t.guardrail!, 'refuseAtBreachProbability'); break
+  }
+  for (const group of ['risk', 'guardrail', 'experimentFirst'] as const) {
+    if (!Object.keys(t[group] ?? {}).length) delete t[group]
+  }
+  return parseCanonical({ ...(override ?? {}), tradeoff: t })
+}
+
+/** A copy of `override` with the goal order set (most important first), or inheriting when undefined. */
+export function withGoalOrder(override: PolicyOverride | null, order: string[] | undefined): PolicyOverride | null {
+  const t: TradeoffOverride = { ...(override?.tradeoff ?? {}) }
+  if (order === undefined) delete t.goalOrder
+  else t.goalOrder = order
+  return parseCanonical({ ...(override ?? {}), tradeoff: t })
+}
+
+/** A copy of `override` that states a trade-off policy (the defaults) or states none. */
+export function withTradeoffStated(override: PolicyOverride | null, stated: boolean): PolicyOverride | null {
+  const next: PolicyOverride = { ...(override ?? {}) }
+  if (stated) next.tradeoff = next.tradeoff ?? {}
+  else delete next.tradeoff
+  return parseCanonical(next)
+}
+
 /** A copy of `override` with `routing.assignTo` set (a mailbox, or null for any agent), or inheriting when undefined. */
 export function withAssignTo(override: PolicyOverride | null, value: string | null | undefined): PolicyOverride | null {
   const routing = { ...(override?.routing ?? {}) }

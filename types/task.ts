@@ -162,6 +162,16 @@ import type { CustomRepeatingPattern } from "./repeating"
 
 export type RepeatFromMode = "DUE_DATE" | "COMPLETION_DATE"
 
+/** A task's trade-off label, why, and where it sorts (ADEV-281). */
+export interface TaskEstimateSummary {
+  /** `do-now` | `experiment-first` | `needs-review` | `dont` (astrid-core `tradeoff::Label`). */
+  label: string
+  /** A code and the values behind it; the client words it. */
+  labelReasons?: { code: string; [key: string]: unknown }[]
+  /** Compared lexicographically, smaller first. */
+  sortKey: number[]
+}
+
 export interface Task {
   id: string
   title: string
@@ -211,6 +221,13 @@ export interface Task {
    * always does.
    */
   fields?: Record<string, string | number> | null
+  /**
+   * The label and sort key the task's latest estimate earned under the project's trade-off policy
+   * (ADEV-281). **No key at all** where no policy is stated. List responses carry it only with
+   * `?include=estimate` (lib/tasks/v1-task-estimate.ts); the policy sort compares `sortKey` and never
+   * evaluates it.
+   */
+  estimate?: TaskEstimateSummary | null
   /**
    * Board status as a state on the task (AWTD-562): ready | doing | waiting |
    * a project's custom role. Null/undefined means Inbox; Done is derived from

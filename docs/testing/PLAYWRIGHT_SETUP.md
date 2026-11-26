@@ -1,5 +1,7 @@
 # Playwright E2E Testing Setup - Complete ✅
 
+> Which test goes in which tier, and how the ratchets work: [Testing Strategy](../context/testing.md).
+
 ## 🎉 What's Been Integrated
 
 Playwright has been successfully integrated into your Astrid Task Manager with comprehensive end-to-end tests covering all major user flows.

@@ -16,6 +16,7 @@ import { TASK_COMMENTS_RESPONSE_LIMIT } from '@/lib/task-query-utils'
 import { createLogger } from '@/lib/logger'
 import { assigneeIdsOf } from '@/lib/task-assignees'
 import { taskFieldValuesSelect, v1TaskFieldsPatch } from '@/lib/tasks/v1-task-fields'
+import { taskEstimateSelect, v1TaskEstimatePatch, type TaskEstimateRow } from '@/lib/tasks/v1-task-estimate'
 import { withTaskRemote } from '@/lib/backends/task-remote'
 
 const log = createLogger('tasks.v1-task-shape')
@@ -173,8 +174,10 @@ export function v1TaskListSelect(opts: {
   leanListMembers: boolean
   includeComments: boolean
   includeFields: boolean
+  /** `?include=estimate`: each task's latest label and sort key (ADEV-281). */
+  includeEstimate?: boolean
 }) {
-  const { omit, leanListMembers, includeComments, includeFields } = opts
+  const { omit, leanListMembers, includeComments, includeFields, includeEstimate = false } = opts
   return {
     id: true,
     title: true,
@@ -212,6 +215,13 @@ export function v1TaskListSelect(opts: {
     // Board status as a state (AWTD-562) — without this no client can
     // render a board from the field.
     statusRole: true,
+    // The claim lease (AWTD-1688). The detail shape always carried it; this
+    // list did not, so the claim heartbeat (scripts/heartbeat-held-claims.ts),
+    // which reads the board here, saw no lease on any task and renewed none.
+    // Leases lapsed mid-work and a second worker built the same task (ADEV-310).
+    claimHolderId: true,
+    claimLeaseExpiresAt: true,
+    claimHeartbeatAt: true,
     createdAt: true,
     updatedAt: true,
     originalTaskId: true,
@@ -292,6 +302,8 @@ export function v1TaskListSelect(opts: {
     // capability is on (AWTD-1208). Spreading `{}` otherwise means the
     // relation is absent from the query Prisma builds, not merely unread.
     ...taskFieldValuesSelect(includeFields),
+    // The latest estimate's label and sort key, only when asked (ADEV-281).
+    ...taskEstimateSelect(includeEstimate),
   }
 }
 
@@ -314,8 +326,9 @@ export function shapeV1ListPageTask<
   // The storage shape never goes out: `fieldValues` is one row per value
   // with five nullable columns, and `fields` is the compact map that
   // replaces it (AWTD-1208).
-  const { fieldValues, ...rest } = task as T & {
+  const { fieldValues, estimates, ...rest } = task as T & {
     fieldValues?: Parameters<typeof v1TaskFieldsPatch>[0]
+    estimates?: TaskEstimateRow[]
   }
   return {
     // `remote` and `syncState` on a GitHub-backed task only (AWTD-1222);
@@ -326,6 +339,7 @@ export function shapeV1ListPageTask<
     // Everyone assigned, `assigneeId` first (AWTD-1190).
     assigneeIds: assigneeIdsOf(task),
     ...v1TaskFieldsPatch(fieldValues),
+    ...v1TaskEstimatePatch(estimates),
   }
 }
 

@@ -29,8 +29,20 @@ import { TaskDetailIdentifierRow } from "./TaskDetailIdentifierRow"
 import { TaskDetailOccurrenceRow } from "./TaskDetailOccurrenceRow"
 import { TaskDetailGoalsRow } from "./TaskDetailGoalsRow"
 import { Globe, Users, X, Check, Hash, List as ListIcon, Tag, Milestone, CalendarRange } from "lucide-react"
+import dynamic from "next/dynamic"
 import { useTranslations } from "@/lib/i18n/client"
 import { TaskDetailEstimateRow } from "./TaskDetailEstimateRow"
+
+// Loaded on demand: the row and its picker are not needed to paint the first screen.
+// Offline the chunk may not be cached; the row then renders nothing instead of
+// crashing task detail (offline-round-trip e2e, AWTD-1417).
+const TaskDetailExperimentRow = dynamic(
+  () =>
+    import("./TaskDetailExperimentRow")
+      .then((m) => m.TaskDetailExperimentRow)
+      .catch(() => () => null),
+  { ssr: false },
+)
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskDetailListsRowProps {
@@ -229,6 +241,8 @@ export function TaskDetailListsRow({
     <TaskDetailGoalsRow task={task} readOnly={readOnly} />
     {/* Estimate button and card (ADEV-280); nothing outside Project Mode. */}
     <TaskDetailEstimateRow task={task} readOnly={readOnly} />
+    {/* Experiment links and verification results (ADEV-282); nothing without goal signals. */}
+    <TaskDetailExperimentRow task={task} readOnly={readOnly} />
     </>
   )
 }

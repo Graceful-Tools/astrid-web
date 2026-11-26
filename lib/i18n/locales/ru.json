@@ -1904,6 +1904,61 @@
     "deleteProjectDetail": "Списки останутся, вне какого-либо проекта. Собственные колонки доски будут удалены вместе с ним.",
     "deleteProjectAction": "Удалить",
     "deleteProjectFailed": "Не удалось удалить проект",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Оценка",
       "button": "Оценить",
@@ -1943,7 +1998,30 @@
       "opportunity": "Потенциал",
       "notEstimated": "Не оценено",
       "effort": "{hours} ч работы",
-      "opportunityRange": "от {low} до {high} {unit} / {period}"
+      "opportunityRange": "от {low} до {high} {unit} / {period}",
+      "label": {
+        "do-now": "Делать сейчас",
+        "experiment-first": "Сначала эксперимент",
+        "needs-review": "Нужна проверка",
+        "dont": "Не делать",
+        "chipAria": "Рекомендация: {label}. Показать почему.",
+        "reasonsHeading": "Почему"
+      },
+      "reason": {
+        "noEstimate": "Оценки пока нет.",
+        "stale": "Оценка устарела.",
+        "guardrailAtRefuse": "{name}: вероятность нарушения {probability} достигла предела {threshold}.",
+        "guardrailAtReview": "{name}: вероятность нарушения {probability} достигла порога проверки {threshold}.",
+        "riskAtRefuse": "Риск: {level}, он равен пределу {threshold} или выше него.",
+        "riskAtReview": "Риск: {level}, он равен порогу проверки {threshold} или выше него.",
+        "riskUnknown": "Оценщик не указал риск, а неизвестность никогда не бывает хорошей.",
+        "guardrailsUnknown": "Оценщик не указал влияние на ограничения, а неизвестность никогда не бывает хорошей.",
+        "confidenceLow": "Уверенность низкая или не указана.",
+        "experimentFirst": "Уверенность: {confidence}, риск: {risk}.",
+        "builtinCapped": "Встроенная оценка никогда не бывает лучше, чем «Сначала эксперимент».",
+        "goalImproves": "Ожидается, что {name} улучшится ({delta}).",
+        "noGoalImproves": "Ни одна цель, как ожидается, не улучшится."
+      }
     },
     "goals": {
       "title": "Цели и ограничения",
@@ -2052,7 +2130,8 @@
       "who": "Кто",
       "completed": "Сначала готовые",
       "incomplete": "Сначала к выполнению",
-      "manual": "Вручную"
+      "manual": "Вручную",
+      "policy": "Политика"
     },
     "show": {
       "allTasks": "Все задачи",
@@ -3198,7 +3277,32 @@
       "migrateAdditive": "Аддитивные миграции",
       "migrateDestructive": "Деструктивные миграции",
       "release": "Выпуски в магазинах",
-      "spend": "Расходы"
+      "spend": "Расходы",
+      "promoteIdea": "Перевод идеи «Делать сейчас» в «Готово к работе»",
+      "experimentStart": "Запуск экспериментов",
+      "experimentStop": "Остановка экспериментов"
+    },
+    "tradeoff": {
+      "title": "Политика компромиссов",
+      "switch": "Задать политику компромиссов",
+      "stated": "Задана",
+      "none": "Не задана",
+      "help": "Помечает каждую оцененную идею (делать сейчас, сначала эксперимент, нужна проверка, не делать) и задаёт порядок сортировки по политике. Если политика не задана, ничего не помечается и сортировки по политике нет.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Проверять, если риск не ниже",
+        "riskRefuseAt": "Не делать, если риск не ниже",
+        "confidenceBelow": "Сначала эксперимент, если уверенность ниже",
+        "experimentRiskAtLeast": "…и риск не ниже",
+        "minConfidenceToAct": "Агент может повысить при уверенности не ниже",
+        "guardrailReview": "Проверять при вероятности нарушения",
+        "guardrailRefuse": "Не делать при вероятности нарушения"
+      },
+      "goalOrder": "Приоритет целей",
+      "goalOrderHelp": "Идеи, равные по всему перечисленному выше, упорядочиваются по влиянию на эти цели, самые важные первыми.",
+      "goalOrderReset": "Использовать порядок по умолчанию",
+      "moveUp": "Переместить {goal} вверх",
+      "moveDown": "Переместить {goal} вниз"
     },
     "autonomy": {
       "allowed": "Разрешено",
