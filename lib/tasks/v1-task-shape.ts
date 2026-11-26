@@ -212,6 +212,13 @@ export function v1TaskListSelect(opts: {
     // Board status as a state (AWTD-562) — without this no client can
     // render a board from the field.
     statusRole: true,
+    // The claim lease (AWTD-1688). The detail shape always carried it; this
+    // list did not, so the claim heartbeat (scripts/heartbeat-held-claims.ts),
+    // which reads the board here, saw no lease on any task and renewed none.
+    // Leases lapsed mid-work and a second worker built the same task (ADEV-310).
+    claimHolderId: true,
+    claimLeaseExpiresAt: true,
+    claimHeartbeatAt: true,
     createdAt: true,
     updatedAt: true,
     originalTaskId: true,

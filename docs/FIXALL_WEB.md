@@ -97,7 +97,10 @@ single worker. Each worker takes a different task:
 `npx tsx scripts/claim-next-fixall-task.ts --agent <mailbox> --list <board-id>` walks the queue
 in priority order, moves past a task a peer already claimed (409), and re-reads the live
 queue before exiting 3 (`NO_READY_TASK`). So no worker ends `SKIPPED` while an unclaimed
-Ready task remains. Slots 2..N claim before setup and hand the task to the session as
+Ready task remains. It also passes over a Ready task whose identifier is in the head branch of
+an open PR (ADEV-310): that work exists, and a lapsed lease is no reason to build it twice. A
+task sent back to be resumed from that branch (a rework or a release) is still claimed. The
+lookups fail open. Slots 2..N claim before setup and hand the task to the session as
 `$ASTRID_CLAIMED_TASK`. Slot 1 alone answers the inbox, runs the stale-Doing sweep and
 keeps wake state. **Deploys queue**: `production-deployment.yml` runs one at a time
 (`concurrency: production-deployment`), and skips a commit production has already moved

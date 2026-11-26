@@ -204,6 +204,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GH_TOKEN', scope: 'tooling', description: 'Alternative token name the gh CLI accepts.' },
   { name: 'ASTRID_CORE_GH_TOKEN', scope: 'tooling', description: 'agent-ship: token that can merge astrid-core handoff PRs (AWTD-1682); unset skips core merges.' },
   { name: 'GITHUB_REF_NAME', scope: 'tooling', description: 'Actions branch name; isolates retained cloud worker wake state by branch.' },
+  { name: 'GITHUB_REPOSITORY', scope: 'tooling', description: 'Actions owner/repo; claim-next lists its open PRs to skip tasks already in one (ADEV-310).' },
   { name: 'GITHUB_RUN_ID', scope: 'tooling', description: 'Actions run id; excludes the current run when restoring retained worker state.' },
   { name: 'RUNNER_TEMP', scope: 'tooling', description: 'Actions temporary directory for downloading validated cloud wake-state artifacts.' },
   { name: 'GITHUB_SYNC_CLIENT_ID', scope: 'optional', description: 'OAuth app (scope: repo) for two-way GitHub Issues sync — separate from the GitHub App.' },

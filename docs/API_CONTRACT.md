@@ -1560,5 +1560,8 @@ X-RateLimit-Reset: 1640000000
 - Added the `muse` AI service id (Meta Model API). `muse@` can now be server-run (AWTD-1053)
 - Added `serverTime` to `GET /api/v1/tasks` and `GET /api/v1/lists`, and keyset paging
   (`?cursor=` → `nextCursor`) to `GET /api/v1/tasks`. Additive (AWTD-1470)
+- Added the claim lease (`claimHolderId`, `claimLeaseExpiresAt`, `claimHeartbeatAt`) to each
+  row of `GET /api/v1/tasks`; `GET /api/v1/tasks/{id}` already carried it. Additive. The claim
+  heartbeat reads the board from this list and, without the fields, never renewed a lease (ADEV-310)
 - `GET /api/v1/agent-queue` can answer `mode: "off"` with no work for a polling-only agent the
   caller turned Off, when the server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true` (AWTD-1563)
