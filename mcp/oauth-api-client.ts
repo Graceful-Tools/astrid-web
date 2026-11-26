@@ -33,6 +33,20 @@ export interface OAuthAPIClientOptions {
   clientSecret?: string
   accessToken?: string
   hosted?: boolean
+  localDispatch?: LocalDispatch
+}
+
+/**
+ * Same-backend dispatch (AWTD-1553): serve a READ in-process instead of looping
+ * back over HTTP. Resolve with the parsed JSON body, or null to decline. A throw
+ * is not an error to the caller either: the client falls back to HTTP.
+ */
+export type LocalDispatch = (endpoint: string, accessToken: string) => Promise<unknown | null>
+
+/** The flag a host checks before it supplies a LocalDispatch. Off unless set to 1/true. */
+export function sameBackendDispatchEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  const value = env.ASTRID_MCP_SAME_BACKEND?.trim().toLowerCase()
+  return value === '1' || value === 'true'
 }
 
 export interface ClaimTaskRequest {
@@ -66,6 +80,7 @@ export class OAuthAPIClient {
     clientSecret?: string,
     staticAccessToken?: string | null,
     private readonly hosted = false,
+    private readonly localDispatch?: LocalDispatch,
   ) {
     this.baseUrl = baseUrl
     this.clientId = clientId || process.env.ASTRID_OAUTH_CLIENT_ID || ""
@@ -142,6 +157,16 @@ export class OAuthAPIClient {
    */
   async makeRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const token = await this.obtainAccessToken()
+
+    // Reads only: a write that threw after committing would be repeated by the fallback.
+    if (this.localDispatch && (!options.method || options.method.toUpperCase() === 'GET')) {
+      try {
+        const local = await this.localDispatch(endpoint, token)
+        if (local != null) return local as T
+      } catch (error) {
+        log.warn({ err: error }, 'Same-backend dispatch failed; falling back to HTTP')
+      }
+    }
 
     const response = await this.fetchBackend(endpoint, {
       ...options,

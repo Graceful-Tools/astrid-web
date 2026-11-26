@@ -132,8 +132,9 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // Re-pinned for ADEV-178 (2026-11-21): add_comment's Decision hint teaches the traffic-light method.
     // Re-pinned for ADEV-179 (2026-11-21): get_project_goals appended; no existing tool changed.
     // Re-pinned for ADEV-182 (2026-11-22): update_goal_measure appended after gather_decision_evidence; no existing tool changed.
+    // Re-pinned for AWTD-1553: optional compact/maxDescriptionChars/limit/before on the three read tools.
     expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
-      '1d8daa5d64aa5eeddb8b66105f80304a68a8307cf29880af8e9ea30377131ad5',
+      'e0c3108c5513d0ca6069af848f13fedee6ecc471d53bf95a77e275cb42675e08',
     )
   })
 

@@ -30,6 +30,17 @@ import { PROJECT_GOALS_TOOLS } from "./project-goals-tool"
  * The Decision and trade-off grid formats, short enough for a tool description (AWTD-1531).
  * Most agents learn the format only from here. Full guide: docs/DECISIONS.md.
  */
+// Opt-in smaller reads (AWTD-1553). Absent means today's full, pretty-printed output.
+const COMPACT_PROPERTY = {
+  type: "boolean",
+  description:
+    "Return one-line JSON with descriptions truncated (a marker says how much was cut; get_task has the rest). Default false: full output.",
+}
+const MAX_DESCRIPTION_PROPERTY = {
+  type: "number",
+  description: "With compact: keep this many characters of each description. Default 600.",
+}
+
 const DECISION_FORMAT_HINT =
   "To ask a person to choose, write a Decision: a paragraph starting **Decision:**, then a list whose items start with a bold number (- **1.** Ship today (recommended) / - **2.** Wait). " +
   "The apps draw cards numbered 1, 2, 3; a tap posts \"1 — Ship today\" as the reply. Recommend exactly one option, keep option text short, and use it for any question with 2–5 discrete answers. " +
@@ -94,6 +105,8 @@ export const OAUTH_MCP_TOOLS = [
                 "Also queue UNASSIGNED Ready tasks on the board named by listId (required with this). Default false. Use it on a board you keep for your own agents, where Ready is the hand-off; claim a task before working it, since an unassigned task is open to any agent. Only boards you own or are a member of, only Ready — Doing, Waiting and unstatused tasks never queue this way.",
               default: false,
             },
+            compact: COMPACT_PROPERTY,
+            maxDescriptionChars: MAX_DESCRIPTION_PROPERTY,
           },
           required: ["agent"],
         },
@@ -108,6 +121,8 @@ export const OAUTH_MCP_TOOLS = [
               type: "string",
               description: "Task id (uuid) or identifier such as AWTD-1007",
             },
+            compact: COMPACT_PROPERTY,
+            maxDescriptionChars: MAX_DESCRIPTION_PROPERTY,
           },
           required: ["taskId"],
         },
@@ -377,6 +392,16 @@ export const OAUTH_MCP_TOOLS = [
               type: "string",
               description: "Task id (uuid) or identifier such as AWTD-1007",
             },
+            limit: {
+              type: "number",
+              description:
+                "Return only the newest N comments (oldest first) plus totalCount and, when older ones exist, nextCursor. Omit for the whole history.",
+            },
+            before: {
+              type: "string",
+              description: "A nextCursor from a previous page: return the comments older than that comment id.",
+            },
+            compact: COMPACT_PROPERTY,
           },
           required: ["taskId"],
         },
