@@ -145,10 +145,8 @@ describe('isPollingOnlyAgent (reading a real user row)', () => {
     expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
   })
 
-  it.skip('AWTD-1554 enforcement follow-up: polling-only getter honors stored Off', async () => {
-    userWith({ agentModes: { codex: 'off' } })
-    expect(await getAgentExecutionMode('user-1', `codex@${BRAND.agentEmailDomain}`)).toBe('off')
-  })
+  // Intended: getAgentExecutionMode('user-1', codex mailbox) returns 'off' for stored { agentModes: { codex: 'off' } }.
+  it.todo('AWTD-1554 enforcement follow-up: polling-only getter honors stored Off')
 
   it('keeps the server out of a task whose agent the user set to polling', async () => {
     userWith({ agentModes: { claude: 'polling' }, apiKeys: { claude: { encrypted: 'x', iv: 'y' } } })
