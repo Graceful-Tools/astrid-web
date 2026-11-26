@@ -3,8 +3,8 @@
  * astrid-core decides list permissions on the server (AWTD-1061) — and fails safe. Whatever the
  * core does short of answering (cannot load, throws, answers garbage or an error envelope), the
  * public functions in lib/list-permissions.ts return the TypeScript answer, and nothing escapes to
- * the caller. When it does answer, its answer is returned, and a disagreement with the TypeScript
- * (which the browser still runs) is logged once, without ids.
+ * the caller. When it does answer, its answer is returned and the TypeScript is not run: the
+ * server comparison was retired (AWTD-1608).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -30,7 +30,7 @@ const list = { id: 'l1', ownerId: 'user-me', privacy: 'PRIVATE', listMembers: []
 const stranger = { id: 'user-x' }
 
 function silentReporter() {
-  return { disagreement: vi.fn(), failure: vi.fn() }
+  return { failure: vi.fn() }
 }
 
 /** A core that answers `value` to every question. */
@@ -44,7 +44,7 @@ afterEach(() => {
 
 describe('the core decides', () => {
   it('returns the core answer, not the TypeScript one, in decide mode', () => {
-    // A core that disagrees is the only way to see whose answer came back.
+    // A core that answers differently is the only way to see whose answer came back.
     const report = silentReporter()
     const decider = createListPermissionsCore(answering({ role: 'viewer', canManage: false }), report)
     setListPermissionsCore(decider.decide)
@@ -53,45 +53,19 @@ describe('the core decides', () => {
     expect(canUserManageList(owner, list)).toBe(false)
     // Functions built on the decided ones follow the core too.
     expect(canEditListSettings(list, owner.id)).toBe(false)
-    expect(decider.stats).toMatchObject({ disagreed: 3, failed: 0 })
+    // No comparison (AWTD-1608): answered, and nothing reported.
+    expect(decider.stats).toEqual({ answered: 3, skipped: 0, failed: 0 })
+    expect(report.failure).not.toHaveBeenCalled()
   })
 
-  it('reports a disagreement once per shape, without ids', () => {
-    const report = silentReporter()
-    const decider = createListPermissionsCore(answering({ role: 'viewer', canEditTasks: false }), report)
-    setListPermissionsCore(decider.decide)
-
-    getUserRoleInList(owner, list)
-    getUserRoleInList(owner, list)
-    canUserEditTasks(owner, list)
-
-    expect(report.disagreement).toHaveBeenCalledTimes(2) // role once, canEditTasks once
-    expect(report.disagreement.mock.calls[0][0]).toMatchObject({ ts: 'owner', core: 'viewer', returned: 'core' })
-    const logged = JSON.stringify(report.disagreement.mock.calls)
-    expect(logged).not.toContain('user-me')
-    expect(logged).not.toContain('l1')
-  })
-
-  it('in shadow mode, returns the TypeScript answer and only compares', () => {
-    const report = silentReporter()
-    const decider = createListPermissionsCore(answering({ role: 'viewer' }), report, { mode: 'shadow' })
+  it('in shadow mode, does not ask the core: the TypeScript decides', () => {
+    const runJson = answering({ role: 'viewer' })
+    const decider = createListPermissionsCore(runJson, silentReporter(), { mode: 'shadow' })
     setListPermissionsCore(decider.decide)
 
     expect(getUserRoleInList(owner, list)).toBe('owner')
-    expect(decider.stats.disagreed).toBe(1)
-    expect(report.disagreement.mock.calls[0][0]).toMatchObject({ returned: 'typescript' })
-  })
-
-  it('counts one systematic disagreement once, whatever the list size', () => {
-    const report = silentReporter()
-    const decider = createListPermissionsCore(answering({ role: 'viewer' }), report)
-    setListPermissionsCore(decider.decide)
-    for (const n of [2, 3, 7, 40]) {
-      const members = Array.from({ length: n }, (_, i) => ({ userId: `m${i}`, role: 'member' }))
-      getUserRoleInList(owner, { ...list, listMembers: members })
-    }
-    expect(decider.stats.disagreed).toBe(4)
-    expect(report.disagreement).toHaveBeenCalledTimes(1)
+    expect(runJson).not.toHaveBeenCalled()
+    expect(decider.stats).toEqual({ answered: 0, skipped: 1, failed: 0 })
   })
 
   it('reports running totals, so a quiet log can be told apart from a failing one', () => {
@@ -101,7 +75,7 @@ describe('the core decides', () => {
     for (let i = 0; i < SUMMARY_EVERY; i++) getUserRoleInList(owner, list)
     expect(summary).toHaveBeenCalledTimes(1)
     const [details] = summary.mock.calls[0]
-    expect(details.stats.agreed).toBe(SUMMARY_EVERY - 1)
+    expect(details.stats.answered).toBe(SUMMARY_EVERY - 1)
     expect(JSON.stringify(details)).not.toContain('user-me')
   })
 })
@@ -146,7 +120,7 @@ describe('the core fails safe to the TypeScript answer', () => {
     expect(getUserRoleInList(owner, list)).toBe('owner')
     expect(getUserRoleInList(owner, list)).toBe('owner')
     expect(runJson).toHaveBeenCalledTimes(2) // not switched off: the next question may be fine
-    expect(decider.stats).toMatchObject({ failed: 2, agreed: 0 })
+    expect(decider.stats).toMatchObject({ failed: 2, answered: 0 })
     expect(report.failure).toHaveBeenCalledTimes(1)
   })
 
@@ -199,7 +173,6 @@ describe('what the core is sent', () => {
           lists: [{ id: 'd', listMembers: [{ userId: 'user-me' }] }],
         },
       },
-      typescriptAnswer: () => 'member',
     })
     expect(built).toEqual({
       request: expect.objectContaining({
@@ -226,7 +199,6 @@ describe('what the core is sent', () => {
         admins: [null as unknown as { id: string }, { id: 'a' }],
         project: { lists: [{ id: 'd', listMembers: null }, { id: 'e' }] },
       },
-      typescriptAnswer: () => null,
     }) as { request: { list: Record<string, unknown> } }
     expect(built.request.list.admins).toEqual([{ id: 'a' }])
     expect(built.request.list.project).toEqual({ ownerId: null, members: [], lists: [{ listMembers: [] }, { listMembers: [] }] })
@@ -250,7 +222,7 @@ describe('installing the core', () => {
 
     // A project-owner case the TypeScript and the core both answer 'admin' — through the core.
     expect(getUserRoleInList(owner, { ownerId: 'o', project: { ownerId: 'user-me' } })).toBe('admin')
-    expect(listPermissionsCoreStatus()?.stats).toMatchObject({ agreed: 1, failed: 0 })
+    expect(listPermissionsCoreStatus()?.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 
   it('installs nothing with ASTRID_CORE_RULES=off', () => {

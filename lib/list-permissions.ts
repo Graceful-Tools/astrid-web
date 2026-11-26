@@ -1,5 +1,4 @@
 import type { TaskList, User } from "@/types/task"
-import { lazyValue } from "@/lib/lazy-value"
 import { createLogger } from '@/lib/logger'
 import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 
@@ -93,13 +92,6 @@ export interface ListDecisionQuestion {
   list: ListLike
   /** For `canEditTask` only: the task's creator. */
   taskCreatorId?: string | null
-  /**
-   * The TypeScript rules' answer — what this module returns if the core does not answer, and
-   * what the core's answer is compared with when the decision is sampled. A getter, computed at
-   * most once and only when asked for, so a decision the core answers unsampled never runs the
-   * TypeScript (AWTD-1591).
-   */
-  typescriptAnswer: () => string | boolean | null
 }
 
 /**
@@ -125,8 +117,8 @@ type CoreHost = { [CORE_KEY]?: ListPermissionsCore | null }
  *
  * Fail-safe by construction: the TypeScript answer is what is returned when the core declines
  * (`undefined`), throws, or answers something that is not a valid answer to the question asked.
- * It is computed then, or when the core samples the decision for comparison — not otherwise
- * (AWTD-1591).
+ * It is computed only then: the server comparison was retired (AWTD-1608), so a decision the core
+ * answers never runs the TypeScript.
  */
 export function setListPermissionsCore(core: ListPermissionsCore | null): void {
   ;(globalThis as CoreHost)[CORE_KEY] = core
@@ -147,15 +139,14 @@ function decided<T extends string | boolean | null>(
 ): T {
   const core = (globalThis as CoreHost)[CORE_KEY]
   if (!core) return computeTypescript()
-  const typescriptAnswer = lazyValue(computeTypescript)
+  let answer: ReturnType<ListPermissionsCore>
   try {
-    const answer = core({ decision, user, list, taskCreatorId, typescriptAnswer })
-    if (answer === undefined || !isValidAnswer(decision, answer)) return typescriptAnswer()
-    return answer as T
+    answer = core({ decision, user, list, taskCreatorId })
   } catch {
     // A core that throws must never deny, allow or crash: the TypeScript answer stands.
-    return typescriptAnswer()
+    return computeTypescript()
   }
+  return answer === undefined || !isValidAnswer(decision, answer) ? computeTypescript() : (answer as T)
 }
 
 /**

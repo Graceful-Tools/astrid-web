@@ -57,7 +57,6 @@ const same = (answer: TaskNextOccurrence) => ({
 function withCore() {
   const reports: unknown[] = []
   const hook = createRepeatingCore(core.runJson, {
-    disagreement: (d) => reports.push(d),
     failure: (d) => reports.push(d),
   })
   setRepeatingCore(hook.next)
@@ -87,9 +86,9 @@ describe('nextOccurrenceForTask with astrid-core answering, as the server runs i
   it.each(completions)('%s', (_name, { request, answer }) => {
     const { hook, reports } = withCore()
     expect(same(nextOccurrenceForTask(request))).toEqual(same(answer))
-    // The core answered itself — no fallback — and agreed.
+    // The core answered itself — no fallback — with the fixture's answer.
     expect(reports).toEqual([])
-    expect(hook.stats).toEqual({ agreed: 1, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
+    expect(hook.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 
   it.each(progressions)('%s, step by step', (_name, c) => {
@@ -115,7 +114,7 @@ describe('nextOccurrenceForTask with astrid-core answering, as the server runs i
     }
     expect(dates).toEqual(c.dates.map((d) => new Date(d).getTime()))
     expect(reports).toEqual([])
-    expect(hook.stats.agreed).toBe(c.steps)
+    expect(hook.stats.answered).toBe(c.steps)
   })
 })
 
@@ -162,7 +161,7 @@ describe('beyond the named cases', () => {
       const typescript = calculateTaskNextOccurrence(request)
       const { hook } = withCore()
       const answer = nextOccurrenceForTask(request)
-      if (hook.stats.agreed !== 1 || JSON.stringify(same(answer)) !== JSON.stringify(same(typescript))) {
+      if (hook.stats.answered !== 1 || JSON.stringify(same(answer)) !== JSON.stringify(same(typescript))) {
         disagreements.push({ request, typescript, answer, stats: hook.stats })
       }
     }
