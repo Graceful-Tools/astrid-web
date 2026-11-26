@@ -191,6 +191,29 @@ export function landablePullRequests(
 }
 
 /**
+ * The held-back PRs that are waiting on CI rather than refused — ADEV-265.
+ *
+ * A run used to treat "checks still running" as "the next tick can land it". But the next tick
+ * rarely came: GitHub fires agent-ship's schedule about every 6-9 hours, not every 30 minutes,
+ * and the event the PR's CI raised on finishing could be cancelled in the concurrency queue. So
+ * the run chains itself while any PR here is waiting, and these are the ones worth waiting for.
+ *
+ * `BLOCKED` counts only while a check is still running, which is GitHub blocking on a required
+ * check. `BLOCKED` with every check finished waits on a person, and nothing here can help.
+ */
+export function waitingOnChecks(prs: PullRequestSummary[], skipped: LandDecision['skipped']): number[] {
+  const byNumber = new Map(prs.map(pr => [pr.number, pr]))
+  return skipped.filter(({ number, why }) => {
+    const checks = byNumber.get(number)?.checks ?? []
+    const running = checks.some(check => check.bucket === 'pending')
+    const red = checks.some(check => check.bucket === 'fail' || check.bucket === 'cancel')
+    if (why.startsWith('checks still running') || why.startsWith('mergeability not computed yet') ||
+        why === 'no check has reported yet') return true
+    return why === 'merge state BLOCKED' && running && !red
+  }).map(({ number }) => number)
+}
+
+/**
  * Migration files waiting to be applied, from
  * `git diff --name-only origin/prod origin/main -- prisma/migrations/`.
  *

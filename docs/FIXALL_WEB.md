@@ -147,7 +147,16 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   current marker naming exactly that PR and head, Doing or Testing, this board, base `main`,
   green checks, a merge commit pinned to the head). Then it completes every task whose PR is
   merged at its recorded head, a PR a person merged included, and comments the merge sha.
-  Core CI cannot start `agent-ship.yml`, so core handoffs land on its :17/:47 schedule.
+  **Nothing waits on the schedule** (ADEV-265). GitHub fires the `:17/:47` cron about every
+  6-9 hours, not every 30 minutes, so it is a backstop only. A run starts when an agent PR's
+  CI finishes, or when `Agent Run` finishes (a cloud worker may have opened a PR, astrid-core's
+  included; core CI cannot start this workflow). A run then dispatches the next one itself:
+  at once when it landed a PR and more green ones remain, and after 90 seconds when a handoff's
+  CI is still running (`waitingOnChecks`: pending checks, uncomputed mergeability, or `BLOCKED`
+  while a check runs). The chain stops after 30 runs; the next CI event starts a fresh one.
+  Concurrency is set on the job, not the workflow, so a run whose job is skipped (CI on `main`,
+  a Dependabot branch) never replaces the pending run that would land something. That is how
+  #999 waited for hours on 2026-11-26.
 - **The selected Copilot cloud worker is GitHub's built-in agent**, not a CLI
   replacement. `native-copilot-bridge.yml` has a disabled-by-default schedule,
   explicit exact-board claims, native issue assignment and task/PR comment relay.
