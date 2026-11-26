@@ -20,26 +20,41 @@ import { handBackTs } from '@/lib/waiting-rules'
 import {
   AUTONOMY_VALUES,
   ESCALATION_TARGETS,
+  LEVELS,
   stricterAutonomy,
   type Autonomy,
   type AutonomyField,
   type Escalation,
+  type Level,
   type OrchestrationPolicy,
+  type TradeoffPolicy,
 } from '@/lib/orchestration-autonomy'
 
 export {
   AUTONOMY_FIELDS,
   AUTONOMY_VALUES,
   ESCALATION_TARGETS,
+  LEVELS,
   autonomyFor,
   stricterAutonomy,
   type Autonomy,
   type AutonomyField,
   type Escalation,
+  type Level,
   type OrchestrationPolicy,
+  type TradeoffPolicy,
 } from '@/lib/orchestration-autonomy'
 
-export const ORCHESTRATION_ACTIONS = ['merge', 'deploy', 'migrate', 'release', 'spend'] as const
+export const ORCHESTRATION_ACTIONS = [
+  'merge',
+  'deploy',
+  'migrate',
+  'release',
+  'spend',
+  'promoteIdea',
+  'experimentStart',
+  'experimentStop',
+] as const
 export type OrchestrationAction = (typeof ORCHESTRATION_ACTIONS)[number]
 
 export const MIGRATION_KINDS = ['additive', 'destructive'] as const
@@ -53,12 +68,36 @@ export interface PolicyOverride {
     migrate?: { additive?: Autonomy; destructive?: Autonomy }
     release?: Autonomy
     spend?: Autonomy
+    promoteIdea?: Autonomy
+    experimentStart?: Autonomy
+    experimentStop?: Autonomy
   }
   escalation?: Escalation
+  tradeoff?: TradeoffOverride
 }
 
+/** What a project or a list stores under `tradeoff`: any subset of a {@link TradeoffPolicy}. */
+export interface TradeoffOverride {
+  goalOrder?: string[]
+  risk?: { reviewAt?: Level; refuseAt?: Level }
+  guardrail?: { reviewAtBreachProbability?: number; refuseAtBreachProbability?: number }
+  experimentFirst?: { confidenceBelow?: Level; riskAtLeast?: Level }
+  minConfidenceToAct?: Level
+}
+
+/** The label an estimate earns (astrid-core `tradeoff::Label`), most permissive first. */
+export const TRADEOFF_LABELS = ['do-now', 'experiment-first', 'needs-review', 'dont'] as const
+export type TradeoffLabel = (typeof TRADEOFF_LABELS)[number]
+
 export type RouteReason = 'routed' | 'routedElsewhere' | 'anyAdmittedAgent' | 'notAdmitted'
-export type MayReason = 'policy' | 'destructiveFloor' | 'unclassifiedMigration' | 'notAdmitted'
+export type MayReason =
+  | 'policy'
+  | 'destructiveFloor'
+  | 'unclassifiedMigration'
+  | 'notAdmitted'
+  | 'noEstimate'
+  | 'notDoNow'
+  | 'belowConfidence'
 
 export interface RouteAnswer { take: boolean; reason: RouteReason }
 export interface MayAnswer { decision: Autonomy; mustAsk: boolean; reason: MayReason }
@@ -83,6 +122,9 @@ export type OrchestrationRequest =
       agent: string
       action: OrchestrationAction
       migration?: MigrationKind | null
+      /** `promoteIdea` only: the label the estimate earned and the estimator's confidence. */
+      label?: TradeoffLabel | null
+      confidence?: Level | null
     }
   | { kind: 'orchestrationEscalate'; project?: unknown; list?: unknown; listOwnerId: string; taskCreatorId?: string | null }
 
@@ -96,8 +138,22 @@ export function defaultOrchestrationPolicy(): OrchestrationPolicy {
       migrate: { additive: 'never', destructive: 'never' },
       release: 'never',
       spend: 'never',
+      promoteIdea: 'never',
+      experimentStart: 'never',
+      experimentStop: 'never',
     },
     escalation: { to: 'listOwner' },
+  }
+}
+
+/** What a stored `tradeoff` key inherits where it names less than all of it. Not a policy by itself: with no key stored anywhere there is none. */
+export function defaultTradeoffPolicy(): TradeoffPolicy {
+  return {
+    goalOrder: [],
+    risk: { reviewAt: 'medium', refuseAt: 'high' },
+    guardrail: { reviewAtBreachProbability: 0.1, refuseAtBreachProbability: 0.5 },
+    experimentFirst: { confidenceBelow: 'medium', riskAtLeast: 'medium' },
+    minConfidenceToAct: 'medium',
   }
 }
 
@@ -140,6 +196,52 @@ function autonomyOf(raw: Record<string, unknown>, key: string, into: Record<stri
   if (raw[key] !== undefined) into[key] = variant(raw[key], AUTONOMY_VALUES)
 }
 
+function levelOf(raw: Record<string, unknown>, key: string, into: Record<string, unknown>) {
+  if (raw[key] !== undefined) into[key] = variant(raw[key], LEVELS)
+}
+
+/** The core's wording for a probability outside 0–1 (`tradeoff::Probability`). */
+function probability(value: unknown): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) throw new PolicyError('invalid type: expected a number between 0 and 1')
+  if (!(value >= 0 && value <= 1)) throw new PolicyError(`${value} is not a probability between 0 and 1`)
+  return value
+}
+
+function tradeoffOf(value: unknown): TradeoffOverride {
+  const raw = record(value, 'tradeoff')
+  onlyKeys(raw, ['goalOrder', 'risk', 'guardrail', 'experimentFirst', 'minConfidenceToAct'], 'tradeoff')
+  const out: TradeoffOverride = {}
+  if (raw.goalOrder !== undefined) out.goalOrder = names(raw.goalOrder, 'tradeoff.goalOrder')
+  if (raw.risk !== undefined) {
+    const risk = record(raw.risk, 'tradeoff.risk')
+    onlyKeys(risk, ['reviewAt', 'refuseAt'], 'tradeoff.risk')
+    const fields: Record<string, unknown> = {}
+    levelOf(risk, 'reviewAt', fields)
+    levelOf(risk, 'refuseAt', fields)
+    if (Object.keys(fields).length) out.risk = fields as TradeoffOverride['risk']
+  }
+  if (raw.guardrail !== undefined) {
+    const guardrail = record(raw.guardrail, 'tradeoff.guardrail')
+    onlyKeys(guardrail, ['reviewAtBreachProbability', 'refuseAtBreachProbability'], 'tradeoff.guardrail')
+    const fields: Record<string, number> = {}
+    for (const key of ['reviewAtBreachProbability', 'refuseAtBreachProbability']) {
+      if (guardrail[key] !== undefined) fields[key] = probability(guardrail[key])
+    }
+    if (Object.keys(fields).length) out.guardrail = fields
+  }
+  if (raw.experimentFirst !== undefined) {
+    const experiment = record(raw.experimentFirst, 'tradeoff.experimentFirst')
+    onlyKeys(experiment, ['confidenceBelow', 'riskAtLeast'], 'tradeoff.experimentFirst')
+    const fields: Record<string, unknown> = {}
+    levelOf(experiment, 'confidenceBelow', fields)
+    levelOf(experiment, 'riskAtLeast', fields)
+    if (Object.keys(fields).length) out.experimentFirst = fields as TradeoffOverride['experimentFirst']
+  }
+  if (raw.minConfidenceToAct !== undefined) out.minConfidenceToAct = variant(raw.minConfidenceToAct, LEVELS)
+  // An empty key still states a policy (the defaults), as it does in the core: it is kept as `{}`.
+  return out
+}
+
 function escalationOf(value: unknown): Escalation {
   const raw = record(value, 'escalation')
   const to = variant(raw.to, ESCALATION_TARGETS)
@@ -155,7 +257,7 @@ function escalationOf(value: unknown): Escalation {
 function overrideOf(value: unknown): PolicyOverride | null {
   if (value === null || value === undefined) return null
   const raw = record(value, 'policy')
-  onlyKeys(raw, ['routing', 'autonomy', 'escalation'], 'policy')
+  onlyKeys(raw, ['routing', 'autonomy', 'escalation', 'tradeoff'], 'policy')
   const result: PolicyOverride = {}
 
   if (raw.routing !== undefined) {
@@ -170,9 +272,9 @@ function overrideOf(value: unknown): PolicyOverride | null {
 
   if (raw.autonomy !== undefined) {
     const autonomy = record(raw.autonomy, 'autonomy')
-    onlyKeys(autonomy, ['merge', 'deploy', 'migrate', 'release', 'spend'], 'autonomy')
+    onlyKeys(autonomy, ['merge', 'deploy', 'migrate', 'release', 'spend', 'promoteIdea', 'experimentStart', 'experimentStop'], 'autonomy')
     const out: Record<string, unknown> = {}
-    for (const key of ['merge', 'deploy', 'release', 'spend']) autonomyOf(autonomy, key, out)
+    for (const key of ['merge', 'deploy', 'release', 'spend', 'promoteIdea', 'experimentStart', 'experimentStop']) autonomyOf(autonomy, key, out)
     if (autonomy.migrate !== undefined) {
       const migrate = record(autonomy.migrate, 'autonomy.migrate')
       onlyKeys(migrate, MIGRATION_KINDS, 'autonomy.migrate')
@@ -184,6 +286,7 @@ function overrideOf(value: unknown): PolicyOverride | null {
   }
 
   if (raw.escalation !== undefined && raw.escalation !== null) result.escalation = escalationOf(raw.escalation)
+  if (raw.tradeoff !== undefined && raw.tradeoff !== null) result.tradeoff = tradeoffOf(raw.tradeoff)
 
   return Object.keys(result).length ? result : null
 }
@@ -214,12 +317,13 @@ function layer(policy: OrchestrationPolicy, override: PolicyOverride | null): Or
     routing: { ...policy.routing },
     autonomy: { ...policy.autonomy, migrate: { ...policy.autonomy.migrate } },
     escalation: policy.escalation,
+    ...(policy.tradeoff ? { tradeoff: policy.tradeoff } : {}),
   }
   const routing = override.routing ?? {}
   if (Object.hasOwn(routing, 'assignTo')) next.routing.assignTo = routing.assignTo ?? null
   if (Object.hasOwn(routing, 'agents')) next.routing.agents = routing.agents ?? null
   const autonomy = override.autonomy ?? {}
-  for (const key of ['merge', 'deploy', 'release', 'spend'] as const) {
+  for (const key of ['merge', 'deploy', 'release', 'spend', 'promoteIdea', 'experimentStart', 'experimentStop'] as const) {
     if (autonomy[key]) next.autonomy[key] = autonomy[key]
   }
   for (const kind of MIGRATION_KINDS) {
@@ -227,7 +331,19 @@ function layer(policy: OrchestrationPolicy, override: PolicyOverride | null): Or
     if (value) next.autonomy.migrate[kind] = value
   }
   if (override.escalation) next.escalation = override.escalation
+  if (override.tradeoff) next.tradeoff = layerTradeoff(policy.tradeoff ?? defaultTradeoffPolicy(), override.tradeoff)
   return next
+}
+
+/** `tradeoff::TradeoffPolicy::with`: the override laid over the policy, field by field. */
+function layerTradeoff(policy: TradeoffPolicy, override: TradeoffOverride): TradeoffPolicy {
+  return {
+    goalOrder: override.goalOrder ?? policy.goalOrder,
+    risk: { ...policy.risk, ...override.risk },
+    guardrail: { ...policy.guardrail, ...override.guardrail },
+    experimentFirst: { ...policy.experimentFirst, ...override.experimentFirst },
+    minConfidenceToAct: override.minConfidenceToAct ?? policy.minConfidenceToAct,
+  }
 }
 
 /** O1: the default, then the project's override, then the list's, field by field. */
@@ -256,10 +372,19 @@ export function mayAgent(
   agent: string,
   action: OrchestrationAction,
   migration?: MigrationKind | null,
+  estimate?: { label?: TradeoffLabel | null; confidence?: Level | null } | null,
 ): MayAnswer {
   const answer = (decision: Autonomy, reason: MayReason): MayAnswer => ({ decision, mustAsk: decision === 'ask', reason })
   if (!admits(policy, agent)) return answer('never', 'notAdmitted')
   const a = policy.autonomy
+  if (action === 'promoteIdea') {
+    // Never unless the estimate is `do-now` and as confident as the policy asks; no estimate is never.
+    const bar = (policy.tradeoff ?? defaultTradeoffPolicy()).minConfidenceToAct
+    if (!estimate?.label || !estimate.confidence) return answer('never', 'noEstimate')
+    if (estimate.label !== 'do-now') return answer('never', 'notDoNow')
+    if (LEVELS.indexOf(estimate.confidence) < LEVELS.indexOf(bar)) return answer('never', 'belowConfidence')
+    return answer(a.promoteIdea, 'policy')
+  }
   if (action !== 'migrate') return answer(a[action], 'policy')
   if (migration === 'additive') return answer(a.migrate.additive, 'policy')
   const floored = stricterAutonomy(a.migrate.destructive, a.migrate.additive)
@@ -295,7 +420,9 @@ export function runOrchestrationTs(request: OrchestrationRequest): Orchestration
       case 'orchestrationMay': {
         const action = variant(request.action, ORCHESTRATION_ACTIONS)
         const migration = request.migration == null ? null : variant(request.migration, MIGRATION_KINDS)
-        return { ok: true, value: mayAgent(policy, request.agent, action, migration) }
+        const label = request.label == null ? null : variant(request.label, TRADEOFF_LABELS)
+        const confidence = request.confidence == null ? null : variant(request.confidence, LEVELS)
+        return { ok: true, value: mayAgent(policy, request.agent, action, migration, { label, confidence }) }
       }
       case 'orchestrationEscalate':
         return { ok: true, value: escalateTo(policy, request.listOwnerId, request.taskCreatorId) }
@@ -333,6 +460,89 @@ export function withAutonomy(override: PolicyOverride | null, field: AutonomyFie
   }
   const next: PolicyOverride = { ...(override ?? {}), autonomy }
   if (!Object.keys(autonomy).length) delete next.autonomy
+  return parseCanonical(next)
+}
+
+/** The trade-off thresholds the settings UI edits one at a time, flattened like the autonomy fields. */
+export const TRADEOFF_LEVEL_FIELDS = ['riskReviewAt', 'riskRefuseAt', 'confidenceBelow', 'experimentRiskAtLeast', 'minConfidenceToAct'] as const
+export const TRADEOFF_PROBABILITY_FIELDS = ['guardrailReview', 'guardrailRefuse'] as const
+export type TradeoffLevelField = (typeof TRADEOFF_LEVEL_FIELDS)[number]
+export type TradeoffProbabilityField = (typeof TRADEOFF_PROBABILITY_FIELDS)[number]
+export type TradeoffField = TradeoffLevelField | TradeoffProbabilityField
+
+/** One threshold of a resolved trade-off policy, by its flattened name. */
+export function tradeoffFor(policy: TradeoffPolicy, field: TradeoffLevelField): Level
+export function tradeoffFor(policy: TradeoffPolicy, field: TradeoffProbabilityField): number
+export function tradeoffFor(policy: TradeoffPolicy, field: TradeoffField): Level | number {
+  switch (field) {
+    case 'riskReviewAt': return policy.risk.reviewAt
+    case 'riskRefuseAt': return policy.risk.refuseAt
+    case 'confidenceBelow': return policy.experimentFirst.confidenceBelow
+    case 'experimentRiskAtLeast': return policy.experimentFirst.riskAtLeast
+    case 'minConfidenceToAct': return policy.minConfidenceToAct
+    case 'guardrailReview': return policy.guardrail.reviewAtBreachProbability
+    case 'guardrailRefuse': return policy.guardrail.refuseAtBreachProbability
+  }
+}
+
+/** One threshold an override states, or undefined when it inherits. */
+export function overrideTradeoffFor(override: PolicyOverride | null, field: TradeoffField): Level | number | undefined {
+  const t = override?.tradeoff
+  switch (field) {
+    case 'riskReviewAt': return t?.risk?.reviewAt
+    case 'riskRefuseAt': return t?.risk?.refuseAt
+    case 'confidenceBelow': return t?.experimentFirst?.confidenceBelow
+    case 'experimentRiskAtLeast': return t?.experimentFirst?.riskAtLeast
+    case 'minConfidenceToAct': return t?.minConfidenceToAct
+    case 'guardrailReview': return t?.guardrail?.reviewAtBreachProbability
+    case 'guardrailRefuse': return t?.guardrail?.refuseAtBreachProbability
+  }
+}
+
+/**
+ * A copy of `override` with one trade-off threshold set, or inheriting when `value` is undefined.
+ * Setting one states a policy (the other fields take the defaults); clearing the last leaves `{}`,
+ * which still states one. Only `withTradeoffStated(…, false)` takes the policy away.
+ */
+export function withTradeoffField(override: PolicyOverride | null, field: TradeoffField, value: Level | number | undefined): PolicyOverride | null {
+  const t: TradeoffOverride = {
+    ...(override?.tradeoff ?? {}),
+    risk: { ...(override?.tradeoff?.risk ?? {}) },
+    guardrail: { ...(override?.tradeoff?.guardrail ?? {}) },
+    experimentFirst: { ...(override?.tradeoff?.experimentFirst ?? {}) },
+  }
+  const put = <T extends object, K extends keyof T>(group: T, key: K) => {
+    if (value === undefined) delete group[key]
+    else group[key] = value as T[K]
+  }
+  switch (field) {
+    case 'riskReviewAt': put(t.risk!, 'reviewAt'); break
+    case 'riskRefuseAt': put(t.risk!, 'refuseAt'); break
+    case 'confidenceBelow': put(t.experimentFirst!, 'confidenceBelow'); break
+    case 'experimentRiskAtLeast': put(t.experimentFirst!, 'riskAtLeast'); break
+    case 'minConfidenceToAct': put(t, 'minConfidenceToAct'); break
+    case 'guardrailReview': put(t.guardrail!, 'reviewAtBreachProbability'); break
+    case 'guardrailRefuse': put(t.guardrail!, 'refuseAtBreachProbability'); break
+  }
+  for (const group of ['risk', 'guardrail', 'experimentFirst'] as const) {
+    if (!Object.keys(t[group] ?? {}).length) delete t[group]
+  }
+  return parseCanonical({ ...(override ?? {}), tradeoff: t })
+}
+
+/** A copy of `override` with the goal order set (most important first), or inheriting when undefined. */
+export function withGoalOrder(override: PolicyOverride | null, order: string[] | undefined): PolicyOverride | null {
+  const t: TradeoffOverride = { ...(override?.tradeoff ?? {}) }
+  if (order === undefined) delete t.goalOrder
+  else t.goalOrder = order
+  return parseCanonical({ ...(override ?? {}), tradeoff: t })
+}
+
+/** A copy of `override` that states a trade-off policy (the defaults) or states none. */
+export function withTradeoffStated(override: PolicyOverride | null, stated: boolean): PolicyOverride | null {
+  const next: PolicyOverride = { ...(override ?? {}) }
+  if (stated) next.tradeoff = next.tradeoff ?? {}
+  else delete next.tradeoff
   return parseCanonical(next)
 }
 

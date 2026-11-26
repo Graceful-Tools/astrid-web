@@ -30,6 +30,7 @@ import {
   PROJECT_ACCESS_INCLUDE,
 } from '@/lib/list-permissions'
 import { getListMemberIds } from '@/lib/list-member-utils'
+import { enqueueTradeoffReevaluation } from '@/services/tradeoff-evaluation.service'
 import {
   effectiveOrchestrationPolicy,
   orchestrationEngine,
@@ -121,6 +122,11 @@ function submitted(body: unknown): PolicyResult<PolicyOverride | null> {
   return { ok: true, value: parsed.value }
 }
 
+/** Did an edit touch the trade-off key? Only then are stored labels and sort keys out of date (ADEV-281). */
+function tradeoffChanged(before: PolicyOverride | null, after: PolicyOverride | null): boolean {
+  return JSON.stringify(before?.tradeoff ?? null) !== JSON.stringify(after?.tradeoff ?? null)
+}
+
 function strangers(override: PolicyOverride | null, people: Iterable<string>): string[] {
   const escalation = override?.escalation
   if (escalation?.to !== 'people') return []
@@ -179,6 +185,9 @@ export async function setListOrchestrationPolicy(
     return { ok: false, status: 400, error: `Questions can only go to people on this list; not on it: ${unknown.join(', ')}` }
   }
   await prisma.taskList.update({ where: { id: listId }, data: { orchestrationPolicy: asJson(policy.value) } })
+  if (tradeoffChanged(storedOverride(list.orchestrationPolicy, `list ${list.id}`), policy.value)) {
+    await enqueueTradeoffReevaluation(list.projectId ?? null, listId)
+  }
   return { ok: true, value: listView({ ...list, orchestrationPolicy: policy.value as Prisma.JsonValue }, userId) }
 }
 
@@ -368,5 +377,8 @@ export async function setProjectOrchestrationPolicy(
     return { ok: false, status: 400, error: `Questions can only go to people on this project's boards; not on them: ${unknown.join(', ')}` }
   }
   await prisma.project.update({ where: { id: projectId }, data: { orchestrationPolicy: asJson(policy.value) } })
+  if (tradeoffChanged(storedOverride(project.orchestrationPolicy, `project ${project.id}`), policy.value)) {
+    await enqueueTradeoffReevaluation(projectId, null)
+  }
   return { ok: true, value: projectView({ ...project, orchestrationPolicy: policy.value as Prisma.JsonValue }, userId) }
 }

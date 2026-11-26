@@ -12,8 +12,35 @@ export const ESCALATION_TARGETS = ['listOwner', 'taskCreator', 'people'] as cons
 export type Escalation = { to: 'listOwner' } | { to: 'taskCreator' } | { to: 'people'; userIds: string[] }
 
 /** The autonomy fields a policy decides, flattened for the settings UI and the skill text. */
-export const AUTONOMY_FIELDS = ['merge', 'deploy', 'migrateAdditive', 'migrateDestructive', 'release', 'spend'] as const
+export const AUTONOMY_FIELDS = [
+  'merge',
+  'deploy',
+  'migrateAdditive',
+  'migrateDestructive',
+  'release',
+  'spend',
+  'promoteIdea',
+  'experimentStart',
+  'experimentStop',
+] as const
 export type AutonomyField = (typeof AUTONOMY_FIELDS)[number]
+
+/** The three-step scale risk and confidence are written in (astrid-core `tradeoff::Level`). */
+export const LEVELS = ['low', 'medium', 'high'] as const
+export type Level = (typeof LEVELS)[number]
+
+/**
+ * A trade-off policy with every field decided (ADEV-281; astrid-core `tradeoff::TradeoffPolicy`;
+ * docs/specs/GOALS_GUARDRAILS_SIGNALS.md → 6). It is a key of the orchestration policy and is absent
+ * until a person states one: with none, nothing is labelled and there is no policy sort.
+ */
+export interface TradeoffPolicy {
+  goalOrder: string[]
+  risk: { reviewAt: Level; refuseAt: Level }
+  guardrail: { reviewAtBreachProbability: number; refuseAtBreachProbability: number }
+  experimentFirst: { confidenceBelow: Level; riskAtLeast: Level }
+  minConfidenceToAct: Level
+}
 
 export interface OrchestrationPolicy {
   routing: { assignTo: string | null; agents: string[] | null }
@@ -23,8 +50,13 @@ export interface OrchestrationPolicy {
     migrate: { additive: Autonomy; destructive: Autonomy }
     release: Autonomy
     spend: Autonomy
+    promoteIdea: Autonomy
+    experimentStart: Autonomy
+    experimentStop: Autonomy
   }
   escalation: Escalation
+  /** Absent when no project or list states one. */
+  tradeoff?: TradeoffPolicy
 }
 
 const STRICTNESS: Record<Autonomy, number> = { allowed: 0, ask: 1, never: 2 }

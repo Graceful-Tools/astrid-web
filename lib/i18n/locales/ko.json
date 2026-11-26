@@ -1930,7 +1930,30 @@
       "opportunity": "기회",
       "notEstimated": "추정 안 됨",
       "effort": "작업 {hours}시간",
-      "opportunityRange": "{low} ~ {high} {unit} / {period}"
+      "opportunityRange": "{low} ~ {high} {unit} / {period}",
+      "label": {
+        "do-now": "지금 하기",
+        "experiment-first": "먼저 실험",
+        "needs-review": "검토 필요",
+        "dont": "하지 않기",
+        "chipAria": "추천: {label}. 이유 보기.",
+        "reasonsHeading": "이유"
+      },
+      "reason": {
+        "noEstimate": "아직 추정치가 없습니다.",
+        "stale": "추정치가 오래되었습니다.",
+        "guardrailAtRefuse": "{name}: 위반 확률 {probability}이(가) 한도 {threshold}에 도달했습니다.",
+        "guardrailAtReview": "{name}: 위반 확률 {probability}이(가) 검토 기준 {threshold}에 도달했습니다.",
+        "riskAtRefuse": "위험도는 {level}이며, 한도 {threshold} 이상입니다.",
+        "riskAtReview": "위험도는 {level}이며, 검토 기준 {threshold} 이상입니다.",
+        "riskUnknown": "추정기가 위험도를 제공하지 않았으며, 알 수 없음은 결코 좋지 않습니다.",
+        "guardrailsUnknown": "추정기가 가드레일에 미치는 영향을 제공하지 않았으며, 알 수 없음은 결코 좋지 않습니다.",
+        "confidenceLow": "신뢰도가 낮거나 제공되지 않았습니다.",
+        "experimentFirst": "신뢰도는 {confidence}, 위험도는 {risk}입니다.",
+        "builtinCapped": "기본 제공 추정치는 '먼저 실험'보다 좋아질 수 없습니다.",
+        "goalImproves": "{name}이(가) 개선될 것으로 예상됩니다({delta}).",
+        "noGoalImproves": "개선될 것으로 예상되는 목표가 없습니다."
+      }
     },
     "goals": {
       "title": "목표와 가드레일",
@@ -2039,7 +2062,8 @@
       "who": "담당자",
       "completed": "완료 먼저",
       "incomplete": "할 일 먼저",
-      "manual": "수동"
+      "manual": "수동",
+      "policy": "정책"
     },
     "show": {
       "allTasks": "모든 작업",
@@ -3183,7 +3207,32 @@
       "migrateAdditive": "추가형 마이그레이션",
       "migrateDestructive": "파괴적 마이그레이션",
       "release": "스토어 출시",
-      "spend": "비용 지출"
+      "spend": "비용 지출",
+      "promoteIdea": "'지금 하기' 아이디어를 준비됨으로 이동",
+      "experimentStart": "실험 시작",
+      "experimentStop": "실험 중지"
+    },
+    "tradeoff": {
+      "title": "트레이드오프 정책",
+      "switch": "트레이드오프 정책 지정",
+      "stated": "지정됨",
+      "none": "지정 안 됨",
+      "help": "추정된 각 아이디어에 라벨(지금 하기, 먼저 실험, 검토 필요, 하지 않기)을 붙이고 정책 정렬 순서를 정합니다. 지정하지 않으면 라벨이 붙지 않고 정책 정렬도 없습니다.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "위험도가 다음 이상이면 검토",
+        "riskRefuseAt": "위험도가 다음 이상이면 하지 않기",
+        "confidenceBelow": "신뢰도가 다음 미만이면 먼저 실험",
+        "experimentRiskAtLeast": "…그리고 위험도가 다음 이상",
+        "minConfidenceToAct": "신뢰도가 다음 이상이면 에이전트가 승격 가능",
+        "guardrailReview": "위반 확률이 다음일 때 검토",
+        "guardrailRefuse": "위반 확률이 다음일 때 하지 않기"
+      },
+      "goalOrder": "목표 우선순위",
+      "goalOrderHelp": "위 기준이 모두 같은 아이디어는 이 목표들에 미치는 영향이 큰 순서대로 정렬됩니다.",
+      "goalOrderReset": "기본 순서 사용",
+      "moveUp": "{goal} 위로 이동",
+      "moveDown": "{goal} 아래로 이동"
     },
     "autonomy": {
       "allowed": "허용",

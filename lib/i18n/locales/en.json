@@ -1930,7 +1930,30 @@
       "opportunity": "Opportunity",
       "notEstimated": "Not estimated",
       "effort": "{hours} h of effort",
-      "opportunityRange": "{low} to {high} {unit} / {period}"
+      "opportunityRange": "{low} to {high} {unit} / {period}",
+      "label": {
+        "do-now": "Do now",
+        "experiment-first": "Experiment first",
+        "needs-review": "Needs review",
+        "dont": "Don't",
+        "chipAria": "Recommendation: {label}. Show why.",
+        "reasonsHeading": "Why"
+      },
+      "reason": {
+        "noEstimate": "There is no estimate yet.",
+        "stale": "The estimate is out of date.",
+        "guardrailAtRefuse": "{name}: breach probability {probability} is at the limit of {threshold}.",
+        "guardrailAtReview": "{name}: breach probability {probability} is at the review point of {threshold}.",
+        "riskAtRefuse": "Risk is {level}, at or above the limit of {threshold}.",
+        "riskAtReview": "Risk is {level}, at or above the review point of {threshold}.",
+        "riskUnknown": "The estimator gave no risk, and unknown is never good.",
+        "guardrailsUnknown": "The estimator gave no effect on the guardrails, and unknown is never good.",
+        "confidenceLow": "Confidence is low, or was not given.",
+        "experimentFirst": "Confidence is {confidence} while risk is {risk}.",
+        "builtinCapped": "A built-in estimate is never better than experiment first.",
+        "goalImproves": "{name} is expected to improve ({delta}).",
+        "noGoalImproves": "No goal is expected to improve."
+      }
     },
     "goals": {
       "title": "Goals & guardrails",
@@ -2039,7 +2062,8 @@
       "who": "Who",
       "completed": "Done First",
       "incomplete": "To-do First",
-      "manual": "Manual"
+      "manual": "Manual",
+      "policy": "Policy"
     },
     "show": {
       "allTasks": "All tasks",
@@ -3183,7 +3207,32 @@
       "migrateAdditive": "Additive migrations",
       "migrateDestructive": "Destructive migrations",
       "release": "Store releases",
-      "spend": "Spending money"
+      "spend": "Spending money",
+      "promoteIdea": "Moving a do-now idea to Ready",
+      "experimentStart": "Starting experiments",
+      "experimentStop": "Stopping experiments"
+    },
+    "tradeoff": {
+      "title": "Trade-off policy",
+      "switch": "State a trade-off policy",
+      "stated": "Stated",
+      "none": "None stated",
+      "help": "Labels each estimated idea (do now, experiment first, needs review, don't) and orders the Policy sort. With none stated, nothing is labelled and there is no Policy sort.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Review when risk is at least",
+        "riskRefuseAt": "Don't when risk is at least",
+        "confidenceBelow": "Experiment first when confidence is below",
+        "experimentRiskAtLeast": "…and risk is at least",
+        "minConfidenceToAct": "An agent may promote at confidence of at least",
+        "guardrailReview": "Review at breach probability",
+        "guardrailRefuse": "Don't at breach probability"
+      },
+      "goalOrder": "Goal priority",
+      "goalOrderHelp": "Ideas that tie on everything above are ordered by how they affect these goals, most important first.",
+      "goalOrderReset": "Use the default order",
+      "moveUp": "Move {goal} up",
+      "moveDown": "Move {goal} down"
     },
     "autonomy": {
       "allowed": "Allowed",

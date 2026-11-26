@@ -1930,7 +1930,30 @@
       "opportunity": "機会",
       "notEstimated": "未見積もり",
       "effort": "作業 {hours} 時間",
-      "opportunityRange": "{low} ～ {high} {unit} / {period}"
+      "opportunityRange": "{low} ～ {high} {unit} / {period}",
+      "label": {
+        "do-now": "今すぐやる",
+        "experiment-first": "まず実験",
+        "needs-review": "要レビュー",
+        "dont": "やらない",
+        "chipAria": "推奨: {label}。理由を表示します。",
+        "reasonsHeading": "理由"
+      },
+      "reason": {
+        "noEstimate": "まだ見積もりがありません。",
+        "stale": "見積もりが古くなっています。",
+        "guardrailAtRefuse": "{name}: 違反確率 {probability} が上限の {threshold} に達しています。",
+        "guardrailAtReview": "{name}: 違反確率 {probability} がレビュー基準の {threshold} に達しています。",
+        "riskAtRefuse": "リスクは {level} で、上限の {threshold} 以上です。",
+        "riskAtReview": "リスクは {level} で、レビュー基準の {threshold} 以上です。",
+        "riskUnknown": "見積もりにリスクが示されておらず、不明は決して良い状態ではありません。",
+        "guardrailsUnknown": "見積もりにガードレールへの影響が示されておらず、不明は決して良い状態ではありません。",
+        "confidenceLow": "確信度が低いか、示されていません。",
+        "experimentFirst": "確信度は {confidence}、リスクは {risk} です。",
+        "builtinCapped": "組み込みの見積もりは「まず実験」より良くなることはありません。",
+        "goalImproves": "{name} は改善する見込みです（{delta}）。",
+        "noGoalImproves": "改善が見込まれる目標はありません。"
+      }
     },
     "goals": {
       "title": "目標とガードレール",
@@ -2039,7 +2062,8 @@
       "who": "担当者",
       "completed": "完了を先に",
       "incomplete": "やることを先に",
-      "manual": "手動"
+      "manual": "手動",
+      "policy": "ポリシー"
     },
     "show": {
       "allTasks": "すべてのタスク",
@@ -3183,7 +3207,32 @@
       "migrateAdditive": "追加的なマイグレーション",
       "migrateDestructive": "破壊的なマイグレーション",
       "release": "ストアへのリリース",
-      "spend": "支出"
+      "spend": "支出",
+      "promoteIdea": "「今すぐやる」のアイデアを準備完了にする",
+      "experimentStart": "実験の開始",
+      "experimentStop": "実験の停止"
+    },
+    "tradeoff": {
+      "title": "トレードオフポリシー",
+      "switch": "トレードオフポリシーを設定する",
+      "stated": "設定済み",
+      "none": "未設定",
+      "help": "見積もり済みの各アイデアにラベル（今すぐやる、まず実験、要レビュー、やらない）を付け、ポリシー順の並び順を決めます。未設定の場合、ラベルは付かず、ポリシー順もありません。",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "リスクが次以上のときレビュー",
+        "riskRefuseAt": "リスクが次以上のときやらない",
+        "confidenceBelow": "確信度が次を下回るときまず実験",
+        "experimentRiskAtLeast": "…かつリスクが次以上",
+        "minConfidenceToAct": "確信度が次以上ならエージェントが昇格可能",
+        "guardrailReview": "違反確率が次のときレビュー",
+        "guardrailRefuse": "違反確率が次のときやらない"
+      },
+      "goalOrder": "目標の優先度",
+      "goalOrderHelp": "上記がすべて同じアイデアは、これらの目標への影響が大きい順に並べます。",
+      "goalOrderReset": "デフォルトの順序に戻す",
+      "moveUp": "{goal} を上へ移動",
+      "moveDown": "{goal} を下へ移動"
     },
     "autonomy": {
       "allowed": "許可",

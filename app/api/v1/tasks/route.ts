@@ -115,11 +115,13 @@ export const GET = withAuth(
     // `include` and `omit` are the two halves of the same idea and they do not
     // overlap: a field is opt-IN when carrying it is expensive for everyone,
     // opt-OUT when dropping it is what a caller has to choose.
-    const includeFields = url.searchParams
-      .get('include')
-      ?.split(',')
-      .map(part => part.trim())
-      .includes('fields') ?? false
+    const included = new Set(
+      url.searchParams.get('include')?.split(',').map(part => part.trim()) ?? [],
+    )
+    const includeFields = included.has('fields')
+    // Each task's latest trade-off label and sort key, OPT-IN for the same budget reason
+    // (ADEV-281): only the policy sort reads them, and a project with no policy has none.
+    const includeEstimate = included.has('estimate')
     // Delta sync: return only tasks touched since this instant. Optional and
     // purely additive — omitting it leaves the query exactly as it was, which
     // is what keeps this from being a breaking change for existing clients.
@@ -191,7 +193,7 @@ export const GET = withAuth(
     const [pageRows, total] = await Promise.all([
       prisma.task.findMany({
         where: pageWhere,
-        select: v1TaskListSelect({ omit, leanListMembers, includeComments, includeFields }),
+        select: v1TaskListSelect({ omit, leanListMembers, includeComments, includeFields, includeEstimate }),
         orderBy: isCursorWalk
           ? TASK_CURSOR_ORDER_BY
           : [

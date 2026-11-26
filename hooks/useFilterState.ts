@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useMyTasksPreferences } from './useMyTasksPreferences'
 import type { Task, TaskList } from '@/types/task'
+import { usePolicyEstimates } from '@/hooks/use-policy-estimates'
 import { hasListAccess } from '@/lib/list-member-utils'
 import { applyDateFilter, coreDueDateWindow, type DueDateWindow } from '@/lib/date-filter-utils'
 import { sortTasksForList } from '@/lib/task-sort'
@@ -18,7 +19,7 @@ export interface FilterState {
   priority: number[]
   assignee: string[]
   dueDate: DueDateWindow
-  sortBy: "auto" | "priority" | "when" | "completedAt" | "manual"
+  sortBy: "auto" | "priority" | "when" | "completedAt" | "manual" | "policy"
 }
 
 interface UseFilterStateProps {
@@ -55,6 +56,7 @@ const getValidSortBy = (value?: string | null): FilterState['sortBy'] => {
     case "when":
     case "completedAt":
     case "manual":
+    case "policy":
       return value
     // "assignee", "completed" and "incomplete" were web-only orders, retired in AWTD-1583
     // (astrid-core D33): a list that saved one sorts as auto, which is what every other client
@@ -76,6 +78,11 @@ const getValidFilterCompletion = (value?: string | null): "all" | "completed" | 
 }
 
 export const useFilterState = ({ selectedListId, currentList, getManualOrder, currentUserId }: UseFilterStateProps) => {
+  // Each task's stored trade-off label and sort key, for the `policy` sort (ADEV-281). The bulk task
+  // sync does not carry them (lib/tasks/v1-task-estimate.ts), so they are fetched only while the open
+  // list is saved as sorted by policy. Until they arrive every task is unlabelled and `policy` reads as auto.
+  const policyEstimates = usePolicyEstimates(currentList?.sortBy === "policy" ? currentList.id : null)
+
   // The list's saved priority, assignee and due date as live filters (task ADEV-91), read once
   // per change of the saved primitives and shared by the initial state, the load effects, Clear
   // and the core rows request.
@@ -254,7 +261,14 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder, cu
   }, [isMyTasks, myTasksPreferences, currentList, saved])
 
   const applyFiltersToTasks = useCallback((tasks: Task[], userId?: string, lists?: TaskList[], skipListFiltering = false, skipVirtualListFilters = false, serverSearchApplied = false): Task[] => {
-    let filtered = [...tasks]
+    // The policy sort compares each task's stored key, which the sync does not carry (ADEV-281).
+    const stored = activeFilters.sortBy === "policy" ? policyEstimates : null
+    let filtered = stored?.size
+      ? tasks.map(task => {
+          const estimate = task.estimate ?? stored.get(task.id)
+          return estimate ? { ...task, estimate } : task
+        })
+      : [...tasks]
 
 
     // Check if we have an active search - if so, search universally across all accessible tasks
@@ -409,7 +423,7 @@ export const useFilterState = ({ selectedListId, currentList, getManualOrder, cu
     }
 
     return sortedTasks
-  }, [activeFilters, selectedListId, currentList, getManualOrder, saved])
+  }, [activeFilters, selectedListId, currentList, getManualOrder, saved, policyEstimates])
 
   return {
     // Current filter values

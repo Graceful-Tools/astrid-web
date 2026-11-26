@@ -1930,7 +1930,30 @@
       "opportunity": "Kans",
       "notEstimated": "Niet geschat",
       "effort": "{hours} u werk",
-      "opportunityRange": "{low} tot {high} {unit} / {period}"
+      "opportunityRange": "{low} tot {high} {unit} / {period}",
+      "label": {
+        "do-now": "Nu doen",
+        "experiment-first": "Eerst experimenteren",
+        "needs-review": "Beoordeling nodig",
+        "dont": "Niet doen",
+        "chipAria": "Aanbeveling: {label}. Toon waarom.",
+        "reasonsHeading": "Waarom"
+      },
+      "reason": {
+        "noEstimate": "Er is nog geen schatting.",
+        "stale": "De schatting is verouderd.",
+        "guardrailAtRefuse": "{name}: de overschrijdingskans {probability} zit op de grens van {threshold}.",
+        "guardrailAtReview": "{name}: de overschrijdingskans {probability} zit op het beoordelingspunt van {threshold}.",
+        "riskAtRefuse": "Het risico is {level}, gelijk aan of boven de grens van {threshold}.",
+        "riskAtReview": "Het risico is {level}, gelijk aan of boven het beoordelingspunt van {threshold}.",
+        "riskUnknown": "De schatter gaf geen risico, en onbekend is nooit goed.",
+        "guardrailsUnknown": "De schatter gaf geen effect op de vangrails, en onbekend is nooit goed.",
+        "confidenceLow": "Het vertrouwen is laag, of is niet opgegeven.",
+        "experimentFirst": "Het vertrouwen is {confidence} terwijl het risico {risk} is.",
+        "builtinCapped": "Een ingebouwde schatting is nooit beter dan eerst experimenteren.",
+        "goalImproves": "{name} verbetert naar verwachting ({delta}).",
+        "noGoalImproves": "Er wordt verwacht dat geen enkel doel verbetert."
+      }
     },
     "goals": {
       "title": "Doelen en vangrails",
@@ -2039,7 +2062,8 @@
       "who": "Wie",
       "completed": "Klaar eerst",
       "incomplete": "Te doen eerst",
-      "manual": "Handmatig"
+      "manual": "Handmatig",
+      "policy": "Beleid"
     },
     "show": {
       "allTasks": "Alle taken",
@@ -3183,7 +3207,32 @@
       "migrateAdditive": "Additieve migraties",
       "migrateDestructive": "Destructieve migraties",
       "release": "Store-releases",
-      "spend": "Geld uitgeven"
+      "spend": "Geld uitgeven",
+      "promoteIdea": "Een idee dat nu gedaan kan worden naar Klaar verplaatsen",
+      "experimentStart": "Experimenten starten",
+      "experimentStop": "Experimenten stoppen"
+    },
+    "tradeoff": {
+      "title": "Afwegingsbeleid",
+      "switch": "Een afwegingsbeleid vastleggen",
+      "stated": "Vastgelegd",
+      "none": "Niets vastgelegd",
+      "help": "Labelt elk geschat idee (nu doen, eerst experimenteren, beoordeling nodig, niet doen) en bepaalt de volgorde van de beleidssortering. Zonder vastgelegd beleid wordt niets gelabeld en is er geen beleidssortering.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Beoordelen bij een risico van minstens",
+        "riskRefuseAt": "Niet doen bij een risico van minstens",
+        "confidenceBelow": "Eerst experimenteren bij een vertrouwen onder",
+        "experimentRiskAtLeast": "…en het risico minstens",
+        "minConfidenceToAct": "Een agent mag promoveren bij een vertrouwen van minstens",
+        "guardrailReview": "Beoordelen bij overschrijdingskans",
+        "guardrailRefuse": "Niet doen bij overschrijdingskans"
+      },
+      "goalOrder": "Doelprioriteit",
+      "goalOrderHelp": "Ideeën die op alles hierboven gelijk scoren, worden gerangschikt op hun effect op deze doelen, het belangrijkste eerst.",
+      "goalOrderReset": "Standaardvolgorde gebruiken",
+      "moveUp": "{goal} omhoog verplaatsen",
+      "moveDown": "{goal} omlaag verplaatsen"
     },
     "autonomy": {
       "allowed": "Toegestaan",

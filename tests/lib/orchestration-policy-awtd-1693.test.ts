@@ -60,8 +60,8 @@ function vendoredCore(): CoreRules | null {
 afterEach(() => setOrchestrationCoreForTests(undefined))
 
 describe('orchestration.json — the TypeScript mirror (AWTD-1693)', () => {
-  it('has the core\'s 28 cases, every kind among them', () => {
-    expect(fixture.cases).toHaveLength(28)
+  it('has the core\'s 37 cases (ADEV-281: nine for the trade-off key and the three new actions), every kind among them', () => {
+    expect(fixture.cases).toHaveLength(37)
     expect(new Set(fixture.cases.map(c => c.request.kind))).toEqual(
       new Set(['orchestrationPolicy', 'orchestrationRoute', 'orchestrationMay', 'orchestrationEscalate']),
     )
