@@ -29,7 +29,10 @@ import { classifyVitestFailure, isVitestCheck } from './lib/vitest-starvation'
 import {
   PREDEPLOY_REPORT_TAG,
   predeployReportScope,
-  selectReportTaskFor,
+  findAllReportTasks,
+  findReportTask,
+  type PredeployTaskLike,
+  type TaskPage,
 } from './lib/predeploy-report-tasks'
 
 // Save original environment BEFORE dotenv loads, to use for build commands
@@ -869,31 +872,48 @@ class SelfHealingPredeploy {
     const token = await this.getAstridToken()
     if (!token) return null
 
-    try {
-      const response = await fetch(
-        `https://astrid.cc/api/v1/tasks?listId=${CONFIG.astridListId}&completed=false`,
-        {
-          headers: {
-            'X-OAuth-Token': token,
-            'Content-Type': 'application/json',
-          },
-        }
-      )
+    // Match the marker this script WRITES, never the words a human might
+    // type. This used to be a substring match over every open task on the
+    // board — `title.includes('Predeploy')` AND a 30-character slice of a
+    // check name like "Build" — so any task a person wrote ABOUT the
+    // predeploy gate was a candidate to be commented on. Same mistake, and
+    // same fix, as scripts/lib/deployment-monitor-tasks.ts (task 8ef93fb9).
+    // Paged (ADEV-299): the board holds more open tasks than one page.
+    return (await findReportTask(this.openTaskPager(token), errorSummary))?.id ?? null
+  }
 
-      if (!response.ok) return null
+  /** One page of the board's open tasks, for the report finders. */
+  private openTaskPager(token: string) {
+    return async (offset: number): Promise<TaskPage<PredeployTaskLike> | null> => {
+      try {
+        const response = await fetch(
+          `https://astrid.cc/api/v1/tasks?listId=${CONFIG.astridListId}&completed=false&limit=100&offset=${offset}`,
+          { headers: { 'X-OAuth-Token': token, 'Content-Type': 'application/json' } }
+        )
+        if (!response.ok) return null
+        const data = await response.json()
+        const tasks: PredeployTaskLike[] = data.tasks || []
+        const total = Number(data.meta?.total ?? 0)
+        return { tasks, hasMore: offset + tasks.length < total }
+      } catch {
+        return null
+      }
+    }
+  }
 
-      const data = await response.json()
-      const tasks = data.tasks || []
-
-      // Match the marker this script WRITES, never the words a human might
-      // type. This used to be a substring match over every open task on the
-      // board — `title.includes('Predeploy')` AND a 30-character slice of a
-      // check name like "Build" — so any task a person wrote ABOUT the
-      // predeploy gate was a candidate to be commented on. Same mistake, and
-      // same fix, as scripts/lib/deployment-monitor-tasks.ts (task 8ef93fb9).
-      return selectReportTaskFor(tasks, errorSummary)?.id ?? null
-    } catch {
-      return null
+  /**
+   * Green again: close every open report with a "green again at <sha>" comment
+   * (ADEV-299). Only a run that may file (main) may close, for the same reason.
+   */
+  private async closeReportTasks(): Promise<void> {
+    if (!CONFIG.createTasks) return
+    const scope = predeployReportScope({ cwd: process.cwd(), env: process.env })
+    if (!scope.file) return
+    const token = await this.getAstridToken()
+    if (!token) return
+    const sha = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { encoding: 'utf8' }).stdout.trim()
+    for (const task of await findAllReportTasks(this.openTaskPager(token))) {
+      if (task.id) await this.resolveTask(task.id, `Green again at ${sha || 'HEAD'}.`)
     }
   }
 
@@ -1090,13 +1110,13 @@ ${fixAttempts.length > 0 ? fixAttempts.map((f) => `- ${f.check}: ${f.success ? '
   /**
    * Mark a task as resolved
    */
-  async resolveTask(taskId: string): Promise<void> {
+  async resolveTask(taskId: string, note = ''): Promise<void> {
     const token = await this.getAstridToken()
     if (!token) return
 
     const comment = `## ✅ Issue Resolved
 
-All predeploy checks are now passing.
+All predeploy checks are now passing.${note ? `\n\n${note}` : ''}
 
 **Resolved at**: ${new Date().toISOString()}
 
@@ -1289,9 +1309,11 @@ All predeploy checks are now passing.
 
     this.printSummary()
 
-    // Create/update Astrid task if still failing
+    // Create/update Astrid task if still failing; close it once green again
     if (failedChecks.length > 0 && (options.ci || CONFIG.createTasks)) {
       await this.createAstridTask(failedChecks, this.fixAttempts)
+    } else if (failedChecks.length === 0 && !options.dryRun) {
+      await this.closeReportTasks()
     }
 
     // Exit with error code in CI mode
