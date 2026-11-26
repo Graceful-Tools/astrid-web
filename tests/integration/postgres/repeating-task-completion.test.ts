@@ -1,6 +1,7 @@
 import type { PrismaClient } from '@prisma/client'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildListCreate, buildTaskCreate, buildUserCreate } from '@/tests/fixtures/prisma'
+import '@/tests/support/install-repeating-core'
 import { cleanupPrefix, connectAppPrisma, listIdsForTask, runPrefix } from './support/db'
 
 /**
