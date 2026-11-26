@@ -1,5 +1,7 @@
 # MCP Testing Guide
 
+> Which test goes in which tier, and how the ratchets work: [Testing Strategy](../context/testing.md).
+
 ## Overview
 
 This guide provides comprehensive testing strategies and tools for the Astrid MCP (Model Context Protocol) implementation, including both V1 and V2 testing approaches.
