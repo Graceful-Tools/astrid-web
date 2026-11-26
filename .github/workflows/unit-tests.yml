@@ -25,7 +25,7 @@ jobs:
   unit-tests:
     name: 'Typecheck, Lint & Unit Tests'
     runs-on: ubuntu-26.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     # A real Redis for the RealtimeBus conformance suite's node-redis half
     # (tests/integration/realtime-bus-conformance.test.ts, AWTD-1459). Without
     # REALTIME_TEST_REDIS_URL that half is skipped by name, never faked.
@@ -97,8 +97,11 @@ jobs:
           for i in $(seq 1 60); do curl -sf -o /dev/null http://127.0.0.1:8333/ && break; sleep 1; done
           curl -sf -o /dev/null http://127.0.0.1:8333/ || { docker logs seaweedfs; exit 1; }
 
-      - name: Run Tests
-        run: npm run test:run
+      # With coverage, so the thresholds in vitest.config.ts are a required check
+      # rather than a comment (ADEV-292). Local predeploy stays on test:run: the
+      # coverage pass is slower and CI is where the ratchet is enforced.
+      - name: Run Tests (coverage ratchet)
+        run: npm run test:coverage
         env:
           NODE_ENV: test
           S3_CONFORMANCE_ENDPOINT: http://127.0.0.1:8333

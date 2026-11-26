@@ -136,8 +136,9 @@ export default mergeConfig(
         /**
          * A RATCHET, pinned to what the codebase actually does.
          *
-         * Measured 2026-09-09 over the includes above: lines 47.10,
-         * statements 46.89, functions 50.46, branches 43.36. The old 80% was
+         * Measured 2026-11-26 (ADEV-292) over the includes above: lines 68.11,
+         * statements 67.68, functions 71.68, branches 63.68 (was 47.10, 46.89,
+         * 50.46, 43.36 on 2026-09-09). The old 80% was
          * reachable only because it described three globs; over the real
          * application it would fail on the first run, and an unreachable gate
          * gets deleted rather than met.
@@ -149,12 +150,16 @@ export default mergeConfig(
          *
          * RAISE these as coverage improves. That is the whole mechanism: the
          * number cannot silently shrink, and locking in a gain is one edit.
+         *
+         * Enforced in CI, not in local predeploy: unit-tests.yml runs
+         * `npm run test:coverage`, a required check. A coverage pass over the
+         * whole suite is too slow for predeploy.
          */
         thresholds: {
-          lines: 46,
-          statements: 46,
-          functions: 49,
-          branches: 42,
+          lines: 67,
+          statements: 66.5,
+          functions: 70,
+          branches: 62.5,
         },
       },
     },
