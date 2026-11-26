@@ -74,18 +74,20 @@ export async function register() {
   })
 
   // astrid-core decides list permissions on the Node runtime (AWTD-1061): every route handler and
-  // server component asks lib/list-permissions.ts, which this installs the core into. The core is
-  // WebAssembly read from disk, which the edge runtime cannot do; there, in the browser, and if
-  // anything here fails, the TypeScript rules decide — the same answers, pinned by the shared
-  // permissions fixture. ASTRID_CORE_RULES=shadow|off is the rollback. Never fatal.
+  // server component asks lib/list-permissions.ts, which this installs the core into. Since ADEV-304
+  // it is the ONLY rule: there is no TypeScript fallback, so a process without it would refuse every
+  // permission check while still answering 200. That is fatal here, on purpose, like the
+  // configuration checks above: every request (and /api/health) fails, so the deployment
+  // workflow's health check goes red and the build can be rolled back, instead of serving an app
+  // nobody can edit in that looks healthy.
+  // ASTRID_CORE_RULES no longer switches list permissions off. The edge runtime never asks
+  // (tests/middleware/middleware-edge-safety.test.ts); the browser installs its own door.
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    try {
-      const { installListPermissionsCore } = await import('@/lib/core-rules/list-permissions-core')
-      installListPermissionsCore()
-    } catch (error) {
-      // Only reachable if the module itself fails to import; installListPermissionsCore never throws.
-      console.error('list permissions: astrid-core module failed to import; the TypeScript rules decide', error)
-    }
+    const { installListPermissionsCore, assertListPermissionsCoreInstalled } = await import(
+      '@/lib/core-rules/list-permissions-core'
+    )
+    installListPermissionsCore()
+    assertListPermissionsCoreInstalled()
     // Search queries too (AWTD-1062): lib/search-query-parser.ts's parseSearchQuery, whose caller
     // is GET /api/v1/search. Same setting, same fallback, pinned by the shared search fixture.
     try {

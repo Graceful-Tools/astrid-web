@@ -116,7 +116,13 @@ describe('ADEV-90: permission affordances through the browser build', () => {
       load: () => Promise.resolve({ default: init, runJson: bad, kinds: () => ['listAccess'] }),
     })
     const c = fixture.cases[0]
-    expect(canUserManageList({ id: fixture.userId }, c.list)).toBe(c.expected.canManageList)
+    // The fallback is the browser's (ADEV-304: the server refuses instead), so ask as a browser.
+    vi.stubGlobal('window', {})
+    try {
+      expect(canUserManageList({ id: fixture.userId }, c.list)).toBe(c.expected.canManageList)
+    } finally {
+      vi.unstubAllGlobals()
+    }
     expect(bad).toHaveBeenCalled()
   })
 })

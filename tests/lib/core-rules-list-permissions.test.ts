@@ -1,10 +1,9 @@
 // @vitest-environment node
 /**
- * astrid-core decides list permissions on the server (AWTD-1061) — and fails safe. Whatever the
- * core does short of answering (cannot load, throws, answers garbage or an error envelope), the
- * public functions in lib/list-permissions.ts return the TypeScript answer, and nothing escapes to
- * the caller. When it does answer, its answer is returned and the TypeScript is not run: the
- * server comparison was retired (AWTD-1608).
+ * astrid-core decides list permissions on the server (AWTD-1061) — and fails closed. Since ADEV-304
+ * there is no TypeScript rule: whatever the core does short of answering (cannot load, throws,
+ * answers garbage or an error envelope), the public functions in lib/list-permissions.ts REFUSE
+ * (no role, every predicate false), and nothing escapes to the caller.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -24,6 +23,7 @@ import {
   installListPermissionsCore,
   listPermissionsCoreStatus,
 } from '@/lib/core-rules/list-permissions-core'
+import { installTestListPermissionsCore } from '@/tests/helpers/list-permissions-core'
 
 const owner = { id: 'user-me' }
 const list = { id: 'l1', ownerId: 'user-me', privacy: 'PRIVATE', listMembers: [] }
@@ -37,7 +37,7 @@ function silentReporter() {
 const answering = (value: Record<string, unknown>) => vi.fn(() => JSON.stringify({ ok: true, value }))
 
 afterEach(() => {
-  setListPermissionsCore(null)
+  installTestListPermissionsCore()
   vi.doUnmock('@/lib/core-rules/wasm')
   vi.resetModules()
 })
@@ -58,12 +58,13 @@ describe('the core decides', () => {
     expect(report.failure).not.toHaveBeenCalled()
   })
 
-  it('in shadow mode, does not ask the core: the TypeScript decides', () => {
+  it('a decider built in shadow mode does not ask the core, so the check is refused (ADEV-304)', () => {
+    // installListPermissionsCore never builds one since ADEV-304; the decider still accepts the mode.
     const runJson = answering({ role: 'viewer' })
     const decider = createListPermissionsCore(runJson, silentReporter(), { mode: 'shadow' })
     setListPermissionsCore(decider.decide)
 
-    expect(getUserRoleInList(owner, list)).toBe('owner')
+    expect(getUserRoleInList(owner, list)).toBeNull()
     expect(runJson).not.toHaveBeenCalled()
     expect(decider.stats).toEqual({ answered: 0, skipped: 1, failed: 0 })
   })
@@ -80,7 +81,7 @@ describe('the core decides', () => {
   })
 })
 
-describe('the core fails safe to the TypeScript answer', () => {
+describe('ADEV-304: a core that cannot answer is a refusal, never a guess', () => {
   it('when the core throws — and stops asking it for the rest of the process', () => {
     const report = silentReporter()
     const runJson = vi.fn(() => {
@@ -89,8 +90,8 @@ describe('the core fails safe to the TypeScript answer', () => {
     const decider = createListPermissionsCore(runJson, report)
     setListPermissionsCore(decider.decide)
 
-    expect(getUserRoleInList(owner, list)).toBe('owner')
-    expect(canUserEditTasks(owner, list)).toBe(true)
+    expect(getUserRoleInList(owner, list)).toBeNull()
+    expect(canUserEditTasks(owner, list)).toBe(false)
     expect(canUserDeleteList(stranger, list)).toBe(false)
     expect(runJson).toHaveBeenCalledTimes(1)
     expect(decider.stats.failed).toBe(3)
@@ -102,13 +103,14 @@ describe('the core fails safe to the TypeScript answer', () => {
     setListPermissionsCore(() => {
       throw new Error('decider bug')
     })
-    expect(getUserRoleInList(owner, list)).toBe('owner')
+    expect(getUserRoleInList(owner, list)).toBeNull()
     expect(canUserEditTask(stranger, { creatorId: 'user-x' }, list)).toBe(false)
   })
 
   it('when the decider answers something that is not an answer', () => {
     setListPermissionsCore((q) => (q.decision === 'role' ? 'superuser' : ('yes' as unknown as boolean)))
-    expect(getUserRoleInList(owner, list)).toBe('owner')
+    expect(getUserRoleInList(owner, list)).toBeNull()
+    expect(canUserManageList(owner, list)).toBe(false)
     expect(canUserManageList(stranger, list)).toBe(false)
   })
 
@@ -117,8 +119,8 @@ describe('the core fails safe to the TypeScript answer', () => {
     const runJson = vi.fn(() => JSON.stringify({ ok: false, error: { kind: 'badRequest' } }))
     const decider = createListPermissionsCore(runJson, report)
     setListPermissionsCore(decider.decide)
-    expect(getUserRoleInList(owner, list)).toBe('owner')
-    expect(getUserRoleInList(owner, list)).toBe('owner')
+    expect(getUserRoleInList(owner, list)).toBeNull()
+    expect(getUserRoleInList(owner, list)).toBeNull()
     expect(runJson).toHaveBeenCalledTimes(2) // not switched off: the next question may be fine
     expect(decider.stats).toMatchObject({ failed: 2, answered: 0 })
     expect(report.failure).toHaveBeenCalledTimes(1)
@@ -128,8 +130,8 @@ describe('the core fails safe to the TypeScript answer', () => {
     for (const reply of ['not json', JSON.stringify({ ok: true, value: { role: 'superuser' } }), JSON.stringify({ ok: true, value: { canManage: 'yes' } })]) {
       const decider = createListPermissionsCore(() => reply, silentReporter())
       setListPermissionsCore(decider.decide)
-      expect(getUserRoleInList(owner, list)).toBe('owner')
-      expect(canUserManageList(owner, list)).toBe(true)
+      expect(getUserRoleInList(owner, list)).toBeNull()
+      expect(canUserManageList(owner, list)).toBe(false)
       expect(decider.stats.failed).toBe(2)
     }
   })
@@ -207,7 +209,7 @@ describe('what the core is sent', () => {
 })
 
 describe('installing the core', () => {
-  it('reads ASTRID_CORE_RULES: decide by default, shadow and off as the rollbacks', () => {
+  it('reads ASTRID_CORE_RULES: decide by default; shadow and off (still the other rules\' rollbacks)', () => {
     expect(coreRulesModeFrom(undefined)).toBe('decide')
     expect(coreRulesModeFrom('on')).toBe('decide')
     expect(coreRulesModeFrom('shadow')).toBe('shadow')
@@ -225,21 +227,22 @@ describe('installing the core', () => {
     expect(listPermissionsCoreStatus()?.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 
-  it('installs nothing with ASTRID_CORE_RULES=off', () => {
+  it('ADEV-304: ASTRID_CORE_RULES=off does not switch list permissions off: the core still decides', () => {
     setListPermissionsCore(() => 'viewer')
-    expect(installListPermissionsCore('off')).toBe(false)
+    expect(installListPermissionsCore('off')).toBe(true)
     expect(getUserRoleInList(owner, list)).toBe('owner')
-    expect(listPermissionsCoreStatus()).toMatchObject({ mode: 'off', loaded: false })
+    expect(listPermissionsCoreStatus()).toMatchObject({ mode: 'decide', loaded: true })
   })
 
-  it('leaves the TypeScript deciding when the core cannot load, and reports it', async () => {
+  it('ADEV-304: refuses every check when the core cannot load, and reports it', async () => {
     vi.resetModules()
     vi.doMock('@/lib/core-rules/wasm', () => ({ loadCoreRules: () => null }))
     const fresh = await import('@/lib/core-rules/list-permissions-core')
 
     expect(fresh.installListPermissionsCore(undefined)).toBe(false)
     expect(fresh.listPermissionsCoreStatus()).toMatchObject({ mode: 'decide', loaded: false, revision: null })
-    expect(getUserRoleInList(owner, list)).toBe('owner')
-    expect(canUserDeleteList(stranger, list)).toBe(false)
+    expect(getUserRoleInList(owner, list)).toBeNull()
+    expect(canUserDeleteList(owner, list)).toBe(false)
+    expect(() => fresh.assertListPermissionsCoreInstalled()).toThrow(/astrid-core/)
   })
 })

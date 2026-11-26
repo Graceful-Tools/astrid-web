@@ -84,8 +84,12 @@ describe('AWTD-1608: when the core cannot answer, the TypeScript rule IS run', (
     const decider = createListPermissionsCore(failing, quiet)
     setListPermissionsCore(decider.decide)
     expect(decider.decide({ decision: 'canManage', user: { id: 'me' }, list: OWNED_LIST })).toBeUndefined()
+    // Since ADEV-304 (step B, server half) the server refuses instead; the browser keeps the TypeScript.
+    expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(false)
+    vi.stubGlobal('window', {})
     expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(true)
-    expect(decider.stats.failed).toBe(2)
+    vi.unstubAllGlobals()
+    expect(decider.stats.failed).toBe(3)
   })
 
   it('searchParse', () => {

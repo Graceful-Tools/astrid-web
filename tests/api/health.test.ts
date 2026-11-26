@@ -9,10 +9,13 @@ vi.mock('@/lib/runtime-migrations', () => ({
 }))
 
 const { GET } = await import('@/app/api/health/route')
+const { installListPermissionsCore } = await import('@/lib/core-rules/list-permissions-core')
 
 describe('GET /api/health', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // As instrumentation.ts leaves a healthy process: astrid-core deciding list permissions.
+    installListPermissionsCore('')
     process.env.VERCEL_GIT_COMMIT_SHA = 'abc123'
     process.env.GIT_COMMIT_SHA = ''
     process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA = ''
@@ -111,5 +114,20 @@ describe('GET /api/health', () => {
     expect(response.status).toBe(503)
     expect(JSON.parse(raw).database.healthy).toBe(false)
     expect(raw).not.toContain('db.internal.example')
+  })
+
+  // ADEV-304: astrid-core is the only list-permissions rule. A process without it would refuse
+  // every permission check while every other check here passes, so health must say so.
+  it('ADEV-304: is unhealthy when astrid-core is not deciding list permissions', async () => {
+    safeHealthCheck.mockResolvedValue({ healthy: true, responseTime: 12, error: null })
+    ensureMigrations.mockResolvedValue(undefined)
+    installListPermissionsCore('', () => null)
+
+    const response = await GET(new Request('http://localhost/api/health') as any)
+    const body = await response.json()
+
+    expect(response.status).toBe(503)
+    expect(body.status).toBe('unhealthy')
+    expect(body.coreRules).toMatchObject({ mode: 'decide', loaded: false })
   })
 })

@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   canUserDeleteList,
   canUserEditTask,
@@ -121,7 +121,13 @@ describe('the permissions fixture at the pinned core revision', () => {
   })
 })
 
-describe('the TypeScript rules alone (the browser, and the server fallback)', () => {
+describe('the TypeScript rules alone (the browser, before its door loads)', () => {
+  // Since ADEV-304 the server refuses what the core cannot answer; only the browser runs the TypeScript.
+  beforeEach(() => {
+    setListPermissionsCore(null)
+    vi.stubGlobal('window', {})
+  })
+  afterEach(() => vi.unstubAllGlobals())
   it.each(cases)('%s', (_name, { list, expected }) => {
     expect(answersFor(list)).toEqual(expected)
   })

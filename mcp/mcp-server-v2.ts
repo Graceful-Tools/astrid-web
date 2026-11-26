@@ -11,6 +11,34 @@
  */
 import { prisma } from "../lib/prisma"
 import { BRAND, mcpServerName } from "../lib/brand/config"
+import path from "node:path"
+import { installListPermissionsCore } from "../lib/core-rules/list-permissions-core"
+import { loadCoreRules, loadCoreRulesFrom } from "../lib/core-rules/wasm"
+
+/**
+ * astrid-core decides list permissions here too (ADEV-304). This server answers MCP calls straight
+ * from Prisma and asks lib/list-permissions.ts (through ./list-access, ./access-token-validator and
+ * ./handlers), which has no TypeScript rule any more: without the core every check is refused. So
+ * the core is installed before the transport connects, from the repo checkout (the process's cwd,
+ * or the directory above this file), and the server REFUSES TO START without it rather than
+ * answering every list as "no access".
+ */
+function installPermissionsOrThrow(): void {
+  const installed = installListPermissionsCore(undefined, () => {
+    const fromCwd = loadCoreRules()
+    if (fromCwd) return fromCwd
+    try {
+      return loadCoreRulesFrom(path.join(__dirname, "..", "packages", "astrid-rules"))
+    } catch {
+      return null
+    }
+  })
+  if (!installed) {
+    throw new Error(
+      "astrid-core (packages/astrid-rules) did not load, and list permissions have no other rule (ADEV-304). Run this server from the astrid-web checkout."
+    )
+  }
+}
 
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
@@ -252,6 +280,7 @@ class AstridMCPServerV2 {
   }
 
   public async run() {
+    installPermissionsOrThrow();
     const transport = new StdioServerTransport();
     await this.server.connect(transport);
     console.error(`${BRAND.appName} MCP Server V2 running on stdio`);

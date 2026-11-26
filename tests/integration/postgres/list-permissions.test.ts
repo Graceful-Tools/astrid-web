@@ -8,7 +8,12 @@ import {
   listVisibilityWhere,
 } from '@/lib/list-permissions'
 import { buildListCreate, buildUserCreate } from '@/tests/fixtures/prisma'
+import { installTestListPermissionsCore } from '@/tests/helpers/list-permissions-core'
 import { cleanupPrefix, connectAppPrisma, runPrefix } from './support/db'
+
+// This tier runs without the shared setup files, and since ADEV-304 only astrid-core answers a
+// permission question: install the vendored core the way instrumentation.ts does.
+installTestListPermissionsCore()
 
 /**
  * ADEV-294: the membership and permission queries behind lib/list-permissions.ts,
