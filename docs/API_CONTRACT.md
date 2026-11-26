@@ -670,6 +670,13 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
   same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
   listId | taskId }`.
+- **Goal-signal MCP tools (ADEV-283).** `link_task_goal { taskId, goalId, projectId? }` (adds to the
+  task's own links over `PUT tasks/:id/goals`), `get_task_estimate { taskId, projectId? }`,
+  `request_estimate { taskId, estimator?, projectId? }`, `link_task_experiment { taskId, kind, … }` and
+  `get_experiment_status { taskId }`, proxies over `tasks/:id/{goals,estimates,experiment}`. Replies are
+  wrapped in `<untrusted_goal_signals>`. No tool writes an estimate, policy or connector. **Behaviour
+  change:** `POST tasks/:id/estimates` from an agent that resolves to the built-in estimator returns
+  `403 { reason: "spend_not_allowed" }` unless every board the task is on lets that agent `spend` alone.
 - **Typed metric (ADEV-270).** A goal may carry `metric: { unit?, direction: "up" | "down", target?,
   baseline?, current?, measuredAt?, source?: { connectorId, metricKey }, staleAfterHours? }` beside its
   free text. `current` and `measuredAt` are the server's: a `PUT …/goals` never overwrites them.
