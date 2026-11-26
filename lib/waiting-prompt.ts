@@ -9,6 +9,7 @@
  * demand, so it is not in any page's first load.
  */
 import { isWaitingTask, WAITING_NEEDS_CONDITION, WAITING_ROLE, type WaitingTask } from '@/lib/waiting-rules'
+import { isResultsNeedsCondition, requestResultsCondition } from '@/lib/results-prompt'
 import { requestWaitingCondition, type WaitingChoice, type WaitingPromptTask } from '@/lib/waiting-prompt-bus'
 
 export type { WaitingChoice, WaitingPromptRequest, WaitingPromptTask } from '@/lib/waiting-prompt-bus'
@@ -37,6 +38,11 @@ export function isWaitingNeedsCondition(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   const { status, detail } = error as { status?: number; detail?: unknown }
   return status === 422 && Boolean(detail) && (detail as { code?: string }).code === WAITING_NEEDS_CONDITION
+}
+
+/** Whether a refused edit is answered by a prompt (Waiting's, or Pending results'), so no error toast. */
+export function needsPromptAnswer(error: unknown, waitingFields: Record<string, unknown>): boolean {
+  return (isWaitingNeedsCondition(error) && Object.keys(waitingFields).length === 0) || isResultsNeedsCondition(error)
 }
 
 /**
@@ -85,6 +91,11 @@ export async function sendWithWaitingPrompt<T extends WaitingTask & WaitingPromp
       await send(applied.task, applied.extra)
       return
     } catch (error) {
+      // Pending results (ADEV-282): the picker links what it waits on, then the edit is sent again.
+      if (isResultsNeedsCondition(error)) {
+        if (!(await requestResultsCondition(requested))) return
+        continue
+      }
       if (choice || !isWaitingNeedsCondition(error)) throw error
       choice = await requestWaitingCondition(requested)
       if (!choice) return

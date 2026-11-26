@@ -97,6 +97,15 @@ every date below by the same amount.
 | Decision cards, trade-off grids | `decision`, `tradeoffGrid`, `ratingKey`; a grid is also a `tradeoffGrid` block from `renderMarkdown` | `lib/comment-formats.ts` (~230), browser only | AWTD-1626 (held to the core by `tests/lib/core-rules-decisions-parity.test.ts`) | n/a: no server caller, so there is nothing to sample | AWTD-1586 (every caller is client code). `RATING_STYLE`'s `className` values stay on web | ☐ B |
 | List filters, sort, My Tasks, manual order, snooze | none on the stateless door yet (AWTD2-161) | `lib/date-filter-utils.ts`, `lib/task-sort.ts`, `lib/my-tasks-scope.ts`, `lib/recently-completed-window.ts`, `lib/reminder-snooze.ts` | AWTD-1583 adopted the core's answers in TypeScript | n/a: nothing to compare until the core exposes these rules | AWTD2-161, then AWTD-1586 | ☐ |
 
+**Board columns, step B in progress (ADEV-307, 2026-11-26).** The browser door now installs the
+board hook (`lib/core-rules/browser-board.ts`, inside the lazy load), so with
+`NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER=on` the columns come from the core once it has loaded. Until
+then, and when the core cannot answer, the TypeScript answers. A component that rendered before the
+door loaded keeps its TypeScript columns until its next render (the two are held equal by the
+fixture parity tests). Still to do before ticking B: re-render on load or accept it once the flag
+is on in production, mark `board` canonical in astrid-core CONTRACTS.md and generate the fixture
+from the core, then delete the TypeScript behind `getProjectBoardColumns` / `boardColumnsFor`.
+
 **Step A evidence (AWTD-1608, 2026-11-26).** Production Vercel logs keep about 15 days, so the
 read covered 2026-11-11 to 2026-11-26, about 14 days of the sampled build (in production since
 2026-11-12). Across that window: no "disagree", "parse differently", "roll over differently",

@@ -74,6 +74,17 @@ export function renameLoadedProject(projectId: string, name: string) {
   for (const listener of projectListeners) listener(cachedProjects)
 }
 
+/** Show a column added from outside Manage statuses now, rather than after a reload (ADEV-282). */
+export function addLoadedProjectCustomState(projectId: string, state: { role: string; name: string; description?: string }) {
+  if (!cachedProjects) return
+  cachedProjects = cachedProjects.map(project => {
+    if (project.id !== projectId) return project
+    const states = Array.isArray(project.customStates) ? project.customStates : []
+    return { ...project, customStates: [...states, { ...state, order: states.length }] }
+  })
+  for (const listener of projectListeners) listener(cachedProjects)
+}
+
 /** Drop a deleted project from the sidebar and the open board now, not after a reload (ADEV-61). */
 export function removeLoadedProject(projectId: string) {
   if (!cachedProjects) return
