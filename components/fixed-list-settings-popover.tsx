@@ -19,6 +19,7 @@ import {
   FilterSelectItems,
   PRIORITY_FILTER_OPTIONS,
   SORT_BY_OPTIONS,
+  visibleOptions,
 } from "./list-settings/filter-options"
 import type { User } from "../types/task"
 
@@ -39,8 +40,8 @@ interface FixedListSettingsPopoverProps {
   setFilterDueDate: (dueDate: DueDateWindow) => void
   filterCompletion: "completed" | "incomplete" | "all" | "default"
   setFilterCompletion: (completion: "completed" | "incomplete" | "all" | "default") => void
-  sortBy: "auto" | "priority" | "when" | "completedAt" | "manual"
-  setSortBy: (sort: "auto" | "priority" | "when" | "completedAt" | "manual") => void
+  sortBy: "auto" | "priority" | "when" | "completedAt" | "manual" | "policy"
+  setSortBy: (sort: "auto" | "priority" | "when" | "completedAt" | "manual" | "policy") => void
   hasActiveFilters: boolean
   clearAllFilters: () => void
 }
@@ -113,7 +114,8 @@ export function FixedListSettingsPopover({
   // My Tasks' choices are stored by its preferences API, which accepts fewer
   // values than a list does (AWTD-1324).
   const isMyTasks = listId === "my-tasks"
-  const sortOptions = isMyTasks ? MY_TASKS_SORT_BY_OPTIONS : SORT_BY_OPTIONS
+  // A system list has no project, so no trade-off policy and no Policy sort (ADEV-281).
+  const sortOptions = isMyTasks ? MY_TASKS_SORT_BY_OPTIONS : visibleOptions(SORT_BY_OPTIONS, false)
   const dueDateOptions = isMyTasks ? MY_TASKS_DUE_DATE_FILTER_OPTIONS : DUE_DATE_FILTER_OPTIONS
 
   return (

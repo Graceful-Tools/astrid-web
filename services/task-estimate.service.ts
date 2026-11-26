@@ -31,6 +31,8 @@ import {
 } from '@/lib/goal-signal-services'
 import { EstimatorError, pollEstimate, requestEstimate, type EstimatorReply, type EstimatorRequest } from '@/lib/estimator-client'
 import { runBuiltinEstimator } from '@/lib/ai/builtin-estimator'
+import type { TradeoffReason } from '@/lib/core-rules/tradeoff-core'
+import { evaluateEstimateRow } from '@/services/tradeoff-evaluation.service'
 
 const log = createLogger('task-estimate')
 
@@ -48,7 +50,10 @@ export interface EstimateView extends EstimateBody {
   createdAt: string
   /** True for the built-in model: the card shows ranges under a "rough estimate" tag. */
   rough: boolean
+  /** The label the trade-off policy gave it, or null when no policy is stated (ADEV-281). */
   label: string | null
+  /** Why: a code and the numbers behind it, worded by the client. Null with the label. */
+  labelReasons: TradeoffReason[] | null
 }
 
 export type RequestOutcome =
@@ -81,6 +86,7 @@ export function estimateView(row: Row): EstimateView {
     rationale: row.rationale,
     rough: row.source === 'builtin_llm',
     label: row.label,
+    labelReasons: (row.labelReasons ?? null) as unknown as EstimateView['labelReasons'],
   }
 }
 
@@ -216,7 +222,8 @@ async function persist(
       })
     }
   }
-  return estimateView(row)
+  // Label it against the policy that applies (ADEV-281). Unlabelled when no policy is stated.
+  return estimateView(await evaluateEstimateRow(row))
 }
 
 /** The estimator to use: the named one, else the first service the environment defines, else the built-in. */

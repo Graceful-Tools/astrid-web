@@ -10,6 +10,7 @@
  */
 import React from "react"
 import { Badge } from "@/components/ui/badge"
+import { EstimateLabelChip } from "./EstimateLabelChip"
 import { useTranslations } from "@/lib/i18n/client"
 import { CHART_SERIES_COLORS } from "@/lib/brand/colors"
 import type { GoalsAndGuardrails } from "@/lib/goals-guardrails"
@@ -43,7 +44,9 @@ export type EstimateCardData = Pick<
   | "effortHours"
   | "reach"
   | "rationale"
->
+> &
+  // Absent from an estimate read before the trade-off policy existed: no label is drawn then.
+  Partial<Pick<EstimateView, "label" | "labelReasons">>
 
 /**
  * The range bars are plain SVG, not recharts. The estimate card is the second async consumer of recharts
@@ -155,6 +158,9 @@ export function EstimateCard({ estimate, project }: { estimate: EstimateCardData
   return (
     <div className="space-y-3" data-testid="estimate-card">
       <div className="flex flex-wrap items-center gap-1.5 text-xs" data-testid="estimate-meta">
+        {estimate.label && (
+          <EstimateLabelChip estimate={{ label: estimate.label, labelReasons: estimate.labelReasons ?? null }} project={project} />
+        )}
         {estimate.rough && (
           <Badge variant="outline" title={t("projectMode.estimate.roughHint")} data-testid="estimate-rough">
             {t("projectMode.estimate.rough")}

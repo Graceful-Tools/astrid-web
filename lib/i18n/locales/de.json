@@ -1943,7 +1943,30 @@
       "opportunity": "Potenzial",
       "notEstimated": "Nicht geschätzt",
       "effort": "{hours} Std. Aufwand",
-      "opportunityRange": "{low} bis {high} {unit} / {period}"
+      "opportunityRange": "{low} bis {high} {unit} / {period}",
+      "label": {
+        "do-now": "Jetzt erledigen",
+        "experiment-first": "Erst experimentieren",
+        "needs-review": "Prüfung nötig",
+        "dont": "Nicht tun",
+        "chipAria": "Empfehlung: {label}. Begründung anzeigen.",
+        "reasonsHeading": "Warum"
+      },
+      "reason": {
+        "noEstimate": "Es gibt noch keine Schätzung.",
+        "stale": "Die Schätzung ist veraltet.",
+        "guardrailAtRefuse": "{name}: Die Überschreitungswahrscheinlichkeit {probability} liegt an der Grenze von {threshold}.",
+        "guardrailAtReview": "{name}: Die Überschreitungswahrscheinlichkeit {probability} liegt am Prüfpunkt von {threshold}.",
+        "riskAtRefuse": "Das Risiko ist {level} und liegt auf oder über der Grenze von {threshold}.",
+        "riskAtReview": "Das Risiko ist {level} und liegt auf oder über dem Prüfpunkt von {threshold}.",
+        "riskUnknown": "Die Schätzung nennt kein Risiko, und unbekannt ist nie gut.",
+        "guardrailsUnknown": "Die Schätzung nennt keine Auswirkung auf die Leitplanken, und unbekannt ist nie gut.",
+        "confidenceLow": "Das Vertrauen ist niedrig oder wurde nicht angegeben.",
+        "experimentFirst": "Das Vertrauen liegt bei {confidence}, das Risiko bei {risk}.",
+        "builtinCapped": "Eine integrierte Schätzung ist nie besser als „Erst experimentieren“.",
+        "goalImproves": "{name} wird sich voraussichtlich verbessern ({delta}).",
+        "noGoalImproves": "Es wird erwartet, dass sich kein Ziel verbessert."
+      }
     },
     "goals": {
       "title": "Ziele & Leitplanken",
@@ -2052,7 +2075,8 @@
       "who": "Wer",
       "completed": "Erledigt zuerst",
       "incomplete": "Offen zuerst",
-      "manual": "Manuell"
+      "manual": "Manuell",
+      "policy": "Richtlinie"
     },
     "show": {
       "allTasks": "Alle Aufgaben",
@@ -3198,7 +3222,32 @@
       "migrateAdditive": "Additive Migrationen",
       "migrateDestructive": "Destruktive Migrationen",
       "release": "Store-Veröffentlichungen",
-      "spend": "Geld ausgeben"
+      "spend": "Geld ausgeben",
+      "promoteIdea": "Eine „Jetzt erledigen“-Idee auf Bereit setzen",
+      "experimentStart": "Experimente starten",
+      "experimentStop": "Experimente beenden"
+    },
+    "tradeoff": {
+      "title": "Abwägungsrichtlinie",
+      "switch": "Eine Abwägungsrichtlinie festlegen",
+      "stated": "Festgelegt",
+      "none": "Keine festgelegt",
+      "help": "Kennzeichnet jede geschätzte Idee (jetzt erledigen, erst experimentieren, Prüfung nötig, nicht tun) und bestimmt die Reihenfolge der Richtlinien-Sortierung. Ohne festgelegte Richtlinie wird nichts gekennzeichnet und es gibt keine Richtlinien-Sortierung.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Prüfen bei einem Risiko von mindestens",
+        "riskRefuseAt": "Nicht tun bei einem Risiko von mindestens",
+        "confidenceBelow": "Erst experimentieren bei einem Vertrauen unter",
+        "experimentRiskAtLeast": "…und das Risiko mindestens",
+        "minConfidenceToAct": "Ein Agent darf befördern ab einem Vertrauen von mindestens",
+        "guardrailReview": "Prüfen bei Überschreitungswahrscheinlichkeit",
+        "guardrailRefuse": "Nicht tun bei Überschreitungswahrscheinlichkeit"
+      },
+      "goalOrder": "Zielpriorität",
+      "goalOrderHelp": "Ideen, die bei allem oben gleichauf liegen, werden danach geordnet, wie sie sich auf diese Ziele auswirken, das wichtigste zuerst.",
+      "goalOrderReset": "Standardreihenfolge verwenden",
+      "moveUp": "{goal} nach oben verschieben",
+      "moveDown": "{goal} nach unten verschieben"
     },
     "autonomy": {
       "allowed": "Erlaubt",

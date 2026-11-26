@@ -1943,7 +1943,30 @@
       "opportunity": "机会",
       "notEstimated": "未估算",
       "effort": "工作量 {hours} 小时",
-      "opportunityRange": "{low} 至 {high} {unit} / {period}"
+      "opportunityRange": "{low} 至 {high} {unit} / {period}",
+      "label": {
+        "do-now": "立即做",
+        "experiment-first": "先做实验",
+        "needs-review": "需要审核",
+        "dont": "不做",
+        "chipAria": "建议：{label}。查看原因。",
+        "reasonsHeading": "原因"
+      },
+      "reason": {
+        "noEstimate": "目前还没有估算。",
+        "stale": "估算已过期。",
+        "guardrailAtRefuse": "{name}：违规概率 {probability} 已达到上限 {threshold}。",
+        "guardrailAtReview": "{name}：违规概率 {probability} 已达到审核点 {threshold}。",
+        "riskAtRefuse": "风险为 {level}，达到或超过上限 {threshold}。",
+        "riskAtReview": "风险为 {level}，达到或超过审核点 {threshold}。",
+        "riskUnknown": "估算器未给出风险，而未知从来不是好事。",
+        "guardrailsUnknown": "估算器未给出对护栏的影响，而未知从来不是好事。",
+        "confidenceLow": "置信度较低，或未给出。",
+        "experimentFirst": "置信度为 {confidence}，风险为 {risk}。",
+        "builtinCapped": "内置估算最好也只能是“先做实验”。",
+        "goalImproves": "预计 {name} 会改善（{delta}）。",
+        "noGoalImproves": "预计没有目标会改善。"
+      }
     },
     "goals": {
       "title": "目标与护栏",
@@ -2052,7 +2075,8 @@
       "who": "负责人",
       "completed": "完成优先",
       "incomplete": "待办优先",
-      "manual": "手动"
+      "manual": "手动",
+      "policy": "策略"
     },
     "show": {
       "allTasks": "所有任务",
@@ -3198,7 +3222,32 @@
       "migrateAdditive": "增量迁移",
       "migrateDestructive": "破坏性迁移",
       "release": "应用商店发布",
-      "spend": "花钱"
+      "spend": "花钱",
+      "promoteIdea": "将“立即做”的想法移至就绪",
+      "experimentStart": "开始实验",
+      "experimentStop": "停止实验"
+    },
+    "tradeoff": {
+      "title": "权衡策略",
+      "switch": "设定权衡策略",
+      "stated": "已设定",
+      "none": "未设定",
+      "help": "为每个已估算的想法打上标签（立即做、先做实验、需要审核、不做），并决定策略排序的顺序。未设定时，不打标签，也没有策略排序。",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "风险至少达到以下值时审核",
+        "riskRefuseAt": "风险至少达到以下值时不做",
+        "confidenceBelow": "置信度低于以下值时先做实验",
+        "experimentRiskAtLeast": "…且风险至少为",
+        "minConfidenceToAct": "置信度至少达到以下值时，智能体可以提升",
+        "guardrailReview": "违规概率达到以下值时审核",
+        "guardrailRefuse": "违规概率达到以下值时不做"
+      },
+      "goalOrder": "目标优先级",
+      "goalOrderHelp": "以上各项都相同的想法，按其对这些目标的影响排序，最重要的排在前面。",
+      "goalOrderReset": "使用默认顺序",
+      "moveUp": "上移 {goal}",
+      "moveDown": "下移 {goal}"
     },
     "autonomy": {
       "allowed": "允许",

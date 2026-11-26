@@ -158,6 +158,69 @@ export function estimateAge(createdAt: string, now: Date): { unit: AgeUnit; n: n
   return { unit: 'days', n: Math.floor(hours / 24) }
 }
 
+/** The labels the trade-off policy gives an estimate, in the order they rank (astrid-core `tradeoff::Label`). */
+export const TRADEOFF_LABEL_ORDER = ['do-now', 'experiment-first', 'needs-review', 'dont'] as const
+
+/** What the chip is: a known label, or nothing (a label a newer core adds is not guessed at). */
+export function knownLabel(label: string | null | undefined): (typeof TRADEOFF_LABEL_ORDER)[number] | null {
+  return (TRADEOFF_LABEL_ORDER as readonly string[]).includes(label ?? '') ? (label as (typeof TRADEOFF_LABEL_ORDER)[number]) : null
+}
+
+/** One reason line: the copy key's last part, its values, and which values are risk or confidence levels to translate. */
+export interface ReasonLine {
+  code: string
+  values: Record<string, string>
+  levels: string[]
+}
+
+const REASONS_WITH_NO_VALUES = new Set(['noEstimate', 'stale', 'riskUnknown', 'guardrailsUnknown', 'builtinCapped', 'noGoalImproves'])
+const probability = (value: unknown) => (typeof value === 'number' ? String(Math.round(value * 100) / 100) : '')
+
+/**
+ * The reason lines for a stored label (docs/specs/GOALS_GUARDRAILS_SIGNALS.md → 6): the core's codes
+ * with the numbers that produced them, so the client words each in its own strings and never
+ * re-derives one. A code this client does not know is dropped rather than shown as a key.
+ */
+export function labelReasonLines(
+  reasons: readonly { code: string; [key: string]: unknown }[] | null | undefined,
+  project: GoalsAndGuardrails,
+): ReasonLine[] {
+  const lines: ReasonLine[] = []
+  for (const reason of reasons ?? []) {
+    const line = (values: Record<string, string>, levels: string[] = []) => lines.push({ code: reason.code, values, levels })
+    switch (reason.code) {
+      case 'guardrailAtRefuse':
+      case 'guardrailAtReview': {
+        const id = String(reason.guardrailId ?? '')
+        line({
+          name: project.guardrails.find(g => g.id === id)?.statement ?? id,
+          probability: probability(reason.breachProbability),
+          threshold: probability(reason.threshold),
+        })
+        break
+      }
+      case 'riskAtRefuse':
+      case 'riskAtReview':
+        line({ level: String(reason.level ?? ''), threshold: String(reason.threshold ?? '') }, ['level', 'threshold'])
+        break
+      case 'confidenceLow':
+        line({})
+        break
+      case 'experimentFirst':
+        line({ confidence: String(reason.confidence ?? ''), risk: String(reason.risk ?? '') }, ['confidence', 'risk'])
+        break
+      case 'goalImproves': {
+        const id = String(reason.goalId ?? '')
+        line({ name: project.goals.find(g => g.id === id)?.statement ?? id, delta: formatSigned(Number(reason.delta ?? 0)) })
+        break
+      }
+      default:
+        if (REASONS_WITH_NO_VALUES.has(reason.code)) line({})
+    }
+  }
+  return lines
+}
+
 /** The estimator's `source` as a short key for copy: `builtin_llm`, `human`, or a service's own name. */
 export function sourceKind(source: string): 'builtin' | 'human' | 'service' {
   if (source === 'builtin_llm') return 'builtin'

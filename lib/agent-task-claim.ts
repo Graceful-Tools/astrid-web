@@ -107,9 +107,12 @@ export function decideExpiredLease(task: ExpiredLeaseTask): ExpiredLeaseDecision
 }
 
 /** The note an expiry leaves on the task: why it is back in Ready. */
+/** Every expired-lease comment starts with this; claim-next reads it (ADEV-310). */
+export const EXPIRED_LEASE_MARKER = '🔁 Returned to Ready: the agent that claimed this task sent no heartbeat'
+
 export function expiredLeaseComment(lastHeartbeat: Date | null, expiredAt: Date): string {
   const since = lastHeartbeat ? ` since ${lastHeartbeat.toISOString()}` : ''
-  return `🔁 Returned to Ready: the agent that claimed this task sent no heartbeat${since}, and its claim lease expired at ${expiredAt.toISOString()}.`
+  return `${EXPIRED_LEASE_MARKER}${since}, and its claim lease expired at ${expiredAt.toISOString()}.`
 }
 
 export type AgentTaskClaimOutcome =

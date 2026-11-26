@@ -26,6 +26,7 @@ import {
   summary,
   taskIdsInBranch,
   tasksProductionServes,
+  waitingOnChecks,
   type PullRequestSummary,
 } from '@/scripts/lib/land-and-deploy'
 
@@ -637,5 +638,41 @@ describe('ADEV-268: a deploy that is still running is not a failed deploy', () =
     expect(text).not.toMatch(/FAILED/)
     expect(text).not.toMatch(/production is unchanged/i)
     expect(text).not.toMatch(/could NOT verify/)
+  })
+})
+
+describe('ADEV-265: a handoff whose CI is still running is a wait the run watches, not a give-up', () => {
+  // On 2026-11-26 #999 was held back as "merge state BLOCKED" while its checks were still running.
+  // The run ended, the event its CI raised was cancelled in the concurrency queue, and GitHub's
+  // schedule fires about every 6-9 hours, so a green PR sat for hours.
+  const decide = (prs: PullRequestSummary[]) => waitingOnChecks(prs, landablePullRequests(prs).skipped)
+
+  it('counts a PR whose checks are still running', () => {
+    expect(decide([pr({ checks: [...green, { name: 'E2E', bucket: 'pending' }] })])).toEqual([418])
+  })
+
+  it('counts BLOCKED while a check is still running: GitHub blocks on the required check', () => {
+    expect(decide([pr({ mergeStateStatus: 'BLOCKED', checks: [...green, { name: 'E2E', bucket: 'pending' }] })])).toEqual([418])
+  })
+
+  it('counts mergeability not computed yet, and no check reported yet', () => {
+    expect(decide([pr({ mergeable: 'UNKNOWN' })])).toEqual([418])
+    expect(decide([pr({ checks: [] })])).toEqual([418])
+  })
+
+  it('does not count BLOCKED with every check finished: that waits on a person, not on CI', () => {
+    expect(decide([pr({ mergeStateStatus: 'BLOCKED' })])).toEqual([])
+  })
+
+  it('does not count a PR that cannot land at all', () => {
+    expect(decide([pr({ headRefName: 'dependabot/npm_and_yarn/x-1.0.0' })])).toEqual([])
+    expect(decide([pr({ body: 'by hand', checks: [{ name: 'E2E', bucket: 'pending' }] })])).toEqual([])
+    expect(decide([pr({ checks: [{ name: 'E2E', bucket: 'fail' }, { name: 'B', bucket: 'pending' }] })])).toEqual([])
+    expect(decide([pr({ mergeable: 'CONFLICTING', checks: [{ name: 'E2E', bucket: 'pending' }] })])).toEqual([])
+    expect(decide([pr({ isDraft: true, checks: [{ name: 'E2E', bucket: 'pending' }] })])).toEqual([])
+  })
+
+  it('does not count a landable PR', () => {
+    expect(decide([pr()])).toEqual([])
   })
 })

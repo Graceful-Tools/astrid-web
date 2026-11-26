@@ -15,10 +15,20 @@ export type Escalation = { to: 'listOwner' } | { to: 'taskCreator' } | { to: 'pe
 
 /**
  * The autonomy fields the settings UI, the skill text and the guardrail checks show, flattened.
- * The Goal signals actions (`promoteIdea`, `experimentStart`, `experimentStop`, ADEV-273) are in
- * the policy but not yet here: they join with their settings UI (ADEV-281).
+ * Includes the Goal signals actions (`promoteIdea`, `experimentStart`, `experimentStop`, ADEV-273),
+ * which joined with their settings UI (ADEV-281).
  */
-export const AUTONOMY_FIELDS = ['merge', 'deploy', 'migrateAdditive', 'migrateDestructive', 'release', 'spend'] as const
+export const AUTONOMY_FIELDS = [
+  'merge',
+  'deploy',
+  'migrateAdditive',
+  'migrateDestructive',
+  'release',
+  'spend',
+  'promoteIdea',
+  'experimentStart',
+  'experimentStop',
+] as const
 export type AutonomyField = (typeof AUTONOMY_FIELDS)[number]
 
 export interface OrchestrationPolicy {
