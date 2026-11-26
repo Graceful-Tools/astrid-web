@@ -34,6 +34,7 @@ import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListIns
 import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
 import { collectProjectGoals, type AgentProjectGoals } from '@/lib/agent-queue-project-goals'
 import { agentOffHint, emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
+import { emptyAgentQueue } from '@/lib/agent-queue-empty'
 import { pendingAgentAnswer, pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 import { buildInboxIdeas, type AgentInbox } from '@/lib/inbox-ideas'
 
@@ -409,39 +410,17 @@ export async function buildAgentQueue({
   // harness may still be scheduled, and Off means nothing should pick tasks up.
   // Behind the flag, and only for those mailboxes: everything else is unchanged.
   if (mode === 'off' && agentExecutionModeHonorOffEnabled() && isModeLockedToPolling(mailbox)) {
-    return {
-      agent: { mailbox, email, id: agentUser?.id ?? null, name: agentUser?.name },
-      mode,
-      empty: true,
-      queue: [],
-      listInstructions: [],
-      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
-      truncated: false,
-      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
-      hint: agentOffHint(mailbox),
-      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
-      ...(runtimeBinding ? { runtimeBinding } : {}),
-    }
+    const agent = { mailbox, email, id: agentUser?.id ?? null, name: agentUser?.name }
+    return emptyAgentQueue(agent, mode, agentOffHint(mailbox), runtimeBinding)
   }
 
   // An agent identity that does not exist yet is an empty queue, not an error:
   // the row is created the first time someone assigns work to it.
   if (!agentUser?.isAIAgent) {
-    return {
-      agent: { mailbox, email, id: null },
-      mode,
-      empty: true,
-      queue: [],
-      listInstructions: [],
-      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
-      truncated: false,
-      // An identity nobody has used yet has nothing to answer either.
-      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
-      hint: nothingAssignedHint(mailbox),
-      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
-      ...(runtimeBinding ? { runtimeBinding } : {}),
-    }
+    // An identity nobody has used yet has nothing to answer either.
+    return emptyAgentQueue({ mailbox, email, id: null }, mode, nothingAssignedHint(mailbox), runtimeBinding)
   }
+
 
   // One shape, used by the queue and by the count that explains an empty one. A
   // count drawn more widely would report work the caller cannot see.
