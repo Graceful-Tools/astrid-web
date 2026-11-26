@@ -27,11 +27,14 @@
         "value": {
           "autonomy": {
             "deploy": "never",
+            "experimentStart": "never",
+            "experimentStop": "never",
             "merge": "never",
             "migrate": {
               "additive": "never",
               "destructive": "never"
             },
+            "promoteIdea": "never",
             "release": "never",
             "spend": "never"
           },
@@ -58,11 +61,14 @@
         "value": {
           "autonomy": {
             "deploy": "allowed",
+            "experimentStart": "never",
+            "experimentStop": "never",
             "merge": "allowed",
             "migrate": {
               "additive": "allowed",
               "destructive": "ask"
             },
+            "promoteIdea": "never",
             "release": "ask",
             "spend": "ask"
           },
@@ -109,11 +115,14 @@
         "value": {
           "autonomy": {
             "deploy": "allowed",
+            "experimentStart": "never",
+            "experimentStop": "never",
             "merge": "ask",
             "migrate": {
               "additive": "allowed",
               "destructive": "ask"
             },
+            "promoteIdea": "never",
             "release": "ask",
             "spend": "ask"
           },
@@ -164,11 +173,14 @@
         "value": {
           "autonomy": {
             "deploy": "never",
+            "experimentStart": "never",
+            "experimentStop": "never",
             "merge": "ask",
             "migrate": {
               "additive": "never",
               "destructive": "never"
             },
+            "promoteIdea": "never",
             "release": "never",
             "spend": "never"
           },
@@ -199,11 +211,14 @@
         "value": {
           "autonomy": {
             "deploy": "never",
+            "experimentStart": "never",
+            "experimentStop": "never",
             "merge": "never",
             "migrate": {
               "additive": "never",
               "destructive": "never"
             },
+            "promoteIdea": "never",
             "release": "never",
             "spend": "never"
           },
@@ -894,6 +909,277 @@
         "taskCreatorId": null
       },
       "rule": "orchestrationEscalate"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "autonomy": {
+            "deploy": "never",
+            "experimentStart": "never",
+            "experimentStop": "never",
+            "merge": "never",
+            "migrate": {
+              "additive": "never",
+              "destructive": "never"
+            },
+            "promoteIdea": "never",
+            "release": "never",
+            "spend": "never"
+          },
+          "escalation": {
+            "to": "listOwner"
+          },
+          "routing": {
+            "agents": null,
+            "assignTo": null
+          },
+          "tradeoff": {
+            "experimentFirst": {
+              "confidenceBelow": "medium",
+              "riskAtLeast": "medium"
+            },
+            "goalOrder": [
+              "g2",
+              "g1"
+            ],
+            "guardrail": {
+              "refuseAtBreachProbability": 0.5,
+              "reviewAtBreachProbability": 0.1
+            },
+            "minConfidenceToAct": "medium",
+            "risk": {
+              "refuseAt": "medium",
+              "reviewAt": "low"
+            }
+          }
+        }
+      },
+      "name": "resolve/a-tradeoff-key-is-laid-over-the-defaults-field-by-field",
+      "request": {
+        "kind": "orchestrationPolicy",
+        "list": {
+          "tradeoff": {
+            "risk": {
+              "refuseAt": "medium"
+            }
+          }
+        },
+        "project": {
+          "tradeoff": {
+            "goalOrder": [
+              "g2",
+              "g1"
+            ],
+            "risk": {
+              "reviewAt": "low"
+            }
+          }
+        }
+      },
+      "rule": "orchestrationPolicy"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "never",
+          "mustAsk": false,
+          "reason": "policy"
+        }
+      },
+      "name": "may/the-new-actions-default-to-never",
+      "request": {
+        "action": "experimentStart",
+        "agent": "claude",
+        "kind": "orchestrationMay",
+        "list": null,
+        "migration": null,
+        "project": null
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "allowed",
+          "mustAsk": false,
+          "reason": "policy"
+        }
+      },
+      "name": "may/an-agent-may-start-an-experiment-when-the-policy-allows-it",
+      "request": {
+        "action": "experimentStart",
+        "agent": "claude",
+        "kind": "orchestrationMay",
+        "list": null,
+        "migration": null,
+        "project": {
+          "autonomy": {
+            "experimentStart": "allowed",
+            "experimentStop": "ask"
+          }
+        }
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "ask",
+          "mustAsk": true,
+          "reason": "policy"
+        }
+      },
+      "name": "may/stopping-an-experiment-can-ask",
+      "request": {
+        "action": "experimentStop",
+        "agent": "claude",
+        "kind": "orchestrationMay",
+        "list": null,
+        "migration": null,
+        "project": {
+          "autonomy": {
+            "experimentStart": "allowed",
+            "experimentStop": "ask"
+          }
+        }
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "never",
+          "mustAsk": false,
+          "reason": "noEstimate"
+        }
+      },
+      "name": "may/promote-idea-without-an-estimate-is-never",
+      "request": {
+        "action": "promoteIdea",
+        "agent": "claude",
+        "kind": "orchestrationMay",
+        "list": null,
+        "migration": null,
+        "project": {
+          "autonomy": {
+            "promoteIdea": "allowed"
+          },
+          "tradeoff": {
+            "minConfidenceToAct": "high"
+          }
+        }
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "never",
+          "mustAsk": false,
+          "reason": "notDoNow"
+        }
+      },
+      "name": "may/promote-idea-needs-the-do-now-label",
+      "request": {
+        "action": "promoteIdea",
+        "agent": "claude",
+        "confidence": "high",
+        "kind": "orchestrationMay",
+        "label": "experiment-first",
+        "list": null,
+        "project": {
+          "autonomy": {
+            "promoteIdea": "allowed"
+          },
+          "tradeoff": {
+            "minConfidenceToAct": "high"
+          }
+        }
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "never",
+          "mustAsk": false,
+          "reason": "belowConfidence"
+        }
+      },
+      "name": "may/promote-idea-needs-the-confidence-the-policy-asks",
+      "request": {
+        "action": "promoteIdea",
+        "agent": "claude",
+        "confidence": "medium",
+        "kind": "orchestrationMay",
+        "label": "do-now",
+        "list": null,
+        "project": {
+          "autonomy": {
+            "promoteIdea": "allowed"
+          },
+          "tradeoff": {
+            "minConfidenceToAct": "high"
+          }
+        }
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "allowed",
+          "mustAsk": false,
+          "reason": "policy"
+        }
+      },
+      "name": "may/promote-idea-on-a-confident-do-now-follows-the-policy",
+      "request": {
+        "action": "promoteIdea",
+        "agent": "claude",
+        "confidence": "high",
+        "kind": "orchestrationMay",
+        "label": "do-now",
+        "list": null,
+        "project": {
+          "autonomy": {
+            "promoteIdea": "allowed"
+          },
+          "tradeoff": {
+            "minConfidenceToAct": "high"
+          }
+        }
+      },
+      "rule": "orchestrationMay"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": {
+          "decision": "never",
+          "mustAsk": false,
+          "reason": "policy"
+        }
+      },
+      "name": "may/promote-idea-with-the-default-autonomy-stays-never",
+      "request": {
+        "action": "promoteIdea",
+        "agent": "claude",
+        "confidence": "high",
+        "kind": "orchestrationMay",
+        "label": "do-now",
+        "list": null,
+        "project": null
+      },
+      "rule": "orchestrationMay"
     },
     {
       "answer": {
