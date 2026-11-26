@@ -252,7 +252,7 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
 
               <Step n={3} title="Configure your AI tool">
                 <p className="mb-2">
-                  <strong>Option A: Remote MCP (Recommended)</strong> &mdash; Use the hosted MCP server URL directly.
+                  <strong>Remote MCP</strong> &mdash; Use the hosted MCP server URL directly.
                   Paste into Claude Desktop, Cursor, or Windsurf&apos;s MCP settings:
                 </p>
                 <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto mt-2">
@@ -270,12 +270,15 @@ args = ["-y", "mcp-remote", "${mcpUrl}"]`}</code>
                   </code>
                 </pre>
                 <p className="mb-2 mt-4">
-                  <strong>Option B: POST Endpoint</strong> &mdash; For clients that need the POST URL:
+                  <strong>Clients that ask for a POST URL</strong> &mdash; use the same address. {BRAND.appName} speaks
+                  Streamable HTTP: POST each JSON-RPC message to /mcp and read the reply from the
+                  response body. The older SSE transport and its separate /mcp/messages URL have been retired.
                 </p>
                 <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto mt-2">
                   <code className="text-xs font-mono theme-text-primary">
-{`POST ${hostOrigin}/mcp/messages
-Authorization: Bearer YOUR_ACCESS_TOKEN`}
+{`POST ${hostOrigin}/mcp
+Authorization: Bearer YOUR_ACCESS_TOKEN
+Content-Type: application/json`}
                   </code>
                 </pre>
               </Step>

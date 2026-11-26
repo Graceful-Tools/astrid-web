@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The board's Done period now owns the Done column: "This week", "This month" and "All time" reach past the list's recently-completed window, which bounds the list view only (ADEV-191).
 
+### Removed
+- The legacy MCP SSE transport: `POST /mcp/messages` and its per-instance session map. The census recorded no `/mcp/messages` traffic since 2026-11-01. `/mcp` speaks Streamable HTTP only; a client configured with `"type": "sse"` switches to `"type": "http"` with the same URL. An authenticated `GET /mcp` still opens the (silent) Streamable HTTP listen stream (AWTD-1569).
+
 ## [1.4.0] - 2026-11-18
 
 One image, many brands: the published image reads its brand when it starts, so a partner mounts a profile instead of building their own image.

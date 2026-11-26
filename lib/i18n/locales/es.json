@@ -1161,8 +1161,7 @@
         "note": "Añade esta URL en los ajustes MCP de tu asistente. Te pedirá iniciar sesión en {appName}; no hay claves que copiar.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Guárdalo como .vscode/mcp.json en tu proyecto y pulsa Start en el servidor",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Los clientes antiguos que solo hablan el transporte SSE pueden hacer GET a la misma URL y enviar mensajes con POST a /mcp/messages."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Paso 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Guárdalo como .vscode/mcp.json en tu proyecto y pulsa Start en el servidor",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Los clientes antiguos que solo hablan el transporte SSE pueden hacer GET a la misma URL y enviar mensajes con POST a /mcp/messages.",
         "claudeNote": "Un solo comando: abre el navegador para aprobar el acceso, sin claves que copiar",
         "copilotTitle": "CLI de GitHub Copilot",
         "copilotNote": "La misma conexión de un solo comando para la CLI de Copilot",
