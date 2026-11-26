@@ -158,12 +158,28 @@ export function accessTokenShadowScopes(permissions: readonly string[]): string[
 }
 
 /**
+ * Does enforcement apply to this owner's scoped tokens? ASTRID_TOKEN_SCOPE_ENFORCEMENT is
+ * off (default), canary (only owners listed in ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS) or on.
+ * Rollback is setting it back to off (AWTD-1567).
+ */
+function scopeEnforcementApplies(userId: string): boolean {
+  const mode = process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT?.trim()
+  if (mode === 'on') return true
+  if (mode !== 'canary') return false
+  return (process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS ?? '')
+    .split(',')
+    .map(id => id.trim())
+    .includes(userId)
+}
+
+/**
  * Validate an access token (MCPToken row)
  */
 async function validateMCPToken(token: string): Promise<{
   tokenId: string
   userId: string
   permissions: string[]
+  scope: string | null
   user: {
     id: string
     email: string
@@ -233,6 +249,7 @@ async function validateMCPToken(token: string): Promise<{
     tokenId: mcpToken.id,
     userId: mcpToken.userId,
     permissions: mcpToken.permissions ?? [],
+    scope: mcpToken.scope ?? null,
     user: mcpToken.user,
     agentUser,
   }
@@ -322,11 +339,17 @@ export async function authenticateAPI(
   if (mcpToken) {
     const validated = await validateMCPToken(mcpToken)
     if (validated) {
+      // A token minted with an explicit scope (MCPToken.scope, set only at mint) is the
+      // opt-in group: it is limited to that scope once enforcement is on for its owner.
+      // Every other token keeps '*' (AWTD-1567).
+      const ownScopes = validated.scope?.split(/\s+/).filter(Boolean) ?? []
+      const scoped = ownScopes.length > 0
+      const enforced = scoped && scopeEnforcementApplies(validated.userId)
       return {
         userId: validated.userId,
         source: 'legacy_mcp',
-        scopes: ['*'], // Full access today; see accessTokenShadowScopes for what comes next.
-        shadowScopes: accessTokenShadowScopes(validated.permissions),
+        scopes: enforced ? ownScopes : ['*'], // See accessTokenShadowScopes for what unscoped tokens get next.
+        shadowScopes: scoped ? ownScopes : accessTokenShadowScopes(validated.permissions),
         tokenId: validated.tokenId,
         isAIAgent: validated.user.isAIAgent,
         user: validated.user,

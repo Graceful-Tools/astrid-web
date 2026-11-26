@@ -17,6 +17,7 @@ import { CONSENT_AGENT_MAILBOXES } from '@/lib/oauth/agent-consent'
 import { mcpTokenStorageFields } from '@/lib/mcp-token'
 import { generateMCPToken } from '@/lib/mcp-token-utils'
 import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
+import { unregisterableScopes } from '@/lib/oauth/oauth-scopes'
 
 export const MintAccessTokenSchema = z.object({
   permissions: z.array(z.enum(['read', 'write'])).min(1, 'At least one permission required'),
@@ -25,6 +26,16 @@ export const MintAccessTokenSchema = z.object({
   // Same roster the OAuth consent screen offers, so a token minted here and one
   // minted through the consent flow can carry the same identities.
   agent: z.enum(CONSENT_AGENT_MAILBOXES).optional(),
+  // Opt-in least privilege (AWTD-1567): OAuth scopes this token is limited to once enforcement
+  // is on. Omitted = unscoped, as before. '*' is refused, like client registration does.
+  scopes: z
+    .array(z.string())
+    .min(1)
+    .max(30)
+    .refine(list => unregisterableScopes(list).length === 0, {
+      message: 'Unknown or unregisterable scope',
+    })
+    .optional(),
 })
 
 export type MintAccessTokenInput = z.infer<typeof MintAccessTokenSchema>
@@ -34,6 +45,7 @@ export type MintAccessTokenResult =
       ok: true
       token: string
       permissions: string[]
+      scope: string | null
       expiresAt: Date | null
       description: string | null
       createdAt: Date
@@ -74,6 +86,7 @@ export async function mintAccessToken(
       agentUserId,
       agentMailbox: input.agent ?? null,
       permissions: input.permissions,
+      scope: input.scopes ? [...new Set(input.scopes)].join(' ') : null,
       expiresAt,
       description: input.description,
       isActive: true,
@@ -84,6 +97,7 @@ export async function mintAccessToken(
     ok: true,
     token,
     permissions: row.permissions,
+    scope: row.scope ?? null,
     expiresAt: row.expiresAt,
     description: row.description,
     createdAt: row.createdAt,

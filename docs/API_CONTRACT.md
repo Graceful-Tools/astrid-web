@@ -1053,6 +1053,11 @@ bearer minted from a delegated token would outlive revoking that token. The new 
 - `expiresInDays` — 1–365. If omitted, the token never expires.
 - `agent` — optional. It's an agent mailbox from the consent screen's roster, and comments made
   with the token are authored as that agent rather than as the user.
+- `scopes` — optional (AWTD-1567). OAuth scopes (e.g. `["tasks:read","lists:read"]`) the token is
+  limited to. `*` and unknown scopes are a 400. Omitted means unscoped, which keeps `*` exactly as
+  before. Scopes are enforced only where `ASTRID_TOKEN_SCOPE_ENFORCEMENT` is `on`, or `canary` for
+  the owners in `ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS` (default off); an enforced token that lacks
+  a route's scope gets a 403 naming it, and cannot call the legacy `/api/mcp/operations` endpoint.
 
 **Response:**
 ```json

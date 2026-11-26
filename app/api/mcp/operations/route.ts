@@ -107,6 +107,14 @@ async function processMCPRequest(request: NextRequest, operation: unknown, incom
     // Supports OAuth tokens, session cookies, and legacy MCP tokens (including body tokens)
     const auth = await authenticateAPI(request, legacyToken)
 
+    // This surface checks no scopes, so a token limited to some (AWTD-1567) cannot use it.
+    if (auth.source === 'legacy_mcp' && !auth.scopes.includes('*')) {
+      return NextResponse.json(
+        { error: 'This access token is scope-limited and cannot use the legacy operations endpoint; use /api/v1.' },
+        { status: 403 }
+      )
+    }
+
     const result = await executeMCPOperation(operation, args, auth.userId)
     log.info({
       operation,

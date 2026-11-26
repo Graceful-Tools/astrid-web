@@ -241,6 +241,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },
   { name: 'ASTRID_FIXALL_HARNESS', scope: 'tooling', description: 'Explicit polling harness selector; controls queue identity and retained cloud wake-state scope.' },
   { name: 'AGENT_QUEUE_DUE_FIRST', scope: 'optional', description: 'Agent queue selection mode: off preserves legacy selection (default), shadow compares and returns the legacy result, and on selects due tasks before the page cap. Set back to off to roll back.', validate: v => (['off', 'shadow', 'on'].includes(v.trim()) ? null : 'Must be off, shadow, or on') },
+  { name: 'ASTRID_TOKEN_SCOPE_ENFORCEMENT', scope: 'optional', description: 'Enforce the scopes an access token was minted with (AWTD-1567): off (default; unscoped tokens are never affected), canary (only owners in ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS) or on. Set back to off to roll back.', validate: v => (['off', 'canary', 'on'].includes(v.trim()) ? null : 'Must be off, canary, or on') },
+  { name: 'ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS', scope: 'optional', description: 'Comma-separated user ids whose scoped access tokens are enforced while ASTRID_TOKEN_SCOPE_ENFORCEMENT=canary.' },
   { name: 'FIXALL_CLAIM_BOARD_IDS', scope: 'optional', description: 'Boards an atomic /fixall claim may target. A security allowlist; unset keeps the default brand’s own boards, and none for any other brand.' },
 
   // ── Brand ─────────────────────────────────────────────────────────────────

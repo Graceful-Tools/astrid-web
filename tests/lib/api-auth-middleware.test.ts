@@ -14,7 +14,7 @@
  * The tests are ordered by what an attacker would try, not by what is easy to cover.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 
 vi.mock('next-auth', () => ({ getServerSession: vi.fn() }))
@@ -244,6 +244,52 @@ describe('authenticateAPI — telling the two bearer token kinds apart', () => {
     const readOnly = await authenticateAPI(req({ 'x-mcp-access-token': 'astrid_mcp_y' }))
     expect(readOnly.scopes).toEqual(['*'])
     expect(readOnly.shadowScopes).toEqual(SCOPE_GROUPS.readonly)
+  })
+
+  /** AWTD-1567: opt-in enforcement for tokens minted with an explicit scope. */
+  describe('scoped access tokens (AWTD-1567)', () => {
+    const scoped = {
+      id: 't9', userId: 'u1', user: PERSON, agentUser: null, agentMailbox: null,
+      permissions: ['read', 'write'], scope: 'tasks:read',
+    }
+    const hdr = { 'x-mcp-access-token': 'astrid_mcp_s' }
+    const restore = () => {
+      delete process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT
+      delete process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS
+    }
+    beforeEach(restore)
+    afterEach(restore)
+
+    it('keeps * and shadows its own scopes while the flag is off', async () => {
+      mockPrisma.mCPToken.findFirst.mockResolvedValue(scoped)
+      const auth = await authenticateAPI(req(hdr))
+      expect(auth.scopes).toEqual(['*'])
+      expect(auth.shadowScopes).toEqual(['tasks:read'])
+    })
+
+    it('enforces its own scopes when the flag is on', async () => {
+      process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT = 'on'
+      mockPrisma.mCPToken.findFirst.mockResolvedValue(scoped)
+      const auth = await authenticateAPI(req(hdr))
+      expect(auth.scopes).toEqual(['tasks:read'])
+      expect(() => requireScopes(auth, ['tasks:write'])).toThrow(/tasks:write/)
+    })
+
+    it('canary enforces only for listed owners', async () => {
+      process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT = 'canary'
+      mockPrisma.mCPToken.findFirst.mockResolvedValue(scoped)
+      expect((await authenticateAPI(req(hdr))).scopes).toEqual(['*'])
+      process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS = 'x, u1'
+      expect((await authenticateAPI(req(hdr))).scopes).toEqual(['tasks:read'])
+    })
+
+    it('never touches an unscoped token, even with the flag on', async () => {
+      process.env.ASTRID_TOKEN_SCOPE_ENFORCEMENT = 'on'
+      mockPrisma.mCPToken.findFirst.mockResolvedValue({ ...scoped, scope: null })
+      const auth = await authenticateAPI(req(hdr))
+      expect(auth.scopes).toEqual(['*'])
+      expect(auth.shadowScopes).toEqual(SCOPE_GROUPS.ai_agent)
+    })
   })
 
   it('gives a legacy MCP session full scopes and carries its agent identity', async () => {

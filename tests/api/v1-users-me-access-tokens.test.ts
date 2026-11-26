@@ -143,4 +143,26 @@ describe('POST /api/v1/users/me/access-tokens (AWTD-1312)', () => {
     expect((await POST(post({ permissions: ['read'], agent: 'nobody' }))).status).toBe(400)
     expect(mockTokenCreate).not.toHaveBeenCalled()
   })
+
+  it('AWTD-1567: stores explicit scopes on the token, deduplicated', async () => {
+    const res = await POST(post({ permissions: ['read'], scopes: ['tasks:read', 'tasks:read', 'lists:read'] }))
+
+    expect(res.status).toBe(200)
+    expect(mockTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ scope: 'tasks:read lists:read' }),
+    })
+  })
+
+  it('AWTD-1567: leaves a token unscoped (null) when no scopes are given', async () => {
+    await POST(post(copilotBody))
+
+    expect(mockTokenCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ scope: null }) })
+  })
+
+  it('AWTD-1567: refuses * and unknown scopes', async () => {
+    expect((await POST(post({ permissions: ['read'], scopes: ['*'] }))).status).toBe(400)
+    expect((await POST(post({ permissions: ['read'], scopes: ['nope:all'] }))).status).toBe(400)
+    expect((await POST(post({ permissions: ['read'], scopes: [] }))).status).toBe(400)
+    expect(mockTokenCreate).not.toHaveBeenCalled()
+  })
 })

@@ -1038,6 +1038,9 @@ model MCPToken {
   agentUserId    String?
   agentMailbox   String?
   permissions    String[]
+  // Space-separated OAuth scopes the token was minted with (AWTD-1567). Null = unscoped, which
+  // is every token minted before this column; only the mint path can set it.
+  scope          String?
   description    String?
   expiresAt      DateTime?
   createdAt      DateTime  @default(now())
