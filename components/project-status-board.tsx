@@ -1,6 +1,7 @@
 "use client"
 
 import { scrollBehavior } from "@/lib/design/reduced-motion"
+import { boardPageTarget } from "@/lib/board-page-scroll"
 import React from "react"
 import type { CreateTaskOptions } from "@/hooks/task-manager/create-task-options"
 import { BoardCard } from "@/components/board-card"
@@ -124,6 +125,42 @@ export function ProjectStatusBoard({
     openedOnInboxRef.current = projectId
     inbox.scrollIntoView?.({ behavior: "auto", block: "nearest", inline: "start" })
   }, [isOneColumn, projectId, hasColumns])
+
+  // Wide layouts page: a horizontal wheel or trackpad swipe slides to the next
+  // set of columns and snaps, instead of scrolling gradually (ADEV-287).
+  // Inertia keeps firing wheel events, so one swipe is one page: further events
+  // are swallowed until the stream goes quiet.
+  React.useEffect(() => {
+    const container = scrollRef.current
+    if (isOneColumn || !container) return
+    let lastWheel = 0
+    let paging = false
+    const onWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaX) <= Math.abs(event.deltaY) || event.deltaX === 0) return
+      event.preventDefault()
+      const now = event.timeStamp
+      const quiet = now - lastWheel > 120
+      lastWheel = now
+      if (paging && !quiet) return
+      if (Math.abs(event.deltaX) < 4) return
+      paging = true
+      const origin = container.getBoundingClientRect().left - container.scrollLeft
+      const columnLefts = Array.from(container.querySelectorAll<HTMLElement>(".board-column"))
+        .map((column) => column.getBoundingClientRect().left - origin - 16)
+      container.scrollTo({
+        left: boardPageTarget({
+          columnLefts: columnLefts.map((left) => Math.max(0, left)),
+          scrollLeft: container.scrollLeft,
+          clientWidth: container.clientWidth,
+          direction: event.deltaX > 0 ? 1 : -1,
+          maxScroll: container.scrollWidth - container.clientWidth,
+        }),
+        behavior: scrollBehavior(),
+      })
+    }
+    container.addEventListener("wheel", onWheel, { passive: false })
+    return () => container.removeEventListener("wheel", onWheel)
+  }, [isOneColumn])
 
   const boardTasks = React.useMemo(() => {
     if (!projectId) return []
@@ -286,7 +323,7 @@ export function ProjectStatusBoard({
       {/* Board status management lives in the list-settings "Statuses" tab. */}
       <div
         ref={scrollRef}
-        className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 ${isOneColumn ? "snap-x snap-mandatory scroll-px-4 overscroll-x-contain" : ""}`}
+        className={`flex-1 min-h-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-4 pb-6 pt-4 snap-x snap-mandatory scroll-px-4 overscroll-x-contain`}
         data-testid="project-status-board"
         data-board-callout-viewport
       >
