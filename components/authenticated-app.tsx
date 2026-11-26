@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
+import { loadBrowserCoreRules } from "@/lib/core-rules/browser"
 import { TaskManager } from "@/components/TaskManager"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -23,9 +24,16 @@ export function AuthenticatedApp({
 }: AuthenticatedAppProps = {}) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [doorReady, setDoorReady] = useState(false)
+  useEffect(() => { void loadBrowserCoreRules().then(() => new Promise((r) => setTimeout(r, 400))).finally(() => setDoorReady(true)) }, [])
 
   // Clear cached server data on page load to force a fresh fetch. Not while
   // offline: the cache is all the app has then (AWTD-1417).
+  //
+  // TaskManager mounts only once this has finished (ADEV-322). It reads its sync cursors and
+  // cached rows when it mounts, so a clear that landed after that left a cursor with no rows
+  // behind it: a delta sync from the cursor and an empty list on screen.
+  const [cacheCleared, setCacheCleared] = useState(false)
   useEffect(() => {
     const clearIndexedDBOnLoad = async () => {
       if (!navigator.onLine) return
@@ -39,7 +47,7 @@ export function AuthenticatedApp({
       }
     }
 
-    clearIndexedDBOnLoad()
+    void clearIndexedDBOnLoad().finally(() => setCacheCleared(true))
   }, []) // Run once on mount
 
   useEffect(() => {
@@ -48,7 +56,7 @@ export function AuthenticatedApp({
     }
   }, [status, router])
 
-  if (status === "loading" || !session) {
+  if (status === "loading" || !session || !doorReady || !cacheCleared) {
     // App shell skeleton — matches real layout so transition is smooth
     return (
       <div className="min-h-screen theme-bg-primary flex">

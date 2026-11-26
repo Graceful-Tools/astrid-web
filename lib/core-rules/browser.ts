@@ -80,20 +80,23 @@ export function loadBrowserCoreRules(
           import('./rows-core').catch(() => null),
           import('./smart-parse-core').catch(() => null),
         ])
+        const skip = process.env.NEXT_PUBLIC_DIAG_SKIP ?? ''
+        if (skip.includes('rows')) rowsCore = null
+        if (skip.includes('smart')) smartParseCore = null
         const kinds = new Set(glue.kinds())
         loaded = { runJson: (request) => glue.runJson(request), answers: (kind) => kinds.has(kind) }
         // Permission affordances ask core listAccess too (ADEV-90). Lazy, like the door itself,
         // and never a reason for the load to fail: the TypeScript decides without it.
         try {
           const { installBrowserListPermissions } = await import('./browser-list-permissions')
-          installBrowserListPermissions(loaded)
+          if (!skip.includes('perms')) installBrowserListPermissions(loaded)
         } catch {
           // keep the TypeScript rules
         }
         // The board's columns too (ADEV-307): same lazy load, same fallback.
         try {
           const { installBrowserBoard } = await import('./browser-board')
-          installBrowserBoard(loaded)
+          if (!skip.includes('board')) installBrowserBoard(loaded)
         } catch {
           // keep the TypeScript rules
         }

@@ -40,16 +40,22 @@ export interface SyncPayload {
 export interface FetchSyncPayloadOptions {
   /** Injectable for tests; defaults to the app's fetch wrapper at the call site. */
   fetchImpl?: typeof fetch
+  /**
+   * Skip the cursor and fetch everything. A delta patches rows the cache holds, so a cursor with
+   * no rows behind it (ADEV-322) would leave the list empty for the whole session.
+   */
+  fullTasks?: boolean
+  fullLists?: boolean
 }
 
 export async function fetchSyncPayload(
   options: FetchSyncPayloadOptions = {}
 ): Promise<SyncPayload> {
-  const { fetchImpl } = options
+  const { fetchImpl, fullTasks, fullLists } = options
 
   const [tasksUrl, listsUrl] = await Promise.all([
-    buildTaskSyncUrl('/api/v1/tasks', 'task'),
-    buildTaskSyncUrl('/api/v1/lists', 'list'),
+    fullTasks ? '/api/v1/tasks' : buildTaskSyncUrl('/api/v1/tasks', 'task'),
+    fullLists ? '/api/v1/lists' : buildTaskSyncUrl('/api/v1/lists', 'list'),
   ])
 
   const [tasksResult, listsResult] = await Promise.all([

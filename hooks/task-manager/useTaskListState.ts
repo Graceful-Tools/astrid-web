@@ -217,7 +217,12 @@ export function useTaskListState({
       // apiGet is threaded in rather than bypassed: it carries the offline
       // handling and cache invalidation that a bare fetch would drop.
       const [syncPayload, publicTasksResponse, publicListsResponse] = await Promise.all([
-        fetchSyncPayload({ fetchImpl: ((url: string) => apiGet(String(url))) as unknown as typeof fetch }),
+        fetchSyncPayload({
+          fetchImpl: ((url: string) => apiGet(String(url))) as unknown as typeof fetch,
+          // A delta only patches rows the cache holds (ADEV-322).
+          fullTasks: seeded.tasks.length === 0,
+          fullLists: seeded.lists.length === 0,
+        }),
         apiGet("/api/v1/public/tasks"),
         apiGet("/api/v1/public/lists?limit=10"),
       ])
