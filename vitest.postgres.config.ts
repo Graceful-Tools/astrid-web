@@ -9,7 +9,8 @@ import { POSTGRES_ONLY_TEST, sharedResolve, sharedTestConfig } from './vitest.sh
  * because there is no DOM, one worker with no file parallelism because the
  * tests share a database, longer timeouts because a real connection is slower
  * than a mock, and NO shared setup file — tests/setup.ts mocks Prisma, which is
- * precisely what this suite exists not to do.
+ * precisely what this suite exists not to do. Its own setup file only installs
+ * astrid-core as the list-permissions decider (ADEV-304), and mocks nothing.
  *
  * Composed by SPREADING the shared base rather than `mergeConfig`, and that is
  * the point. mergeConfig CONCATENATES arrays: the `exclude` below, written as
@@ -26,7 +27,7 @@ export default defineConfig({
   test: {
     ...sharedTestConfig.test,
     environment: 'node',
-    setupFiles: [],
+    setupFiles: ['./tests/integration/postgres/support/setup-core.ts'],
     include: [POSTGRES_ONLY_TEST],
     // Genuinely the whole exclude list for this tier — see the note above about
     // why this cannot go through mergeConfig.
