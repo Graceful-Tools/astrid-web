@@ -17,12 +17,16 @@ let agentIds: Record<'codex' | 'claude', string>
 beforeAll(async () => {
   prisma = await connectAppPrisma()
   const { agentEmail } = await import('@/lib/brand/agent-emails')
+  const { getAgentIdentity } = await import('@/lib/ai/agent-config')
   const ensure = async (mailbox: 'codex' | 'claude') => {
     const email = agentEmail(mailbox)
+    // The e2e job shares this database and prints the row's name (ADEV-309), so use the real one.
+    const identity = getAgentIdentity(email)
+    if (!identity) throw new Error(`${mailbox} is not a registered agent`)
     const row = await prisma.user.upsert({
       where: { email },
       update: { isAIAgent: true },
-      create: { email, name: `${mailbox} agent`, isAIAgent: true, aiAgentType: `${mailbox}_agent` },
+      create: { email, name: identity.displayName, isAIAgent: true, aiAgentType: identity.agentType },
     })
     return row.id
   }
