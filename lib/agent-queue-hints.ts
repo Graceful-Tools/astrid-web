@@ -58,3 +58,8 @@ function notReadyHint(mailbox: string, count: number, requireReady: boolean): st
 export function nothingAssignedHint(mailbox: string): string {
   return `No incomplete tasks are assigned to ${mailbox}. A task is queued only when it is BOTH assigned to ${mailbox} and in Ready status.`
 }
+
+/** The caller set this polling-only agent to Off, so its queue serves nothing (AWTD-1563). */
+export function agentOffHint(mailbox: string): string {
+  return `${mailbox} is turned Off in your agent settings, so its queue gives it no work. Turn it back on in Settings → AI Agents to resume.`
+}
