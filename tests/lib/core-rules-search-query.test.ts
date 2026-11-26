@@ -3,7 +3,7 @@
  * astrid-core parses search queries on the server (AWTD-1062) — and fails safe. Whatever the core
  * does short of answering (cannot load, throws, answers garbage or an error envelope),
  * parseSearchQuery returns the TypeScript parse, and nothing escapes to GET /api/v1/search. When
- * it does answer, its parse is returned, and a disagreement is logged without the query.
+ * it does answer, its parse is returned and the TypeScript is not run (AWTD-1608).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseSearchQuery, setSearchQueryCore, type ParsedSearchQuery } from '@/lib/search-query-parser'
@@ -14,7 +14,7 @@ import {
 } from '@/lib/core-rules/search-query-core'
 
 function silentReporter() {
-  return { disagreement: vi.fn(), failure: vi.fn() }
+  return { failure: vi.fn() }
 }
 
 const EMPTY: ParsedSearchQuery = {
@@ -40,7 +40,7 @@ afterEach(() => {
 
 describe('the core parses', () => {
   it('returns the core parse, not the TypeScript one, in decide mode', () => {
-    // A core that disagrees is the only way to see whose answer came back.
+    // A core that answers differently is the only way to see whose answer came back.
     const report = silentReporter()
     const core = answering({ ...EMPTY, text: 'from-core', isEmpty: false })
     const parser = createSearchQueryCore(core, report)
@@ -48,36 +48,18 @@ describe('the core parses', () => {
 
     expect(parseSearchQuery('rollover').text).toBe('from-core')
     expect(core).toHaveBeenCalledWith(JSON.stringify({ kind: 'searchParse', query: 'rollover' }))
-    expect(parser.stats).toMatchObject({ disagreed: 1, agreed: 0, failed: 0 })
+    // No comparison (AWTD-1608): answered, and nothing reported.
+    expect(parser.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
+    expect(report.failure).not.toHaveBeenCalled()
   })
 
-  it('reports a disagreement by field and token count, never the query or the parses', () => {
-    const report = silentReporter()
-    const parser = createSearchQueryCore(answering({ ...EMPTY, text: 'x', isEmpty: false }), report)
-    setSearchQueryCore(parser.parse)
-
-    parseSearchQuery('secret project name')
-    parseSearchQuery('another secret phrase') // same shape: logged once
-
-    expect(report.disagreement).toHaveBeenCalledTimes(1)
-    const details = report.disagreement.mock.calls[0][0]
-    expect(details).toMatchObject({ rule: 'searchParse', differing: ['text'], tokens: 3, returned: 'core' })
-    expect(JSON.stringify(details)).not.toMatch(/secret|project|another/)
-  })
-
-  it('counts agreement when the core parses as the TypeScript does', () => {
-    const parser = createSearchQueryCore(answering({ ...EMPTY, text: 'rollover', isEmpty: false }), silentReporter())
+  it('in shadow mode, does not ask the core: the TypeScript parses', () => {
+    const core = answering({ ...EMPTY, text: 'from-core', isEmpty: false })
+    const parser = createSearchQueryCore(core, silentReporter(), { mode: 'shadow' })
     setSearchQueryCore(parser.parse)
     expect(parseSearchQuery('rollover').text).toBe('rollover')
-    expect(parser.stats).toMatchObject({ agreed: 1, disagreed: 0 })
-  })
-
-  it('keeps the TypeScript parse in shadow mode, and still compares', () => {
-    const report = silentReporter()
-    const parser = createSearchQueryCore(answering({ ...EMPTY, text: 'from-core', isEmpty: false }), report, { mode: 'shadow' })
-    setSearchQueryCore(parser.parse)
-    expect(parseSearchQuery('rollover').text).toBe('rollover')
-    expect(report.disagreement).toHaveBeenCalledWith(expect.objectContaining({ returned: 'typescript' }))
+    expect(core).not.toHaveBeenCalled()
+    expect(parser.stats).toEqual({ answered: 0, skipped: 1, failed: 0 })
   })
 })
 
@@ -127,7 +109,7 @@ describe('installSearchQueryCore', () => {
     expect(installSearchQueryCore(undefined)).toBe(true)
     expect(searchQueryCoreStatus()).toMatchObject({ mode: 'decide', loaded: true, revision: expect.stringMatching(/^[0-9a-f]{40}$/) })
     expect(parseSearchQuery('priority:urgent AST-142')).toMatchObject({ priorities: ['high'], identifier: 'AST-142' })
-    expect(searchQueryCoreStatus()?.stats).toMatchObject({ agreed: 1, failed: 0 })
+    expect(searchQueryCoreStatus()?.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 
   it('installs nothing when switched off', () => {
