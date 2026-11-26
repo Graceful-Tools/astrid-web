@@ -1,5 +1,7 @@
 # Playwright Authentication
 
+> Which test goes in which tier, and how the ratchets work: [Testing Strategy](../context/testing.md).
+
 How signed-in Playwright tests get a session.
 
 ## There is no password sign-in to drive

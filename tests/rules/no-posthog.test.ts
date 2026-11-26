@@ -34,7 +34,7 @@ describe('PostHog is gone', () => {
   // machine. The work is unchanged; only the budget is sized for contention.
   it('is not referenced anywhere in source or config', { timeout: 120_000 }, () => {
     const offenders = walk(ROOT)
-      .filter((f) => !f.endsWith('tests/lib/no-posthog.test.ts'))
+      .filter((f) => !f.endsWith('tests/rules/no-posthog.test.ts'))
       .filter((f) => /posthog/i.test(readFileSync(f, 'utf8')))
       .map((f) => f.replace(`${ROOT}/`, ''))
 
