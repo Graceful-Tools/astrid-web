@@ -4,6 +4,8 @@
  * Core also owns fixtures web does not generate (board-rows.json, waiting.json...), so only
  * the files web has are compared. A core-only file is never "stale" and never deleted.
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { diffFixtureSets, refreshPullRequestBody } from '@/scripts/lib/core-fixture-sync'
 
@@ -43,5 +45,17 @@ describe('AWTD-1701 refreshPullRequestBody', () => {
     expect(body).toContain('agent-queue.json')
     expect(body).toContain('x.json')
     expect(body).toContain('abc123')
+  })
+})
+
+describe('ADEV-325: the cloned checkout can push its refresh branch', () => {
+  // Every ship tick on 2026-11-26 died at `git push` with "could not read Username":
+  // `gh repo clone` leaves no credential helper, so core#129 and #131 stayed BLOCKED.
+  it('ADEV-325: --clone sets gh as the git credential helper before pushing', () => {
+    const src = readFileSync(resolve(__dirname, '../../scripts/sync-core-fixtures.ts'), 'utf8')
+    const helper = src.indexOf("'credential.helper'")
+    expect(helper).toBeGreaterThan(-1)
+    expect(src.slice(helper, helper + 120)).toMatch(/gh auth git-credential/)
+    expect(helper).toBeLessThan(src.indexOf("git('push'"))
   })
 })

@@ -13,6 +13,10 @@ Copilot and Codex read the same two files. This one holds only what is particula
   Skip it when `ASTRID_FIXALL_LOCK_HELD=1` (the launchd runner holds it) or
   `ASTRID_FIXALL_EPHEMERAL=1` (an `agent-run.yml` runner). In the Bash tool, `$PPID` is the
   `claude` process. `$$` is a shell that exits at once, which records a dead pid.
+- **Landing sweep first** (ADEV-325): run `npm run fixall:held` before taking Ready work. Review
+  each agent PR it holds for review with `npm run fixall:pr-review -- <n>`, and land the sound ones
+  with `npm run fixall:land-reviewed -- <n>`. The rules are in FIXALL_WORKFLOW.md → *Doing must not
+  be a dead end*.
 - **Queue:** `get_agent_queue { agent: "claude", listId: "a623f322-4c3c-49b5-8a94-d2d9f00c82ba", includeUnassigned: true }`.
   Never poll as `copilot`. Its `inbox.ideas` are the Inbox notes to clarify after the queue
   (FIXALL_WORKFLOW.md → *Clarifying Inbox ideas*), handed back with `--agent claude`.

@@ -63,6 +63,11 @@ export function protectedPathHold(files: Array<{ path: string }> | undefined): s
   return hit.length ? `changes ${hit.join(', ')} — a human reviews workflow changes` : null
 }
 
+/** ADEV-325: a reviewer can only vouch for files gh actually listed. */
+function reviewedPathsVisible(files: Array<{ path: string }> | undefined): boolean {
+  return !!files && files.length < GH_FILES_CAP
+}
+
 /**
  * The line `scripts/open-fixall-prs.ts` writes into every PR it opens.
  *
@@ -122,7 +127,7 @@ export function taskIdsInBranch(branch: string): string[] {
  */
 export function landablePullRequests(
   prs: PullRequestSummary[],
-  options: { requireRunnerMarker?: boolean; only?: number[] } = {},
+  options: { requireRunnerMarker?: boolean; only?: number[]; reviewed?: boolean } = {},
 ): LandDecision {
   const requireMarker = options.requireRunnerMarker ?? true
   // `only` exists because of a real mis-land. Running with `--max-land 1` to
@@ -148,7 +153,9 @@ export function landablePullRequests(
       skipped.push({ number: pr.number, why: 'not opened by the runner — a human merges this one' })
     } else if (pr.headRefName.startsWith('agent/') && pr.cloudHandoffValid !== true) {
       skipped.push({ number: pr.number, why: 'cloud handoff is absent, stale, or no longer eligible on the Astrid board' })
-    } else if (protectedPathHold(pr.files)) {
+    } else if (protectedPathHold(pr.files) && !(only && options.reviewed && reviewedPathsVisible(pr.files))) {
+      // ADEV-325: `--reviewed --pr <n>` is a fixall session saying it read that PR's diff.
+      // It lifts the workflow hold only for PRs named by `--pr`, never for unseen files.
       skipped.push({ number: pr.number, why: protectedPathHold(pr.files)! })
     } else if (pr.isDraft) {
       skipped.push({ number: pr.number, why: 'draft' })

@@ -176,6 +176,10 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   (ADEV-200, FIXALL_WORKFLOW.md → *Doing must not be a dead end*).
   It runs on its schedule and whenever an agent PR's CI finishes, and only while
   `ASTRID_SHIP_ENABLED=true` (set 2026-10-31).
+  What it holds for review (a `.github/` change, a hand-opened PR) is not a dead end either. The
+  **landing sweep** at the start of every `/fixall` run on Jon's Mac reads and lands those PRs:
+  `npm run fixall:held`, then `fixall:pr-review` and `fixall:land-reviewed` (ADEV-325,
+  FIXALL_WORKFLOW.md → *Doing must not be a dead end*).
 
 - **DEPLOY WHAT YOU FINISH, once the gates are green.** Jon, 2026-10-13: *"Interactive
   sessions and automatic can deploy with clean tests and monitor to make sure it works.

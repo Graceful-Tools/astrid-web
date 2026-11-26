@@ -26,7 +26,7 @@
  * Usage:
  *   npx tsx scripts/land-and-deploy.ts [--repo <path>] [--list-id <id>]
  *                                      [--dry-run] [--gate] [--max-land <n>]
- *                                      [--include-hand-opened] [--pr <n>]
+ *                                      [--include-hand-opened] [--pr <n>] [--reviewed]
  *                                      [--core-repo <owner/name>]
  *
  * Exit codes — chosen so the caller can tell "did not" from "could not":
@@ -111,6 +111,7 @@ interface Options {
   maxLand: number
   includeHandOpened: boolean
   only: number[]
+  reviewed: boolean
   coreRepo: string | null
 }
 
@@ -136,6 +137,9 @@ function parseArgs(argv: string[]): Options {
     // up to --max-land goes, which is what an unattended tick wants.
     only: argv.flatMap((arg, i) => (arg === '--pr' ? [Number(argv[i + 1])] : [])).filter(Boolean),
     coreRepo: value('--core-repo'),
+    // ADEV-325: the session read the diffs of the PRs it names with --pr, so their
+    // workflow-path hold (ADEV-42) is lifted. Ignored without --pr.
+    reviewed: argv.includes('--reviewed'),
   }
 }
 
@@ -696,6 +700,7 @@ async function main() {
   const { land: landable, skipped } = landablePullRequests(open, {
     requireRunnerMarker: !options.includeHandOpened,
     only: options.only,
+    reviewed: options.reviewed,
   })
   const land = mergeHold ? [] : landable
   for (const skip of skipped) log(`  #${skip.number} held back — ${skip.why}`)

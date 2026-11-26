@@ -710,6 +710,36 @@ takes such a task resumes from the named branch**: merge `origin/main` and resol
 the same branch so the same PR updates, and end the report with a fresh `AWAITING-DEPLOY: <new
 head>`. Only a live handoff is sent back, so a run already reworking the task is left alone.
 
+**Finished work held for review gets reviewed by fixall: the landing sweep (ADEV-325, Jon
+2026-11-26: "That should be part of what we do in the fixall loops").** The ship bot is
+unattended and lands nothing a person should look at. It holds an agent PR that changes
+`.github/` (ADEV-42), and a PR an interactive session opened by hand. Before this rule, nothing
+came back to those PRs: on 2026-11-26 #1006 sat green for 16 hours behind the workflow hold. So
+**every web `/fixall` run on Jon's Mac, interactive or scheduled, starts with the sweep, before
+it takes Ready work**:
+
+1. `npm run fixall:held` is a dry run of the ship bot, including hand-opened PRs. It lists every
+   open PR it holds and why.
+2. For each agent PR held only for review, with green checks and a task in this board's Doing
+   or Testing that carries a current `AWAITING-DEPLOY:` for its head:
+   - "changes .github/…", or
+   - "not opened by the runner"
+   
+   run `npm run fixall:pr-review -- <n>`. It prints the checks, files, reviews, inline comments
+   (Copilot's land here) and the diff. Read all of it.
+3. Land it when the diff does what its task says and nothing else, and no review comment is
+   unanswered: `npm run fixall:land-reviewed -- <n>`. That merges exactly that PR, pinned to its
+   head, gates the merged `main` and deploys it. A workflow change that loosens a gate, widens a
+   token's permissions, or touches `agent-ship.yml` or `production-deployment.yml` is not landed
+   by an agent. Put a Decision on its task instead, and move the task to the Inbox for Jon.
+4. A core PR held as `merge state BLOCKED` by **cross-platform contracts** alone is fixture drift.
+   The ship bot's fixture sync (AWTD-1701) opens the refresh PR on astrid-core. If none is open,
+   copy web's `contracts/fixtures/` into a core PR yourself, land it, then update the blocked PRs'
+   branches.
+
+The cloud runner does not run the sweep. An agent that could edit workflows must not also be the
+one approving them. Leave those PRs for Jon's Mac.
+
 A release **keeps the agent assignment** and comments with the branch that carries the task's
 id, so the next run resumes from that work instead of starting over. It searches **every
 checkout the board's workflow can touch** — for the Windows board, astrid-windows and the

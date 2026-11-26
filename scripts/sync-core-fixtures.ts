@@ -40,6 +40,9 @@ if (flag('--clone')) {
   execFileSync('gh', ['repo', 'clone', CORE_REPO, coreDir], { stdio: 'inherit' })
   execFileSync('git', ['-C', coreDir, 'config', 'user.name', 'Astrid fixture sync'])
   execFileSync('git', ['-C', coreDir, 'config', 'user.email', 'noreply@astrid.cc'])
+  // ADEV-325: `gh repo clone` leaves no credential helper, so the push below died with
+  // "could not read Username" on every ship tick. Let gh answer with the same GH_TOKEN.
+  execFileSync('git', ['-C', coreDir, 'config', 'credential.helper', '!gh auth git-credential'])
 }
 const git = (...a: string[]) => execFileSync('git', ['-C', coreDir, ...a], { encoding: 'utf8' }).trim()
 
