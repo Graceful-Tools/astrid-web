@@ -14,6 +14,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'decision-cards',
   'repeating-task',
   'agent-journey',
+  'realtime-two-sessions',
   'list-sharing',
   'reminder-snooze',
   'offline-round-trip',
