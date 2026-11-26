@@ -15,6 +15,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'repeating-task',
   'agent-journey',
   'realtime-two-sessions',
+  'list-drag-and-subtasks',
   'list-sharing',
   'reminder-snooze',
   'offline-round-trip',
