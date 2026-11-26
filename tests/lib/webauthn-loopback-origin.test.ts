@@ -7,6 +7,7 @@
  * origin. A real host, https, or a lookalike must not widen the list.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { BRAND } from '@/lib/brand/config'
 
 const ORIGINAL = { ...process.env }
 
@@ -35,7 +36,7 @@ describe('WebAuthn expected origins on a local production build (ADEV-297)', () 
   })
 
   it('adds no http origin for production URLs', async () => {
-    const origins = await expectedOrigins('https://www.astrid.cc')
+    const origins = await expectedOrigins(`https://www.${BRAND.domain}`)
     expect(origins.filter(o => o.startsWith('http:'))).toEqual([])
   })
 
