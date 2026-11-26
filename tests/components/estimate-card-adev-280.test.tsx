@@ -9,7 +9,11 @@
  * or for a project that states nothing.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, configure } from '@testing-library/react'
+
+// ADEV-326: the CI unit job runs with coverage, which slows the first render of the card past the
+// 1s default of findBy/waitFor. These tests wait on a chain of async state, so give them room.
+configure({ asyncUtilTimeout: 5000 })
 
 const api = vi.hoisted(() => {
   class FakeApiError extends Error {
