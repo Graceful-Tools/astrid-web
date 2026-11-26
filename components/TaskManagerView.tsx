@@ -569,8 +569,19 @@ const TaskManagerView = memo(function TaskManagerView({
     calculatePosition()
     window.addEventListener('resize', calculatePosition)
 
+    // ADEV-288: the main column can change width without a window resize (messages
+    // pane toggled, list view settling, sidebar collapsing). Re-measure then too,
+    // or the panel opens at a stale offset, over or away from the list.
+    let observer: ResizeObserver | undefined
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(calculatePosition)
+      if (sidebarRef.current) observer.observe(sidebarRef.current)
+      if (taskManagerRef.current) observer.observe(taskManagerRef.current)
+    }
+
     return () => {
       window.removeEventListener('resize', calculatePosition)
+      observer?.disconnect()
     }
   }, [selectedTaskId, settingsSubPage, is1Column, is2Column, is3Column, showHamburgerMenu, setTaskPanePosition, sidebarRef, taskManagerRef])
 

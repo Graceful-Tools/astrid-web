@@ -424,6 +424,39 @@ describe('TaskManagerView', () => {
     })
   })
 
+  describe('task pane position (ADEV-288)', () => {
+    it('re-measures when the main column resizes without a window resize (ADEV-288)', () => {
+      const callbacks: Array<(entries: unknown[]) => void> = []
+      class FakeResizeObserver {
+        constructor(cb: (entries: unknown[]) => void) { callbacks.push(cb) }
+        observe() {}
+        disconnect() {}
+      }
+      vi.stubGlobal('ResizeObserver', FakeResizeObserver)
+      try {
+        let mainWidth = 600
+        const sidebarRef = { current: { getBoundingClientRect: () => ({ width: 200 }) } as unknown as HTMLDivElement }
+        const taskManagerRef = { current: { getBoundingClientRect: () => ({ width: mainWidth }) } as unknown as HTMLDivElement }
+        const setTaskPanePosition = vi.fn()
+        render(
+          <TaskManagerView
+            {...mockProps}
+            selectedTaskId="t1"
+            sidebarRef={sidebarRef}
+            taskManagerRef={taskManagerRef}
+            setTaskPanePosition={setTaskPanePosition}
+          />,
+        )
+        const before = setTaskPanePosition.mock.calls.length
+        mainWidth = 500
+        callbacks.forEach((cb) => cb([{ contentRect: { width: 500 } }]))
+        expect(setTaskPanePosition.mock.calls.length).toBeGreaterThan(before)
+      } finally {
+        vi.unstubAllGlobals()
+      }
+    })
+  })
+
   describe('Component Architecture', () => {
     it('is wrapped in React.memo', () => {
       expect((TaskManagerView as unknown as { $$typeof: symbol }).$$typeof).toBe(Symbol.for('react.memo'))
