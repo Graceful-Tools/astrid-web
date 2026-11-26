@@ -10,6 +10,7 @@
 import { prisma } from '@/lib/prisma'
 import { createLogger } from '@/lib/logger'
 import { COMMENT_INCLUDE } from '@/services/comment.service'
+import { carryOutApprovedGoalAction } from '@/services/goal-action.service'
 import { getGitHubApp, githubAppConfigured } from '@/lib/github/app'
 import { effectiveOrchestrationPolicy } from '@/lib/core-rules/orchestration-core'
 import { defaultOrchestrationPolicy, parsePolicyOverride, type OrchestrationPolicy } from '@/lib/orchestration-policy'
@@ -21,6 +22,7 @@ import {
   buildApprovalRequestContent,
   canDecideApproval,
   deployDispatchInputs,
+  isGoalAction,
   parseApprovalRequest,
   type ApprovalRequest,
   type ApprovalVerdict,
@@ -176,6 +178,24 @@ export async function decideApproval(args: DecideApprovalArgs) {
   if (!decided) return fail(409, 'This approval was already decided', 'ALREADY_DECIDED')
 
   if (args.verdict === 'decline') return { ok: true as const, value: { verdict: args.verdict, comment: decided, dispatched: false } }
+
+  // A Goal signals card runs its own action, not a deploy (ADEV-284).
+  if (isGoalAction(request.action)) {
+    const carried = await carryOutApprovedGoalAction(args.taskId, { ...request, action: request.action }, args.userId)
+    if (!carried.ok) {
+      await prisma.comment.create({
+        data: {
+          taskId: args.taskId,
+          authorId: args.userId,
+          parentCommentId: card.id,
+          type: 'MARKDOWN',
+          content: `The approved ${request.action} did not run: ${carried.error}.`,
+        },
+      })
+      return fail(carried.status, carried.error, carried.code)
+    }
+    return { ok: true as const, value: { verdict: args.verdict, comment: decided, dispatched: true } }
+  }
 
   const dispatch = await dispatchDeploy(task, request)
   if (!dispatch.ok) {
