@@ -18,6 +18,10 @@
  * other app owners' clients are not the reader's to widen, and the server
  * would refuse them anyway.
  *
+ * An access token also offers "Rotate" (AWTD-1567): a new secret with the same
+ * grant, the old one revoked, the new one shown once. Its row says whether it
+ * is unscoped (full access), scoped, or scoped and held to those scopes now.
+ *
  * The list also reviews itself: `reviewConnections` turns the Created and
  * Last used dates into the recommendation the reader came for — which of
  * these can go — and the count at the top says how much there is to do
@@ -26,7 +30,7 @@
 
 import { useEffect, useMemo, useState, type ComponentProps } from 'react'
 import Link from 'next/link'
-import { Loader2, ShieldOff, ShieldPlus } from 'lucide-react'
+import { Loader2, RefreshCw, ShieldOff, ShieldPlus } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,17 +42,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { apiDelete, apiGet } from '@/lib/api'
+import { apiDelete, apiGet, apiPost } from '@/lib/api'
+import { CredentialField, copyCredential } from '@/components/credential-field'
 import { OAuthScopeGroupDialog } from '@/components/oauth-scope-group-dialog'
 import { useTranslations } from '@/lib/i18n/client'
 import { connectionKey, reviewConnections } from '@/lib/connections/review-connections'
 import { groupByCategory } from '@/lib/connections/connection-taxonomy'
-import type { V1Connection, V1ConnectionsResponse } from '@/lib/api-contracts/v1-ios-shapes'
+import type {
+  V1AccessTokenRotateResponse,
+  V1Connection,
+  V1ConnectionsResponse,
+} from '@/lib/api-contracts/v1-ios-shapes'
 
 const STATUS_TINT: Record<V1Connection['status'], string> = {
   active: 'bg-success text-success-foreground',
   expired: 'text-warning',
   disabled: '',
+}
+
+/** Which of the three access-token states a row is in (AWTD-1567). */
+function tokenScopeKey(connection: V1Connection): string {
+  if (!connection.detail?.scoped) return 'unscoped'
+  return connection.detail.scopeEnforced ? 'enforced' : 'recorded'
 }
 
 function formatDate(value: string | null, never: string): string {
@@ -60,6 +75,10 @@ export function ConnectionsList() {
   const [connections, setConnections] = useState<V1Connection[] | null>(null)
   const [pending, setPending] = useState<V1Connection | null>(null)
   const [revoking, setRevoking] = useState(false)
+  const [rotateTarget, setRotateTarget] = useState<V1Connection | null>(null)
+  const [rotating, setRotating] = useState(false)
+  const [rotatedToken, setRotatedToken] = useState<string | null>(null)
+  const [copiedField, setCopiedField] = useState<string | null>(null)
   const [scopeClient, setScopeClient] = useState<ComponentProps<typeof OAuthScopeGroupDialog>['client']>(null)
 
   // Recomputed from the rows in hand, so revoking one takes it out of the
@@ -111,6 +130,28 @@ export function ConnectionsList() {
     } finally {
       setRevoking(false)
     }
+  }
+
+  const rotate = async () => {
+    if (!rotateTarget) return
+    setRotating(true)
+    try {
+      const res = await apiPost(`/api/v1/users/me/access-tokens/${rotateTarget.id}/rotate`, {})
+      const data = (await res.json()) as V1AccessTokenRotateResponse
+      if (!res.ok || !data.token) throw new Error('rotate failed')
+      setRotateTarget(null)
+      setRotatedToken(data.token)
+      load()
+    } catch {
+      toast.error(t('settingsPages.connections.rotate.error'))
+    } finally {
+      setRotating(false)
+    }
+  }
+
+  const copyRotated = async (text: string, field: string) => {
+    await copyCredential(text)
+    setCopiedField(field)
   }
 
   if (connections === null) {
@@ -183,6 +224,11 @@ export function ConnectionsList() {
                       {connection.actsAs ?? t('settingsPages.connections.actsAsYou')}
                     </span>
                   </div>
+                  {connection.kind === 'accessToken' && (
+                    <div data-token-scope={tokenScopeKey(connection)} className="text-xs theme-text-muted">
+                      {t(`settingsPages.connections.tokenScope.${tokenScopeKey(connection)}`)}
+                    </div>
+                  )}
                   {connection.scopes.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {connection.scopes.map(scope => (
@@ -224,6 +270,12 @@ export function ConnectionsList() {
                       {t('settingsPages.connections.permissions.edit')}
                     </Button>
                   )}
+                  {connection.kind === 'accessToken' && connection.revocable && (
+                    <Button variant="ghost" size="sm" onClick={() => setRotateTarget(connection)}>
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      {t('settingsPages.connections.rotate.action')}
+                    </Button>
+                  )}
                   {connection.revocable && (
                     <Button
                       variant="ghost"
@@ -253,6 +305,57 @@ export function ConnectionsList() {
         onOpenChange={open => !open && setScopeClient(null)}
         onUpdated={load}
       />
+
+      <Dialog open={!!rotateTarget} onOpenChange={open => !open && !rotating && setRotateTarget(null)}>
+        <DialogContent className="theme-bg-secondary theme-border">
+          <DialogHeader>
+            <DialogTitle>{t('settingsPages.connections.rotate.action')}</DialogTitle>
+            <DialogDescription className="theme-text-muted">
+              {rotateTarget && t('settingsPages.connections.rotate.confirm', { name: rotateTarget.name })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRotateTarget(null)} disabled={rotating}>
+              {t('settingsPages.connections.cancel')}
+            </Button>
+            <Button onClick={rotate} disabled={rotating}>
+              {rotating ? <Loader2 className="w-4 h-4 animate-spin" /> : t('settingsPages.connections.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!rotatedToken}
+        onOpenChange={open => {
+          if (!open) {
+            setRotatedToken(null)
+            setCopiedField(null)
+          }
+        }}
+      >
+        <DialogContent className="theme-bg-secondary theme-border">
+          <DialogHeader>
+            <DialogTitle>{t('settingsPages.connections.rotate.newTokenTitle')}</DialogTitle>
+            <DialogDescription className="theme-text-muted">
+              {t('settingsPages.connections.rotate.newTokenDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          {rotatedToken && (
+            <CredentialField
+              label={t('settingsPages.connections.rotate.newTokenTitle')}
+              value={rotatedToken}
+              field="rotated-token"
+              copiedField={copiedField}
+              onCopy={copyRotated}
+              sensitive
+            />
+          )}
+          <DialogFooter>
+            <Button onClick={() => setRotatedToken(null)}>{t('settingsPages.connections.rotate.done')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!pending} onOpenChange={open => !open && !revoking && setPending(null)}>
         <DialogContent className="theme-bg-secondary theme-border">

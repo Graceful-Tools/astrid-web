@@ -1729,6 +1729,19 @@
         "loadError": "이 연결의 권한을 불러올 수 없습니다",
         "selectAtLeastOne": "범위를 하나 이상 선택하세요",
         "selectApp": "앱을 선택하세요."
+      },
+      "tokenScope": {
+        "unscoped": "전체 액세스(범위 미설정)",
+        "recorded": "범위 있음, 아직 적용 안 됨",
+        "enforced": "이 범위로 제한됨"
+      },
+      "rotate": {
+        "action": "교체",
+        "confirm": "{name}을(를) 교체할까요? 같은 액세스 권한의 새 토큰으로 바뀌고 이전 토큰은 즉시 작동을 멈춥니다.",
+        "newTokenTitle": "새 토큰",
+        "newTokenDescription": "지금 복사하세요. 다시 표시되지 않습니다. 이전 토큰을 사용하던 곳을 모두 업데이트하세요.",
+        "done": "완료",
+        "error": "교체하지 못했습니다"
       }
     },
     "openInNewTab": "새 탭에서 열기",
@@ -2910,7 +2923,8 @@
       "doing": "진행 중",
       "waiting": "대기 중",
       "done": "완료",
-      "testing": "테스트"
+      "testing": "테스트",
+      "results": "결과 대기 중"
     },
     "empty": {
       "inbox": "정리할 새 항목이 없어요! 상태가 없는 작업은 여기에 들어와요.",
@@ -2926,7 +2940,8 @@
       "doing": "작업이 진행 중입니다!",
       "waiting": "상황이 맞을 때까지 일시 중지.",
       "done": "완료 — 축하합니다!",
-      "testing": "배포 중, 카나리 중 또는 실험 중."
+      "testing": "배포 중, 카나리 중 또는 실험 중.",
+      "results": "빌드 및 릴리스 완료. 실험 또는 검증 결과를 기다리는 중입니다."
     }
   },
   "passkeyErrors": {

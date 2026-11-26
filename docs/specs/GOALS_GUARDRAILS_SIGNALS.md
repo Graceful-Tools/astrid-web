@@ -661,7 +661,7 @@ TypeScript mirror of the evaluation, only of the policy's shape: a build that ca
 reads as no policy. The core's "unknown" sort-key value, `i64::MAX`, is clamped to the safe-integer range before
 storing (`storableSortKey`), which keeps the order. The browser gets keys through `?include=estimate`.
 | 5a | `results` preset and lane rules, fixtures | core first | — |
-| 5b | `TaskExperiment`, experiment client, settle job, lane wiring | web | 5a, 2a |
+| 5b | `TaskExperiment`, experiment client, settle job, lane wiring (**built**, ADEV-279) | web | 5a, 2a |
 | 5c | Experiment row, lane cards, the one-tap "Add column" offer | web | 5b |
 | 6a | Acting on labels: approvals for the three new actions | web | 4b, 5b |
 | 6b | MCP tools | web | 3a, 5b |

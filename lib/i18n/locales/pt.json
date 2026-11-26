@@ -1729,6 +1729,19 @@
         "loadError": "Não foi possível carregar as permissões desta conexão",
         "selectAtLeastOne": "Selecione pelo menos um escopo",
         "selectApp": "Selecione um aplicativo."
+      },
+      "tokenScope": {
+        "unscoped": "Acesso total (sem escopos definidos)",
+        "recorded": "Com escopos, ainda não aplicados",
+        "enforced": "Limitado a estes escopos"
+      },
+      "rotate": {
+        "action": "Rotacionar",
+        "confirm": "Rotacionar {name}? Um novo token o substitui com o mesmo acesso, e o antigo para de funcionar imediatamente.",
+        "newTokenTitle": "Novo token",
+        "newTokenDescription": "Copie agora: ele não será mostrado de novo. Atualize tudo o que usava o token antigo.",
+        "done": "Concluído",
+        "error": "Não foi possível rotacionar"
       }
     },
     "openInNewTab": "Abrir em nova aba",
@@ -2910,7 +2923,8 @@
       "doing": "Fazendo",
       "waiting": "Aguardando",
       "done": "Concluído",
-      "testing": "Testes"
+      "testing": "Testes",
+      "results": "Resultados pendentes"
     },
     "empty": {
       "inbox": "Nada novo para organizar! Tarefas sem status ficam aqui.",
@@ -2926,7 +2940,8 @@
       "doing": "Trabalho em andamento!",
       "waiting": "Em pausa até que as circunstâncias sejam as certas.",
       "done": "Concluído — parabéns!",
-      "testing": "Em implantação, em canary ou em um experimento."
+      "testing": "Em implantação, em canary ou em um experimento.",
+      "results": "Construído e lançado; aguardando o relatório de um experimento ou de uma verificação."
     }
   },
   "passkeyErrors": {

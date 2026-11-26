@@ -59,7 +59,6 @@ describe('parseSearchQuery with astrid-core parsing, as the server runs it', () 
   it.each(cases)('%s', (_name, { query, parsed, isEmpty }) => {
     const reports: unknown[] = []
     const parser = createSearchQueryCore(core.runJson, {
-      disagreement: (d) => reports.push(d),
       failure: (d) => reports.push(d),
     })
     setSearchQueryCore(parser.parse)
@@ -67,8 +66,8 @@ describe('parseSearchQuery with astrid-core parsing, as the server runs it', () 
     const answer = parseSearchQuery(query)
     expect(answer).toEqual(parsed)
     expect(isEmptySearch(answer)).toBe(isEmpty)
-    // The core answered itself — no fallback — and agreed.
+    // The core answered itself — no fallback — and its parse is the fixture's.
     expect(reports).toEqual([])
-    expect(parser.stats).toEqual({ agreed: 1, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
+    expect(parser.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 })

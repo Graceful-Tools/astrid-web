@@ -1729,6 +1729,19 @@
         "loadError": "Could not load this connection's permissions",
         "selectAtLeastOne": "Select at least one scope",
         "selectApp": "Select an app."
+      },
+      "tokenScope": {
+        "unscoped": "Full access (no scopes set)",
+        "recorded": "Scoped, not enforced yet",
+        "enforced": "Limited to these scopes"
+      },
+      "rotate": {
+        "action": "Rotate",
+        "confirm": "Rotate {name}? A new token replaces it with the same access, and the old one stops working immediately.",
+        "newTokenTitle": "New token",
+        "newTokenDescription": "Copy it now: it won't be shown again. Update everything that used the old token.",
+        "done": "Done",
+        "error": "Could not rotate"
       }
     },
     "openInNewTab": "Open in new tab",
@@ -2910,7 +2923,8 @@
       "doing": "Doing",
       "waiting": "Waiting",
       "done": "Done",
-      "testing": "Testing"
+      "testing": "Testing",
+      "results": "Pending results"
     },
     "empty": {
       "inbox": "Nothing new to sort! Tasks without a status land here.",
@@ -2926,7 +2940,8 @@
       "doing": "Active work in progress!",
       "waiting": "Paused until the circumstances are right.",
       "done": "Complete — congrats!",
-      "testing": "Deploying, in canary, or in an experiment."
+      "testing": "Deploying, in canary, or in an experiment.",
+      "results": "Built and released; waiting for an experiment or a verification to report."
     }
   },
   "passkeyErrors": {

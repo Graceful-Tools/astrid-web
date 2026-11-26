@@ -10,7 +10,8 @@ import { useTranslations } from "@/lib/i18n/client"
 import { boardColumnBlurb, boardColumnLabel } from "@/lib/board-column-labels"
 import { RichMessage, fillMessage } from "@/components/shared/RichMessage"
 import type { ProjectBoardColumn } from "@/lib/project-status"
-import { availableBoardPresets, type BoardPreset } from "@/lib/board-presets"
+import { availableBoardPresets, offerableBoardPresets, type BoardPreset } from "@/lib/board-presets"
+import { useGoalSignals } from "@/hooks/use-goal-signals"
 import { apiPost, refusalReason } from "@/lib/api"
 
 interface ManageStatusesPanelProps {
@@ -149,7 +150,13 @@ export function ManageStatusesPanel({ statuses, onChanged, projectId }: ManageSt
 
   // astrid-core's optional preset columns this board can still add (R7: Testing). A preset has a
   // FIXED role, so the server is asked for the preset, never for a column by that name.
-  const presets = availableBoardPresets(statuses.map(status => ({ role: status.id, name: status.name })))
+  // Pending results (ADEV-279) is listed only while goal signals are on: its rules refuse every
+  // entry without an experiment or a verification, and nothing else ever adds the column.
+  const goalSignalsOn = useGoalSignals()
+  const presets = offerableBoardPresets(
+    availableBoardPresets(statuses.map(status => ({ role: status.id, name: status.name }))),
+    goalSignalsOn,
+  )
   const handleAddPreset = (preset: BoardPreset) => {
     run(async () => {
       try {

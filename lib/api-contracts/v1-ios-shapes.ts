@@ -588,6 +588,10 @@ export interface V1ConnectionDetail {
   grantTypes?: string[]
   activeTokens?: number
   permissions?: string[]
+  /** Access tokens: minted with explicit scopes (AWTD-1567), shown in `scopes`. */
+  scoped?: boolean
+  /** Access tokens: whether ASTRID_TOKEN_SCOPE_ENFORCEMENT holds this token to its scopes now. */
+  scopeEnforced?: boolean
   agentId?: string
   webhookUrl?: string
   description?: string | null
@@ -604,7 +608,11 @@ export interface V1Connection {
   name: string
   /** The email this credential authors as: the user, an agent@, or a Custom Agent. */
   actsAs: string | null
-  /** OAuth scopes as the API enforces them today; '*' where it grants everything. */
+  /**
+   * OAuth scopes the credential holds; '*' where it grants everything. For a
+   * scoped access token these are its own scopes, enforced only when
+   * `detail.scopeEnforced` is true (AWTD-1567).
+   */
   scopes: string[]
   createdAt: string
   lastUsedAt: string | null
@@ -634,10 +642,19 @@ export interface V1ConnectionRevokeResponse {
  * (AWTD-1312). `token` is the only time the plaintext is returned by this
  * route; the new row appears in the connections list as kind `accessToken`.
  */
+/** POST /api/v1/users/me/access-tokens/:id/rotate — the replacement token, shown once (AWTD-1567). */
+export type V1AccessTokenRotateResponse = V1AccessTokenCreateResponse & {
+  /** MCPToken.id of the new row; the old one is revoked. */
+  id: string
+  replacedId: string
+}
+
 export interface V1AccessTokenCreateResponse {
   success: true
   token: string
   permissions: string[]
+  /** Explicit scopes the token was minted with (AWTD-1567); null = unscoped ('*'). */
+  scopes: string[] | null
   expiresAt: string | null
   description: string | null
   createdAt: string

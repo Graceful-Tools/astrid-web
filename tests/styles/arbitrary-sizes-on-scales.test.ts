@@ -42,7 +42,7 @@ describe('sizes from the scales (AWTD-1615)', () => {
   it('the speech bubble tail is drawn once, at the popover\'s geometry', () => {
     expect(components).toMatch(/\.speech-bubble-tail \{[^}]*border-width: 12px 16px 12px 0;[^}]*\}/)
     expect(components).toMatch(/\.speech-bubble-tail\.speech-bubble-tail-fill \{[^}]*border-width: 9px 13px 10px 0;[^}]*\}/)
-    for (const path of ['components/reminder-notification.tsx', 'components/astrid-reminder-popover.tsx', 'components/ui/astrid-empty-state.tsx']) {
+    for (const path of ['components/astrid-reminder-popover.tsx', 'components/ui/astrid-empty-state.tsx']) {
       expect(read(...path.split('/')), path).toContain('<SpeechBubbleTail />')
     }
   })

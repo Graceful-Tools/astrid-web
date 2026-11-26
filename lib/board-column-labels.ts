@@ -18,7 +18,7 @@ import { BOARD_PRESETS } from '@/lib/board-presets'
 
 type Translate = (key: string) => string
 
-type BuiltIn = 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'testing'
+type BuiltIn = 'inbox' | 'ready' | 'doing' | 'waiting' | 'done' | 'testing' | 'results'
 
 const INBOX_TEXT = { name: 'Ideas/Inbox', description: 'Move them to "Ready" when they are... ready!' }
 const DONE_TEXT = { name: 'Done', description: 'Complete — congrats!' }

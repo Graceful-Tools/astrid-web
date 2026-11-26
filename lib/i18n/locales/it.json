@@ -1729,6 +1729,19 @@
         "loadError": "Impossibile caricare le autorizzazioni di questa connessione",
         "selectAtLeastOne": "Seleziona almeno un ambito",
         "selectApp": "Seleziona un'app."
+      },
+      "tokenScope": {
+        "unscoped": "Accesso completo (nessun ambito)",
+        "recorded": "Con ambiti, non ancora applicati",
+        "enforced": "Limitato a questi ambiti"
+      },
+      "rotate": {
+        "action": "Ruota",
+        "confirm": "Ruotare {name}? Un nuovo token lo sostituisce con lo stesso accesso e il vecchio smette subito di funzionare.",
+        "newTokenTitle": "Nuovo token",
+        "newTokenDescription": "Copialo ora: non verrà mostrato di nuovo. Aggiorna tutto ciò che usava il vecchio token.",
+        "done": "Fatto",
+        "error": "Impossibile ruotare"
       }
     },
     "openInNewTab": "Apri in una nuova scheda",
@@ -2910,7 +2923,8 @@
       "doing": "In corso",
       "waiting": "In attesa",
       "done": "Fatto",
-      "testing": "Test"
+      "testing": "Test",
+      "results": "Risultati in attesa"
     },
     "empty": {
       "inbox": "Niente di nuovo da smistare! Le attività senza stato arrivano qui.",
@@ -2926,7 +2940,8 @@
       "doing": "Lavoro in corso!",
       "waiting": "In pausa finché le circostanze non sono quelle giuste.",
       "done": "Completato: complimenti!",
-      "testing": "In rilascio, in canary o in un esperimento."
+      "testing": "In rilascio, in canary o in un esperimento.",
+      "results": "Sviluppato e rilasciato; in attesa del risultato di un esperimento o di una verifica."
     }
   },
   "passkeyErrors": {

@@ -5,14 +5,14 @@
  * The rule is astrid-core's `nextOccurrence`, the code the iOS and Mac apps run. On the Node
  * runtime, lib/core-rules/repeating-core.ts installs it here from instrumentation.ts. Its answer is
  * returned. types/repeating.ts `calculateTaskNextOccurrence` is the same rule in TypeScript. It is
- * computed first, every time, and it is the answer whenever the core declines: not installed
+ * the fail-safe, computed only when the core declines (the server comparison was retired,
+ * AWTD-1608): not installed
  * (scripts, tests, the edge, the stdio MCP server, `ASTRID_CORE_RULES=off`), threw, or answered
  * something that is not an answer. tests/lib/core-rules-repeating-parity.test.ts holds the two to
  * the same answers over the shared fixture.
  *
  * Pure: no database and no WebAssembly. The caller (lib/repeating-task-handler.ts) reads the task.
  */
-import { lazyValue } from '@/lib/lazy-value'
 import {
   calculateTaskNextOccurrence,
   type TaskNextOccurrence,
@@ -20,14 +20,10 @@ import {
 } from '@/types/repeating'
 
 /**
- * Answers one rollover, or returns `undefined` to leave it to the TypeScript. Given the
- * TypeScript's own answer so it can compare.
+ * Answers one rollover, or returns `undefined` to leave it to the TypeScript. Not given the
+ * TypeScript's answer: the server comparison was retired (AWTD-1608).
  */
-export type RepeatingCore = (
-  input: TaskNextOccurrenceInput,
-  /** Computed at most once, and only for a fallback or a sampled comparison (AWTD-1591). */
-  typescriptAnswer: () => TaskNextOccurrence,
-) => TaskNextOccurrence | undefined
+export type RepeatingCore = (input: TaskNextOccurrenceInput) => TaskNextOccurrence | undefined
 
 // On globalThis, as with the other core hooks: Next compiles this module into several layers, each
 // with its own module state, and the core is installed once from instrumentation.ts.
@@ -61,12 +57,12 @@ export function isTaskNextOccurrence(value: unknown): value is TaskNextOccurrenc
 export function nextOccurrenceForTask(input: TaskNextOccurrenceInput): TaskNextOccurrence {
   const core = (globalThis as CoreHost)[CORE_KEY]
   if (!core) return calculateTaskNextOccurrence(input)
-  const typescriptAnswer = lazyValue(() => calculateTaskNextOccurrence(input))
+  let answer: TaskNextOccurrence | undefined
   try {
-    const answer = core(input, typescriptAnswer)
-    return answer !== undefined && isTaskNextOccurrence(answer) ? answer : typescriptAnswer()
+    answer = core(input)
   } catch {
     // A hook that throws must not fail the completion; the TypeScript answer stands.
-    return typescriptAnswer()
+    return calculateTaskNextOccurrence(input)
   }
+  return answer !== undefined && isTaskNextOccurrence(answer) ? answer : calculateTaskNextOccurrence(input)
 }

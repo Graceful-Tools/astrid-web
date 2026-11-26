@@ -155,7 +155,12 @@ export class OAuthAPIClient {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: response.statusText }))
       // A rule's refusal names its code (WAITING_NEEDS_CONDITION), so an agent can branch on it.
-      const message = error.error || `HTTP ${response.status}: ${response.statusText}`
+      // A scope refusal says which scope in `message` (AWTD-1567); "Forbidden"
+      // alone would leave a scoped token's owner guessing.
+      const base = error.error || `HTTP ${response.status}: ${response.statusText}`
+      const message = response.status === 403 && typeof error.message === 'string' && error.message && error.message !== base
+        ? `${base}: ${error.message}`
+        : base
       throw new Error(typeof error.code === 'string' && error.code ? `${message} (${error.code})` : message)
     }
 
