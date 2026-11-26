@@ -4,8 +4,7 @@
  * searchParse, nextOccurrence and the board's columns. In decide mode, with the vendored core
  * installed the way instrumentation.ts installs it, the core answers and the TypeScript rule is
  * NOT run, not even on a process's first decision (which the AWTD-1591 sampler always compared).
- * The TypeScript still runs, and its answer is returned, whenever the core cannot answer, except
- * for listAccess, whose TypeScript rule was deleted in step B (ADEV-304): there it is a refusal.
+ * The TypeScript still runs, and its answer is returned, whenever the core cannot answer.
  *
  * Board drops (`boardMove`) are not retired and are not tested here.
  */
@@ -16,16 +15,10 @@ import { installRepeatingCore, createRepeatingCore, repeatingCoreStatus } from '
 import { installBoardCore, createBoardCore, boardCoreStatus } from '@/lib/core-rules/board-core'
 import { canUserManageList, setListPermissionsCore, type ListDecisionQuestion } from '@/lib/list-permissions'
 import { parseSearchQuery, setSearchQueryCore } from '@/lib/search-query-parser'
-import { nextOccurrenceForTask, setRepeatingCore } from '@/lib/repeating-rollover'
+import { nextOccurrenceForTask, RolloverUnavailableError, setRepeatingCore } from '@/lib/repeating-rollover'
 import { boardColumnsThroughCore, setBoardCore, type CoreBoardColumn } from '@/lib/board-core-hook'
-import { calculateTaskNextOccurrence, type TaskNextOccurrenceInput } from '@/types/repeating'
+import type { TaskNextOccurrenceInput } from '@/types/repeating'
 import { installTestListPermissionsCore } from '@/tests/helpers/list-permissions-core'
-
-// Spy on the TypeScript rollover where lib/repeating-rollover.ts calls it.
-vi.mock('@/types/repeating', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/types/repeating')>()
-  return { ...actual, calculateTaskNextOccurrence: vi.fn(actual.calculateTaskNextOccurrence) }
-})
 
 /** An installed hook, called the way the hook layer once called it: with the TypeScript as a getter. */
 type Loose = (...args: unknown[]) => unknown
@@ -51,7 +44,6 @@ afterEach(() => {
   setSearchQueryCore(null)
   setRepeatingCore(null)
   setBoardCore(null)
-  vi.mocked(calculateTaskNextOccurrence).mockClear()
 })
 
 describe('AWTD-1608: in decide mode with the core loaded, the TypeScript rule is not run', () => {
@@ -78,7 +70,6 @@ describe('AWTD-1608: in decide mode with the core loaded, the TypeScript rule is
   it('nextOccurrence', () => {
     expect(installRepeatingCore('')).toBe(true)
     for (let i = 0; i < 5; i++) expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe('2026-11-11T09:00:00.000Z')
-    expect(calculateTaskNextOccurrence).not.toHaveBeenCalled()
   })
 
   it('board columns', () => {
@@ -90,10 +81,11 @@ describe('AWTD-1608: in decide mode with the core loaded, the TypeScript rule is
 })
 
 describe('AWTD-1608: when the core cannot answer, the TypeScript rule IS run', () => {
-  it('listAccess: step B (ADEV-304) deleted its TypeScript rule, so the check is refused', () => {
+  it('listAccess', () => {
     const decider = createListPermissionsCore(failing, quiet)
     setListPermissionsCore(decider.decide)
     expect(decider.decide({ decision: 'canManage', user: { id: 'me' }, list: OWNED_LIST })).toBeUndefined()
+    // No TypeScript rule behind it any more (ADEV-304, ADEV-322): the check is refused.
     expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(false)
     expect(decider.stats.failed).toBe(2)
   })
@@ -107,10 +99,9 @@ describe('AWTD-1608: when the core cannot answer, the TypeScript rule IS run', (
     expect(parser.stats.failed).toBe(2)
   })
 
-  it('nextOccurrence', () => {
+  it('nextOccurrence is refused: step B (ADEV-306) deleted its TypeScript', () => {
     setRepeatingCore(createRepeatingCore(failing, quiet).next)
-    expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe('2026-11-11T09:00:00.000Z')
-    expect(calculateTaskNextOccurrence).toHaveBeenCalledTimes(1)
+    expect(() => nextOccurrenceForTask(DAILY)).toThrow(RolloverUnavailableError)
   })
 
   it('board columns', () => {

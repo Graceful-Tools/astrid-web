@@ -1,8 +1,7 @@
 /**
  * ADEV-304 ("[core-rules] Step B: list permissions"), server half: on the server astrid-core is
  * the only list-permission rule. A question it cannot answer is refused, never guessed by the
- * TypeScript. The browser keeps the TypeScript until its door loads (deleting that is not yet safe:
- * the e2e journeys break when the app shell waits for the door).
+ * TypeScript. The browser is the same since ADEV-322.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -64,19 +63,19 @@ describe('ADEV-304: the server refuses what astrid-core cannot answer', () => {
   })
 })
 
-describe('ADEV-304: the browser keeps the TypeScript until its door can answer', () => {
-  it('answers with the TypeScript when no core is installed', () => {
+describe('ADEV-322: the browser has no TypeScript rule either', () => {
+  it('refuses when no core is installed', () => {
     inBrowser()
     setListPermissionsCore(null)
-    expect(getUserRoleInList(owner, list as never)).toBe('owner')
-    expect(canUserEditTasks(owner, list as never)).toBe(true)
+    expect(getUserRoleInList(owner, list as never)).toBeNull()
+    expect(canUserEditTasks(owner, list as never)).toBe(false)
   })
 
-  it('answers with the TypeScript when the core throws', () => {
+  it('refuses when the core throws', () => {
     inBrowser()
     setListPermissionsCore(() => {
       throw new Error('boom')
     })
-    expect(canUserManageList(owner, list as never)).toBe(true)
+    expect(canUserManageList(owner, list as never)).toBe(false)
   })
 })
