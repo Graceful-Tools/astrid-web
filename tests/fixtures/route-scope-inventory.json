@@ -137,6 +137,7 @@
   "tasks/route.ts": "all:tasks:read,tasks:write",
   "upload/route.ts": "all:attachments:write",
   "users/[userId]/profile/route.ts": "all:user:read",
+  "users/me/access-tokens/[id]/rotate/route.ts": "all:user:write",
   "users/me/access-tokens/route.ts": "all:user:write",
   "users/me/agent-modes/route.ts": "all:user:read,user:write",
   "users/me/ai-credentials/route.ts": "all:user:read,user:write",

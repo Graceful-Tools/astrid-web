@@ -1729,6 +1729,19 @@
         "loadError": "No se pudieron cargar los permisos de esta conexión",
         "selectAtLeastOne": "Selecciona al menos un alcance",
         "selectApp": "Selecciona una aplicación."
+      },
+      "tokenScope": {
+        "unscoped": "Acceso completo (sin ámbitos)",
+        "recorded": "Con ámbitos, aún no aplicados",
+        "enforced": "Limitado a estos ámbitos"
+      },
+      "rotate": {
+        "action": "Rotar",
+        "confirm": "¿Rotar {name}? Un token nuevo lo reemplaza con el mismo acceso y el anterior deja de funcionar de inmediato.",
+        "newTokenTitle": "Token nuevo",
+        "newTokenDescription": "Cópialo ahora: no se volverá a mostrar. Actualiza todo lo que usaba el token anterior.",
+        "done": "Listo",
+        "error": "No se pudo rotar"
       }
     },
     "openInNewTab": "Abrir en una pestaña nueva",

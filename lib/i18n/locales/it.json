@@ -1729,6 +1729,19 @@
         "loadError": "Impossibile caricare le autorizzazioni di questa connessione",
         "selectAtLeastOne": "Seleziona almeno un ambito",
         "selectApp": "Seleziona un'app."
+      },
+      "tokenScope": {
+        "unscoped": "Accesso completo (nessun ambito)",
+        "recorded": "Con ambiti, non ancora applicati",
+        "enforced": "Limitato a questi ambiti"
+      },
+      "rotate": {
+        "action": "Ruota",
+        "confirm": "Ruotare {name}? Un nuovo token lo sostituisce con lo stesso accesso e il vecchio smette subito di funzionare.",
+        "newTokenTitle": "Nuovo token",
+        "newTokenDescription": "Copialo ora: non verrà mostrato di nuovo. Aggiorna tutto ciò che usava il vecchio token.",
+        "done": "Fatto",
+        "error": "Impossibile ruotare"
       }
     },
     "openInNewTab": "Apri in una nuova scheda",

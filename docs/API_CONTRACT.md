@@ -1053,15 +1053,75 @@ bearer minted from a delegated token would outlive revoking that token. The new 
 - `expiresInDays` — 1–365. If omitted, the token never expires.
 - `agent` — optional. It's an agent mailbox from the consent screen's roster, and comments made
   with the token are authored as that agent rather than as the user.
+- `scopes` — optional (AWTD-1567). OAuth scope names from the same set an OAuth client can hold,
+  for example `["tasks:read", "lists:read"]`. If omitted, the token is **unscoped** and granted
+  `*`, like every token minted before this field existed. If given, the scopes are stored on the
+  token and the token is held to them under `ASTRID_TOKEN_SCOPE_ENFORCEMENT` (see *Access-token
+  scope enforcement* below). `*`, an unknown name or an empty list is a 400 that names the
+  refused entry. Nothing is dropped silently.
 
 **Response:**
 ```json
 { "success": true, "token": "astrid_mcp_…", "permissions": ["read", "write"],
+  "scopes": ["tasks:read", "lists:read"] | null,
   "expiresAt": "ISO 8601 | null", "description": "string | null", "createdAt": "ISO 8601",
   "meta": { "apiVersion": "v1", "authSource": "session" } }
 ```
-Errors: 400 for an invalid body, 403 when MCP access is disabled for the account, 409 when the
-requested agent identity cannot be resolved.
+Errors: 400 for an invalid body or a scope a token cannot hold, 403 when MCP access is disabled
+for the account, 409 when the requested agent identity cannot be resolved.
+
+### POST `/api/v1/users/me/access-tokens/:id/rotate`
+Replace an access token's secret (AWTD-1567). The new token has the old one's `permissions`,
+`scopes` (or none), agent binding and description. A token with an expiry gets the same
+lifetime again, counted from now. The old token is revoked in the same transaction. The plaintext
+appears only in this response. It requires `user:write` and is **session-only**: a token cannot
+rotate itself. Settings → Connections offers it as **Rotate** on every active access token.
+
+**Response:** the mint response plus `"id"` (the new `MCPToken.id`) and `"replacedId"`.
+Errors: 403 for a non-session caller or when MCP access is disabled, 404 when the token is not
+the caller's, is already revoked, or is list-level.
+
+### Access-token scope enforcement (AWTD-1567)
+An access token minted with `scopes` is limited to them once the flag covers its owner:
+
+| `ASTRID_TOKEN_SCOPE_ENFORCEMENT` | Effect |
+|---|---|
+| unset, `off`, anything else | Nobody is enforced (the default). Scoped tokens keep `*`, and their own scopes are the `shadowScopes` the would-deny log measures. |
+| `canary` | Only tokens whose owner's user id is in `ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS` (comma-separated). |
+| `on` | Every token minted with `scopes`. |
+
+**Unscoped tokens are never enforced**, whatever the flag says. That includes every token minted
+before AWTD-1567, because its `scope` column is null. To roll back, set the flag to `off`.
+
+**Canary procedure.** First, mint a scoped token on the canary account. Do this signed in, from
+the browser, with a `POST /api/v1/users/me/access-tokens` that carries `scopes`; the Copilot setup
+card still mints unscoped tokens. Then set `ASTRID_TOKEN_SCOPE_ENFORCEMENT=canary` and
+`ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS=<that user id>` and redeploy: environment variables are
+read at deploy time. Use the token on `/api/v1` and `/mcp`. Its Connections row should say it is
+limited to its scopes. A call outside them should return the 403 below, and the other accounts'
+tokens should be unchanged. Widen to `on` only after that.
+
+An enforced token is refused wherever a route declares scopes (`withAuth` `scopes`/`anyOfScopes`,
+or `requireScopes`), exactly as an OAuth token with the same scopes would be. The 403 names what
+was missing:
+```json
+{ "error": "Forbidden", "message": "Missing required scopes: tasks:write",
+  "missingScopes": ["tasks:write"], "tokenScopes": ["tasks:read", "lists:read"],
+  "hint": "This access token was minted with explicit scopes…" }
+```
+Limits:
+- A route that declares no scope (`none` or `handler-auth` in
+  `tests/fixtures/route-scope-inventory.json`) accepts any authenticated caller, which is also true
+  of OAuth tokens. Scope enforcement does not add a check to such a route. List and task permissions
+  still apply.
+- **`/mcp`**: each tool call is an `/api/v1` request carrying the same token, so it meets the same
+  gate. The tool result carries the 403 message (`Forbidden: Missing required scopes: …`).
+  Connecting and `tools/list` are not gated by scope.
+- **`/api/mcp/operations`** checks no scopes, so an enforced token gets a 403 there and must use
+  `/api/v1` or `/mcp`.
+- `GET /api/v1/users/me/connections` lists a scoped token with its own `scopes` and
+  `detail.scoped: true`. `detail.scopeEnforced` says whether the flag holds it to them now. An
+  unscoped token shows `["*"]`.
 
 ### AI service ids
 `serviceId` in `PUT|DELETE /api/v1/users/me/ai-credentials` and
