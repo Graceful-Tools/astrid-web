@@ -1943,7 +1943,30 @@
       "opportunity": "機會",
       "notEstimated": "未估算",
       "effort": "工作量 {hours} 小時",
-      "opportunityRange": "{low} 至 {high} {unit} / {period}"
+      "opportunityRange": "{low} 至 {high} {unit} / {period}",
+      "label": {
+        "do-now": "立即做",
+        "experiment-first": "先做實驗",
+        "needs-review": "需要審核",
+        "dont": "不做",
+        "chipAria": "建議：{label}。查看原因。",
+        "reasonsHeading": "原因"
+      },
+      "reason": {
+        "noEstimate": "目前還沒有估算。",
+        "stale": "估算已過期。",
+        "guardrailAtRefuse": "{name}：違規機率 {probability} 已達上限 {threshold}。",
+        "guardrailAtReview": "{name}：違規機率 {probability} 已達審核點 {threshold}。",
+        "riskAtRefuse": "風險為 {level}，達到或超過上限 {threshold}。",
+        "riskAtReview": "風險為 {level}，達到或超過審核點 {threshold}。",
+        "riskUnknown": "估算器未提供風險，而未知從來不是好事。",
+        "guardrailsUnknown": "估算器未提供對護欄的影響，而未知從來不是好事。",
+        "confidenceLow": "信心度偏低，或未提供。",
+        "experimentFirst": "信心度為 {confidence}，風險為 {risk}。",
+        "builtinCapped": "內建估算最好也只能是「先做實驗」。",
+        "goalImproves": "預計 {name} 會改善（{delta}）。",
+        "noGoalImproves": "預計沒有目標會改善。"
+      }
     },
     "goals": {
       "title": "目標與護欄",
@@ -2052,7 +2075,8 @@
       "who": "負責人",
       "completed": "完成優先",
       "incomplete": "待辦優先",
-      "manual": "手動"
+      "manual": "手動",
+      "policy": "政策"
     },
     "show": {
       "allTasks": "所有工作",
@@ -3198,7 +3222,32 @@
       "migrateAdditive": "增量遷移",
       "migrateDestructive": "破壞性遷移",
       "release": "商店發佈",
-      "spend": "花錢"
+      "spend": "花錢",
+      "promoteIdea": "將「立即做」的想法移至就緒",
+      "experimentStart": "開始實驗",
+      "experimentStop": "停止實驗"
+    },
+    "tradeoff": {
+      "title": "權衡政策",
+      "switch": "設定權衡政策",
+      "stated": "已設定",
+      "none": "未設定",
+      "help": "為每個已估算的想法加上標籤（立即做、先做實驗、需要審核、不做），並決定政策排序的順序。未設定時，不加標籤，也沒有政策排序。",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "風險至少達到以下值時審核",
+        "riskRefuseAt": "風險至少達到以下值時不做",
+        "confidenceBelow": "信心度低於以下值時先做實驗",
+        "experimentRiskAtLeast": "…且風險至少為",
+        "minConfidenceToAct": "信心度至少達到以下值時，代理可以提升",
+        "guardrailReview": "違規機率達到以下值時審核",
+        "guardrailRefuse": "違規機率達到以下值時不做"
+      },
+      "goalOrder": "目標優先順序",
+      "goalOrderHelp": "以上各項都相同的想法，會依其對這些目標的影響排序，最重要的排在前面。",
+      "goalOrderReset": "使用預設順序",
+      "moveUp": "上移 {goal}",
+      "moveDown": "下移 {goal}"
     },
     "autonomy": {
       "allowed": "允許",

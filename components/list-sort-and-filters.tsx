@@ -23,7 +23,9 @@ import {
   FilterSelectItems,
   PRIORITY_FILTER_OPTIONS,
   SORT_BY_OPTIONS,
+  visibleOptions,
 } from "./list-settings/filter-options"
+import { useListTradeoffPolicyStated } from "@/hooks/use-list-tradeoff-policy"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { TaskList, User } from "../types/task"
 import { getAllListMembers } from "@/lib/list-member-utils"
@@ -113,6 +115,9 @@ export function ListSortAndFilters({
   const [isVirtual, setIsVirtual] = useState<boolean>(list.isVirtual || false)
   const [sortBy, setSortBy] = useState<string>(coreSortBy(list.sortBy || "auto"))
   const [isToggleFavorite, setIsToggleFavorite] = useState(false)
+  // The Policy sort is offered only where a trade-off policy is stated (ADEV-281). Until that is
+  // known it is not offered, and a saved `policy` on a list with none reads as Auto.
+  const policyStated = useListTradeoffPolicyStated(list.id)
 
   // Update filter states when list changes
   useEffect(() => {
@@ -232,14 +237,14 @@ export function ListSortAndFilters({
       <div className="space-y-3">
         <FilterRow
           label={t("listSettings.sortBy")}
-          value={sortBy}
+          value={sortBy === "policy" && !policyStated ? "auto" : sortBy}
           onChange={(value) => {
             setSortBy(value)
             onUpdate({ ...list, sortBy: value })
           }}
           testId="sort-by-row"
         >
-          <FilterSelectItems options={SORT_BY_OPTIONS} />
+          <FilterSelectItems options={visibleOptions(SORT_BY_OPTIONS, policyStated)} />
         </FilterRow>
 
         <FilterRow

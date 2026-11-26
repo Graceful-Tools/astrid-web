@@ -97,7 +97,21 @@ export interface EstimatorPollPayload {
   startedAt: string
 }
 
+/**
+ * A trade-off policy changed (ADEV-281): bring the project's latest estimates to it, one page of
+ * tasks per job (services/tradeoff-evaluation.service.ts).
+ */
+export interface TradeoffReevaluatePayload {
+  projectId: string
+  /** Set when a list's own override changed: only that list's tasks are walked. */
+  listId: string | null
+  /** The last task id of the previous page; null for the first. */
+  afterTaskId: string | null
+}
+
 export interface JobPayloads {
+  /** A page of the walk that re-labels estimates after a policy edit. */
+  'tradeoff-reevaluate': TradeoffReevaluatePayload
   /** One poll of a slow estimator service (services/task-estimate.service.ts). */
   'estimator-poll': EstimatorPollPayload
   /** Astrid's server-side chat reply, handed off by a client (lib/astrid-handoff.ts). */
@@ -140,6 +154,8 @@ export const JOB_POLICIES: Record<JobKind, JobPolicy> = {
   // Each poll is one short GET; "still running" is a retry, so the first delay is short. The handler
   // gives up after an hour of wall time, which the attempts below roughly match.
   'estimator-poll': { maxAttempts: 12, baseBackoffMs: 15_000, lockMs: 60_000 },
+  // A page of local rule calls and updates, no network. A retry is for a run that was killed.
+  'tradeoff-reevaluate': { maxAttempts: 5, baseBackoffMs: 30_000, lockMs: 2 * 60_000 },
 }
 
 /** An unknown kind (a row from a newer deploy, a typo) still has to back off and die. */

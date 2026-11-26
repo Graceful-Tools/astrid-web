@@ -14,7 +14,7 @@ instead of restating values, commands, or policy.
 | Platform assessment (2026-11) | [PLATFORM_ASSESSMENT_2026-11](./architecture/PLATFORM_ASSESSMENT_2026-11.md) | Historical 2026-11-01 findings with current-status pass dated 2026-11-08 |
 | Local operations | [CLI operations](./CLI_OPERATIONS.md) | Deploy, quality-gate, OAuth, and task-management commands |
 | API contracts | [API contract](./API_CONTRACT.md) | Stable external and mobile wire contract |
-| Testing | [Testing strategy](./context/testing.md) | Test policy, locations, and selection |
+| Testing | [Testing strategy](./context/testing.md) | Test tiers, route-test harness, naming, ratchets |
 | Security | [Security policy](../SECURITY.md) | Reporting policy and repository-wide security requirements |
 | Product behavior | [Product contract](./PRODUCT_CONTRACT.md) | Cross-platform permissions, behavior, and shared copy |
 | Asking a person to choose | [Decisions and trade-off grids](./DECISIONS.md) | The Decision card and rated-grid formats, for users and agents |

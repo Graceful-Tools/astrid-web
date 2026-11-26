@@ -206,6 +206,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'GITHUB_REF_NAME', scope: 'tooling', description: 'Actions branch name; isolates retained cloud worker wake state by branch.' },
   { name: 'GITHUB_REPOSITORY', scope: 'tooling', description: 'Actions owner/repo; claim-next lists its open PRs to skip tasks already in one (ADEV-310).' },
   { name: 'GITHUB_RUN_ID', scope: 'tooling', description: 'Actions run id; excludes the current run when restoring retained worker state.' },
+  { name: 'GITHUB_OUTPUT', scope: 'tooling', description: 'Actions step-output file; land-and-deploy sets more=true so agent-ship chains another run (ADEV-265).' },
   { name: 'RUNNER_TEMP', scope: 'tooling', description: 'Actions temporary directory for downloading validated cloud wake-state artifacts.' },
   { name: 'GITHUB_SYNC_CLIENT_ID', scope: 'optional', description: 'OAuth app (scope: repo) for two-way GitHub Issues sync — separate from the GitHub App.' },
   { name: 'GITHUB_SYNC_CLIENT_SECRET', scope: 'optional', description: 'Secret for the Issues-sync OAuth app.' },

@@ -602,8 +602,25 @@ claims, questions go to the list owner.
 - **Project.** `GET` (scope `projects:read`) is for its owner and members. `PUT` (scope
   `projects:write`) is for its owner or an admin (`canUserManageProject`).
 - **An agent never writes a policy**, whatever its token's scopes: 403.
+- **The trade-off policy** (ADEV-281, core D72, `docs/specs/GOALS_GUARDRAILS_SIGNALS.md` → 6) is a `tradeoff` key
+  beside `routing`, `autonomy` and `escalation`: `{ goalOrder?, risk?: { reviewAt?, refuseAt? }, guardrail?:
+  { reviewAtBreachProbability?, refuseAtBreachProbability? }, experimentFirst?: { confidenceBelow?, riskAtLeast? },
+  minConfidenceToAct? }`, levels being `low`, `medium` or `high` and probabilities 0 to 1. **Nothing stored is no
+  policy**: `effective.tradeoff` is absent, no estimate is labelled and the Policy sort is not offered. A stored
+  `{}` states one, on the defaults. Three actions join `autonomy`, each `never` by default: `promoteIdea` (moving
+  a `do-now` idea, with confidence at least `minConfidenceToAct`, to Ready), `experimentStart` and `experimentStop`.
+  A write that changes `tradeoff` queues a bounded re-evaluation of the project's latest estimates; stored labels
+  follow within a job or two.
+- **Acting on a label** (ADEV-284). `POST /api/v1/tasks/{id}/approvals` accepts `promoteIdea`, `experimentStart` and
+  `experimentStop` beside `deploy` and `migrate`. For these the card's `sha` is a 40-hex **digest of the estimate or
+  experiment snapshot** it was asked about, not a commit; a newer snapshot has a new digest and needs a new card, and
+  approving a card whose digest is no longer current answers 409 `STALE_SNAPSHOT`. The server asks the policy on its own
+  when an estimate is labelled `do-now` or an experiment's recommendation is `start`/`stop`: `allowed` moves the idea
+  to Ready or calls the service's `/experiments/action`, `ask` posts the card first, `never` (the default) leaves a
+  recommendation. An estimate below `minConfidenceToAct`, and any built-in estimate, never acts, and any error resolving
+  the policy is `never`.
 - `PUT { "policy": <PolicyOverride> | null }`. `null` clears it. A value the rules do not know
-  (`"merge": "sometimes"`) is a 400, and so is an unknown key. People named under `escalation` must
+  (`"merge": "sometimes"`, a probability of 1.5) is a 400, and so is an unknown key. People named under `escalation` must
   be on the list, or on one of the project's boards.
 
 **List GET / PUT response:** `effective` is resolved by astrid-core (`orchestrationPolicy`).
@@ -615,7 +632,7 @@ claims, questions go to the list owner.
   "list": { "autonomy": { "merge": "ask" } },
   "effective": {
     "routing": { "assignTo": null, "agents": null },
-    "autonomy": { "merge": "ask", "deploy": "allowed", "migrate": { "additive": "never", "destructive": "never" }, "release": "never", "spend": "never" },
+    "autonomy": { "merge": "ask", "deploy": "allowed", "migrate": { "additive": "never", "destructive": "never" }, "release": "never", "spend": "never", "promoteIdea": "never", "experimentStart": "never", "experimentStop": "never" },
     "escalation": { "to": "listOwner" }
   },
   "engine": "core",
@@ -725,8 +742,13 @@ Behind the goal-signals gate: capability off is 404, flag off is 403 `not_grante
 when the task's lists span several projects. Rows are append-only in `TaskEstimate`.
 - `GET` answers `{ taskId, latest, history }` (newest first, at most 20). An estimate is `{ id, source:
   "builtin_llm" | "service:<key>" | "human", goalImpacts, guardrailImpacts, risk, costMicrocents, effortHours,
-  reach, confidence, rationale, rough, label, createdAt }`. A missing section is "not estimated", never zero.
+  reach, confidence, rationale, rough, label, labelReasons, createdAt }`. A missing section is "not estimated", never zero.
   `rationale` is plain text: show it as text and quote it to an agent as data.
+- **`label` and `labelReasons`** (ADEV-281) are the trade-off policy's answer, written by the server when the
+  estimate arrives and again when the policy changes: `label` is `do-now`, `experiment-first`, `needs-review` or
+  `dont`, and each reason is `{ code, …values }` (`guardrailAtReview { guardrailId, breachProbability, threshold }`),
+  worded by the client. **Both are `null` where no `tradeoff` policy is stated.** The sort key is not on this
+  route: it is on `GET /api/v1/tasks?include=estimate`, below.
 - `POST { estimator?: "builtin" | "<service key>", projectId? }` asks an estimator. 201 `{ estimate }`; 202
   `{ pending: true }` when a service answered 202 (the server polls it through the Job queue and writes the row
   when it is ready); 409 `no_api_key` when the built-in estimator needs the caller's own AI key; 422
@@ -737,6 +759,14 @@ when the task's lists span several projects. Rows are append-only in `TaskEstima
   capped. The built-in estimator is forced to `confidence: "low"`; its card shows ranges under a "rough
   estimate" tag (`rough: true`). Cost also writes `Task.costEstimateMicrocents` (source `model`, or `human`)
   and never replaces a human value with a model one.
+
+### GET `/api/v1/tasks?include=estimate`
+Each task's latest trade-off label and sort key (ADEV-281), for the **Policy** sort. Opt-in, like `include=fields`,
+because the full task response is near its wire budget and only that sort reads them. A task carries
+`estimate: { label, labelReasons, sortKey }` only when its latest estimate has a label, so there is **no key at all**
+on a project with no policy. `sortKey` is a list of integers compared lexicographically, smaller first; a client
+compares it and never derives it (astrid-core `sort_by_setting`, the `policy` arm). A list saved as `sortBy:
+"policy"` reads as Auto on a client that does not know it.
 
 ### GET|POST|DELETE `/api/v1/tasks/{id}/experiment`, POST `…/experiment/refresh`
 A task's experiment links and post-deploy verification windows (ADEV-279, spec:
