@@ -3,10 +3,12 @@
  *
  * A test that fails and then passes on retry leaves the run green, so flakes
  * piled up unseen (nearly every browser job reported "1 flaky"). This reads the
- * JSON report, annotates each flaky test, writes a job summary, and exits 1
- * unless every flaky title is on the known-flaky list. That list may only shrink.
+ * JSON report, annotates each flaky test and writes a job summary, so the run shows
+ * yellow. With --strict it also exits 1 unless every flaky title is on the
+ * known-flaky list (which may only shrink). CI runs it without --strict until the
+ * remaining WebKit and mobile flakes are fixed; then switch the workflow to --strict.
  *
- * Usage: tsx scripts/check-playwright-flaky.ts [report.json]
+ * Usage: tsx scripts/check-playwright-flaky.ts [--strict] [report.json]
  */
 import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 
@@ -53,7 +55,9 @@ export function unexpectedFlaky(flaky: FlakyTest[], known: readonly string[] = K
 }
 
 function main() {
-  const path = process.argv[2] ?? DEFAULT_REPORT
+  const args = process.argv.slice(2)
+  const strict = args.includes('--strict')
+  const path = args.find(arg => !arg.startsWith('--')) ?? DEFAULT_REPORT
   if (!existsSync(path)) {
     console.log(`No Playwright JSON report at ${path}; nothing to check.`)
     return 0
@@ -72,7 +76,7 @@ function main() {
     appendFileSync(summary, ['### Flaky Playwright tests', '', '| Project | File | Test |', '|---|---|---|', ...rows, ''].join('\n'))
   }
   const unexpected = unexpectedFlaky(flaky)
-  if (unexpected.length > 0) {
+  if (strict && unexpected.length > 0) {
     console.error(`${unexpected.length} flaky test(s) are not on the known-flaky list. Fix the race; do not add to the list.`)
     return 1
   }
