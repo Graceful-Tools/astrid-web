@@ -613,8 +613,9 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   server, TypeScript as fallback, pinned by `core-rules-search-parity.test.ts`.
   **Repeating-task rollover** too (AWTD-1063): the server's completion path asks
   `nextOccurrenceForTask` (`lib/repeating-rollover.ts`), which the core's `nextOccurrence`
-  answers; `types/repeating.ts` is the same rule in TypeScript (fallback and fixture source),
-  pinned by `core-rules-repeating-parity.test.ts`. A timed task steps on the person's zone
+  answers. There is no TypeScript copy (ADEV-306): a core that cannot answer refuses the
+  completion with a retryable 503 (`RolloverUnavailableError`), and the fixture's `completions`
+  are generated from the vendored core, checked by `core-rules-repeating-parity.test.ts`. A timed task steps on the person's zone
   (the browser sends `timeZone`), an all-day one on UTC's. The browser computes no rollover.
   **Markdown** (AWTD-1064) renders only in the browser (`renderMarkdownWithLinks`,
   `lib/markdown.ts`: `marked` + DOMPurify), so it stays TypeScript;

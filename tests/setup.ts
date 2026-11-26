@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 import type { Session } from 'next-auth'
 import 'fake-indexeddb/auto'
+import './support/install-repeating-core'
 import rawEnMessages from '@/lib/i18n/locales/en.json'
 import { applyBrandToMessages } from '@/lib/brand/i18n-values'
 
@@ -619,3 +620,4 @@ vi.mock('@/lib/redis', () => ({
     }
   }
 }))
+

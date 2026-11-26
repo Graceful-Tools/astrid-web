@@ -9,6 +9,7 @@ import {
   type AuthContext,
 } from './api-auth-middleware'
 import { createLogger } from './logger'
+import { RolloverUnavailableError } from './repeating-rollover'
 import { createHash } from 'node:crypto'
 
 /**
@@ -235,6 +236,14 @@ export function withAuth<TContext = unknown>(
       }
       if (err instanceof ForbiddenError) {
         return NextResponse.json({ error: 'Forbidden', message: err.message }, { status: 403 })
+      }
+      if (err instanceof RolloverUnavailableError) {
+        // Nothing was written: the completion can simply be retried (ADEV-306).
+        log.error({ err, path: req.nextUrl.pathname }, 'Repeating rollover unavailable')
+        return NextResponse.json(
+          { error: 'Service unavailable', message: err.message, retryable: true },
+          { status: 503, headers: { 'Retry-After': '5' } },
+        )
       }
       log.error({ err, path: req.nextUrl.pathname }, 'Handler threw')
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
