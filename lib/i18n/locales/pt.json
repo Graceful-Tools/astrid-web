@@ -2888,7 +2888,8 @@
       "doing": "Fazendo",
       "waiting": "Aguardando",
       "done": "Concluído",
-      "testing": "Testes"
+      "testing": "Testes",
+      "results": "Resultados pendentes"
     },
     "empty": {
       "inbox": "Nada novo para organizar! Tarefas sem status ficam aqui.",
@@ -2904,7 +2905,8 @@
       "doing": "Trabalho em andamento!",
       "waiting": "Em pausa até que as circunstâncias sejam as certas.",
       "done": "Concluído — parabéns!",
-      "testing": "Em implantação, em canary ou em um experimento."
+      "testing": "Em implantação, em canary ou em um experimento.",
+      "results": "Construído e lançado; aguardando o relatório de um experimento ou de uma verificação."
     }
   },
   "passkeyErrors": {

@@ -2888,7 +2888,8 @@
       "doing": "Bezig",
       "waiting": "Wachten",
       "done": "Gedaan",
-      "testing": "Testen"
+      "testing": "Testen",
+      "results": "Resultaten in afwachting"
     },
     "empty": {
       "inbox": "Niets nieuws om te sorteren! Taken zonder status komen hier terecht.",
@@ -2904,7 +2905,8 @@
       "doing": "Werk in uitvoering!",
       "waiting": "Gepauzeerd tot de omstandigheden goed zijn.",
       "done": "Voltooid — gefeliciteerd!",
-      "testing": "Wordt uitgerold, in canary of in een experiment."
+      "testing": "Wordt uitgerold, in canary of in een experiment.",
+      "results": "Gebouwd en uitgebracht; wacht op de uitkomst van een experiment of verificatie."
     }
   },
   "passkeyErrors": {

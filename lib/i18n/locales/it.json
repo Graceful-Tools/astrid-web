@@ -2888,7 +2888,8 @@
       "doing": "In corso",
       "waiting": "In attesa",
       "done": "Fatto",
-      "testing": "Test"
+      "testing": "Test",
+      "results": "Risultati in attesa"
     },
     "empty": {
       "inbox": "Niente di nuovo da smistare! Le attività senza stato arrivano qui.",
@@ -2904,7 +2905,8 @@
       "doing": "Lavoro in corso!",
       "waiting": "In pausa finché le circostanze non sono quelle giuste.",
       "done": "Completato: complimenti!",
-      "testing": "In rilascio, in canary o in un esperimento."
+      "testing": "In rilascio, in canary o in un esperimento.",
+      "results": "Sviluppato e rilasciato; in attesa del risultato di un esperimento o di una verifica."
     }
   },
   "passkeyErrors": {

@@ -2888,7 +2888,8 @@
       "doing": "In Arbeit",
       "waiting": "Wartet",
       "done": "Erledigt",
-      "testing": "Test"
+      "testing": "Test",
+      "results": "Ergebnisse ausstehend"
     },
     "empty": {
       "inbox": "Nichts Neues zu sortieren! Aufgaben ohne Status landen hier.",
@@ -2904,7 +2905,8 @@
       "doing": "Arbeit in vollem Gange!",
       "waiting": "Pausiert, bis die Umstände passen.",
       "done": "Erledigt – Glückwunsch!",
-      "testing": "Wird ausgerollt, im Canary oder in einem Experiment."
+      "testing": "Wird ausgerollt, im Canary oder in einem Experiment.",
+      "results": "Gebaut und veröffentlicht; wartet auf das Ergebnis eines Experiments oder einer Verifizierung."
     }
   },
   "passkeyErrors": {

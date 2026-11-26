@@ -15,6 +15,9 @@
     },
     "app/api/cron/goal-signals-poll/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/cron/results-settle/route.ts": {
+      "maxDuration": 60
     }
   },
   "crons": [
@@ -48,6 +51,10 @@
     },
     {
       "path": "/api/cron/goal-signals-poll",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/results-settle",
       "schedule": "*/15 * * * *"
     },
     {

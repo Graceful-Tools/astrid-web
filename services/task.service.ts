@@ -1048,6 +1048,17 @@ export async function updateTaskWithSideEffects(args: {
   if (!waiting.ok) return { ok: false, status: waiting.status, error: waiting.error, code: waiting.code }
   Object.assign(data, waiting.data)
 
+  // The Pending results rules (services/task-results.ts, ADEV-279): entering the column needs an
+  // experiment or a verification to wait on. A board without the column never reaches this.
+  const results = await (await import('@/services/task-results')).resolveResultsForUpdate({
+    existingTask,
+    data,
+    requestedCompleted,
+    keepAssignee: intent.keepAssignee,
+  })
+  if (!results.ok) return { ok: false, status: results.status, error: results.error, code: results.code }
+  Object.assign(data, results.data)
+
   // Invariant: completed = true => no status memberships (task db7c6670). The
   // listIds branch enforces it through the normalizer, but only when the
   // request carries listIds. A completion-only update — PUT { completed: true },

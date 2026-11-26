@@ -58,14 +58,20 @@ export function boundKeys(stated: GoalsAndGuardrails, connectorId: string): stri
   return [...keys].slice(0, MAX_KEYS_PER_REQUEST)
 }
 
-export async function pollGoalMetrics(options: { fetchImpl?: typeof fetch; now?: () => Date } = {}): Promise<PollSummary> {
+/**
+ * One pass. `projectId` narrows it to one project's connectors: a verification reaching its
+ * `decideBy` reads the project's sources fresh first (ADEV-279), rather than comparing against
+ * whatever the last 15-minute pass left.
+ */
+export async function pollGoalMetrics(options: { fetchImpl?: typeof fetch; now?: () => Date; projectId?: string } = {}): Promise<PollSummary> {
   const now = options.now ?? (() => new Date())
+  const where = { kind: 'metric', ...(options.projectId ? { projectId: options.projectId } : {}) }
   const connectors = await prisma.projectConnector.findMany({
-    where: { kind: 'metric' },
+    where,
     orderBy: { lastPolledAt: { sort: 'asc', nulls: 'first' } },
     take: MAX_CONNECTORS_PER_PASS,
   })
-  const total = await prisma.projectConnector.count({ where: { kind: 'metric' } })
+  const total = await prisma.projectConnector.count({ where })
   const summary: PollSummary = {
     connectors: connectors.length,
     capped: total > connectors.length,
