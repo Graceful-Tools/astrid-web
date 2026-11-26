@@ -23,7 +23,6 @@ vi.mock('@/lib/core-rules/browser', () => ({
     return () => door.listeners.delete(listener)
   },
   loadBrowserCoreRules: door.load,
-  scheduleBrowserCoreRules: () => () => {},
 }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ replace: () => {}, push: () => {} }) }))
 vi.mock('@/lib/offline-db', () => ({ offlineDB: { forceRefresh: () => Promise.resolve() } }))

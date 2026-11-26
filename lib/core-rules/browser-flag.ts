@@ -10,5 +10,5 @@
  * Read literally so Next can inline the NEXT_PUBLIC_ value (lib/env.ts).
  */
 export function browserCoreRulesFlagOn(value: string | undefined = process.env.NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER): boolean {
-  return (value ?? '').trim().toLowerCase() !== 'off'
+  return value !== 'off'
 }
