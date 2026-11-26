@@ -179,8 +179,9 @@ export class McpAgentIdentity {
       if (!(error instanceof UnresolvedAgentIdentityError)) throw error
       // Hosted MCP is stateless between calls; learn from the authenticated
       // queue instead of assuming a previous request's poll survived.
+      // identityOnly: the id is all a write needs, so skip the queue read (AWTD-1553).
       const response = await client.makeRequest<QueueAgentBlock>(
-        `/api/v1/agent-queue?agent=${encodeURIComponent(error.mailbox)}`,
+        `/api/v1/agent-queue?agent=${encodeURIComponent(error.mailbox)}&identityOnly=true`,
       )
       if (response.agent?.mailbox !== error.mailbox || !response.agent.id) throw error
       this.observe(response)

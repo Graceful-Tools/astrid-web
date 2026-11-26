@@ -11,7 +11,7 @@ import { shouldBypassIntlRouting } from '@/lib/middleware-bypass'
 import { LEGACY_USAGE_BEACON_PATH, decideLegacyBeacon } from '@/lib/legacy-api-usage'
 import { BRAND } from '@/lib/brand/config'
 import { corsHeadersForOrigin } from '@/lib/cors'
-import { buildContentSecurityPolicy, generateNonce } from '@/lib/csp'
+import { buildContentSecurityPolicy, generateNonce, shouldUpgradeInsecureRequests } from '@/lib/csp'
 
 // Create next-intl middleware
 const intlMiddleware = createMiddleware(routing)
@@ -92,7 +92,10 @@ export function middleware(request: NextRequest, event?: NextFetchEvent) {
   // API responses are JSON and execute nothing, so they are left alone; a
   // pointless CSP on every API response is bytes on a hot path.
   const nonce = isApi ? null : generateNonce()
-  const csp = nonce ? buildContentSecurityPolicy(nonce, process.env.NODE_ENV === 'production') : null
+  const isProductionBuild = process.env.NODE_ENV === 'production'
+  const csp = nonce
+    ? buildContentSecurityPolicy(nonce, isProductionBuild, undefined, shouldUpgradeInsecureRequests(isProductionBuild, request.nextUrl))
+    : null
 
   /**
    * Next applies the nonce to its OWN bootstrap scripts by reading it back off
