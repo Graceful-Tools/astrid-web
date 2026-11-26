@@ -8,6 +8,7 @@
   "scripts": {
     "build": "node scripts/build-with-migrations.js",
     "build:next": "node scripts/sync-vendor-assets.mjs && next build",
+    "build:astrid-rules": "bash scripts/build-astrid-rules.sh",
     "clean": "rm -rf .next node_modules package-lock.json && npm install",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
