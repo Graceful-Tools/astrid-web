@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest'
 const WORKFLOWS = '.github/workflows'
 
 /** `npm test`, `npm run test:run`, `npx vitest` — not `test:e2e` and friends. */
-const RUNS_UNIT_SUITE = /\bnpm (?:run )?test(?::run)?(?![\w:-])|\bnpx vitest\b/
+const RUNS_UNIT_SUITE = /\bnpm (?:run )?test(?::run|:coverage)?(?![\w:-])|\bnpx vitest\b/
 
 /** Keys that make a pull_request trigger skip some pull requests. */
 const FILTERS = ['paths', 'paths-ignore', 'branches', 'branches-ignore']
@@ -103,7 +103,7 @@ describe('unit tests run on every pull request (AWTD-1216)', () => {
   })
 
   it('tells the unit suite apart from the other test scripts', () => {
-    for (const run of ['npm test', 'npm run test:run', 'npx vitest run', 'npm test -- --reporter=dot']) {
+    for (const run of ['npm test', 'npm run test:run', 'npm run test:coverage','npx vitest run', 'npm test -- --reporter=dot']) {
       expect(RUNS_UNIT_SUITE.test(run), run).toBe(true)
     }
     for (const run of ['npm run test:e2e', 'npm run test:risk-coverage', 'npm run test-setup', 'npx playwright test']) {
