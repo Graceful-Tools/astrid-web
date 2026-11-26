@@ -12,17 +12,6 @@ import { BadQueueOptionError, buildAgentQueue, UnknownAgentError } from '@/lib/a
 import { BRAND } from '@/lib/brand/config'
 import { getTaskUrl } from '@/lib/base-url'
 
-const { shadowInfo, deferred } = vi.hoisted(() => ({
-  shadowInfo: vi.fn(),
-  deferred: [] as Array<() => Promise<unknown>>,
-}))
-vi.mock('@/lib/logger', () => ({
-  createLogger: () => ({ info: shadowInfo, warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
-}))
-vi.mock('@/lib/background', () => ({
-  runAfterResponse: (_label: string, work: () => Promise<unknown>) => { deferred.push(work) },
-}))
-
 const AGENT = { id: 'agent-claude', name: 'Claude Agent', isAIAgent: true }
 
 const task = (over: Record<string, unknown> = {}) => ({
@@ -38,50 +27,46 @@ const task = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
-describe('AWTD-1554 queue shadow', () => {
+describe('AWTD-1563 stored Off for a polling-only mailbox', () => {
   beforeEach(() => {
     mockPrisma.user.findUnique.mockReset().mockImplementation(async query =>
       'email' in query.where ? AGENT : { mcpSettings: JSON.stringify({ agentModes: { codex: 'off' } }) },
     )
     mockPrisma.task.findMany.mockReset().mockResolvedValue([task()])
-    shadowInfo.mockClear()
-    deferred.length = 0
-    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_SHADOW', 'false')
-    vi.spyOn(Math, 'random').mockReturnValue(0)
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
     vi.unstubAllEnvs()
   })
 
-  it('keeps serialized queue output byte-identical while observing stored Off', async () => {
-    const options = { agent: 'codex', userId: 'user-1' }
-    const before = JSON.stringify(await buildAgentQueue(options))
-    expect(mockPrisma.user.findUnique).toHaveBeenCalledOnce()
-    expect(deferred).toHaveLength(0)
-    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_SHADOW', 'true')
-    const after = JSON.stringify(await buildAgentQueue(options))
-    expect(after).toBe(before)
-    expect(JSON.parse(after)).toMatchObject({ mode: 'polling', queue: [{ id: 'task-1' }] })
-    // Scheduling observation has not read settings or held up queue construction.
-    expect(mockPrisma.user.findUnique).toHaveBeenCalledTimes(2)
-    expect(shadowInfo).not.toHaveBeenCalled()
-    await deferred[0]()
-    expect(shadowInfo).toHaveBeenCalledWith(
-      { userIdHash: expect.any(String), mailbox: 'codex' },
-      'agent execution mode shadow mismatch',
-    )
-    expect(mockPrisma.user.findUnique).toHaveBeenCalledTimes(3)
-    expect(mockPrisma.user.findUnique.mock.calls[2][0]).toEqual({
-      where: { id: options.userId },
-      select: { mcpSettings: true },
-    })
+  it('flag off: today\'s behaviour, the queue answers polling and serves the work', async () => {
+    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'false')
+    const result = await buildAgentQueue({ agent: 'codex', userId: 'user-1' })
+    expect(result).toMatchObject({ mode: 'polling', empty: false, queue: [{ id: 'task-1' }] })
   })
 
-  // AWTD-1554 enforcement follow-up (docs/AGENT_POLLING_MODE.md: needs its own review after shadow evidence).
-  // Intended: buildAgentQueue({ agent: 'codex', userId }) returns mode 'off' and an empty queue.
-  it.todo('AWTD-1554 enforcement follow-up: stored Off polling-only mailbox receives no queued work')
+  it('flag on: a stored Off yields mode off and gives that mailbox no work', async () => {
+    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'true')
+    const result = await buildAgentQueue({ agent: 'codex', userId: 'user-1' })
+    expect(result).toMatchObject({
+      mode: 'off',
+      empty: true,
+      queue: [],
+      attention: { tasks: [], messages: [] },
+      runnable: { hasWork: false, reasons: [] },
+    })
+    expect(result.hint).toMatch(/off/i)
+    expect(mockPrisma.task.findMany).not.toHaveBeenCalled()
+  })
+
+  it('flag on: a polling-only mailbox with no stored Off is served as before', async () => {
+    vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'true')
+    mockPrisma.user.findUnique.mockImplementation(async query =>
+      'email' in query.where ? AGENT : { mcpSettings: JSON.stringify({}) },
+    )
+    const result = await buildAgentQueue({ agent: 'codex', userId: 'user-1' })
+    expect(result).toMatchObject({ mode: 'polling', empty: false, queue: [{ id: 'task-1' }] })
+  })
 })
 
 describe('buildAgentQueue', () => {

@@ -47,8 +47,11 @@ works.
 
 Resolution order, and why each step is where it is:
 
-1. **No server executor exists → polling, unoverridable.** `codex@` is a local harness
-   identity; an `api` setting for it would be a preference Astrid could only disobey.
+1. **No server executor exists → polling, and only a stored `off` overrides it.**
+   `codex@` is a local harness identity; an `api` setting for it would be a
+   preference Astrid could only disobey. `off` is honored by the settings screen,
+   and by dispatch and the queue once `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF` is
+   on (see *Stored Off for polling-only mailboxes* below).
 2. **An explicit setting → obey it.**
 3. **A coding agent WITH a saved key → `api`.** Saving a key *is* choosing API mode.
    A default that flips a working setup to polling looks exactly like a dead agent.
@@ -234,38 +237,30 @@ date. A queue held up by scheduling must never read as an idle one — silence i
 failure mode a scheduled loop cannot debug. An empty queue answers `empty: true`, so a
 quiet run costs one HTTP request and stops.
 
-### Stored Off shadow comparison (AWTD-1554)
+### Stored Off for polling-only mailboxes (AWTD-1563)
 
-The queue still uses `getAgentExecutionMode()` unchanged: a polling-only mailbox
-such as `codex` returns `polling` before that getter reads the caller's stored
-settings, including a stored `off`. This observation-only change does not
-suppress work, change the response, or enforce Off.
+A polling-only mailbox such as `codex` used to return `polling` from
+`getAgentExecutionMode()` before the caller's settings were read, so a stored
+`off` was saved and shown in Settings → AI Agents but ignored by the queue,
+wake-ups and dispatch.
 
-`ASTRID_AGENT_EXECUTION_MODE_SHADOW=true` explicitly enables the observer in
-`lib/ai/agent-execution-mode-shadow.ts`. **Default off:** zero extra queries;
-no auth-context or authentication projection changes. When enabled, 1% of
-polling-only queue requests incur **one extra primary-key read of the caller's
-row, selecting only `mcpSettings`**. This cost is intentional and requires review
-before activation. Unsampled requests do not defer work, query, parse, or hash.
+With `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true` the getter reads the settings
+for such a mailbox and applies the resolver's rule: `polling`, unless the user
+stored `off`. A stored Off then means:
 
-`runAfterResponse()` defers observation until after the response. The observer
-reuses `readAgentSettings()` and its parsing, compares the existing mode to
-`resolveAgentExecutionMode()`, and bounds its observation wait at 250ms. The
-timeout does not cancel a database query already in flight; late results are
-ignored. Settings are never cached or retained across requests.
+- `GET /api/v1/agent-queue` and `get_agent_queue` answer `mode: "off"`,
+  `empty: true`, no `queue` or `attention`, and a hint saying the agent is Off.
+- Wake-ups skip it (they fire only for `polling`), and dispatch stays
+  suppressed, as it already was for `polling`.
 
-Mismatches produce `agent execution mode shadow mismatch` with only a
-domain-separated SHA-256 `userIdHash` (using the existing `hashToken` helper) and
-`mailbox`. Neither raw identifiers, emails, settings, nor exception details are
-logged. Observation failures produce a fixed warning, and even logger failures
-are contained. Missing snapshots are not evidence of agreement.
+A failed settings read, or an unknown run owner, still answers `polling`.
+**Default off:** the mailbox is always `polling` and its settings are never
+read, exactly as before. **Rollback:** unset the flag.
 
-Characterization and byte-identity tests preserve today's behavior. Two skipped
-enforcement specs record the intended follow-up: the getter honors stored Off,
-and the queue supplies no work to that mailbox. Enforcement requires a separate
-review after shadow evidence. **Rollback:** revert the AWTD-1554 commit; no
-environment or migration changes are needed to revert. Leaving the new flag
-unset (or setting it to `false`) disables observation without a code revert.
+The evidence for turning it on came from the AWTD-1554 shadow comparator, since
+removed: 0 mismatches in about 11 days of production sampling, and an unsampled
+census showing no account with a stored mode for `codex` (Jon approved,
+2026-11-26).
 
 ## What this does not fix
 

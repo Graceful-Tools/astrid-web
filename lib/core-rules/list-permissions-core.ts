@@ -6,24 +6,21 @@
  * (the one the Apple apps use), with the list's project, status-list siblings and legacy
  * `admins` / `members` arrays when the caller loaded them, and the core's answer is returned.
  *
- * The TypeScript still answers, for two reasons — on every decision until AWTD-1591, now on a
- * sample of 1 in `ASTRID_CORE_RULES_SAMPLE` (lib/core-rules/sampling.ts) and on every fallback:
- *
- * - **Fail-safe.** It is the answer whenever the core cannot give one: not loaded, threw, sent an
- *   error envelope, or answered with something that is not an answer. Never a wrong deny or
- *   allow, never a crashed route.
- * - **The comparison still adds information.** The browser decides with the same TypeScript (it
- *   cannot load this WebAssembly), so a disagreement is a control the browser offers and the
- *   server refuses, or the reverse. It is logged once per distinct shape, with no ids, names or
- *   emails, and with running totals so a quiet log can be read as agreement.
+ * The TypeScript is the fail-safe: it is the answer whenever the core cannot give one (not loaded,
+ * threw, sent an error envelope, or answered something that is not an answer). Never a wrong deny
+ * or allow, never a crashed route. It is also still the browser's rule until the browser door
+ * loads. Until AWTD-1591 it also ran on every decision to compare; AWTD-1591 sampled that, and
+ * AWTD-1608 retired it (step A of docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md: no
+ * disagreement and no failure in production), so a decision the core answers runs no TypeScript.
+ * The permissions fixture parity test still holds the TypeScript to the core.
  *
  * `ASTRID_CORE_RULES` chooses the mode: unset (the default) decides with the core; `shadow` keeps
- * the TypeScript deciding and only compares (PR #320's behaviour — the no-code rollback);
+ * the TypeScript deciding and does not ask the core (the no-code rollback);
  * `off` loads nothing.
  */
 import { createLogger } from '@/lib/logger'
 import { setListPermissionsCore } from '@/lib/list-permissions'
-import { sampleEveryFrom } from './sampling'
+import type { RetiredRuleStatus } from './core-asker'
 import { loadCoreRules } from './wasm'
 import {
   createListPermissionsCore,
@@ -35,6 +32,7 @@ import {
 export * from './list-permissions-decider'
 
 
+/** /api/health's block for a rule that is still compared (the Waiting lane, board drops). */
 export interface CoreRulesStatus {
   mode: CoreRulesMode
   /** 1 decision in this many is compared (`ASTRID_CORE_RULES_SAMPLE`; lib/core-rules/sampling.ts). */
@@ -48,10 +46,10 @@ export interface CoreRulesStatus {
 // On globalThis for the same reason as the decider itself: /api/health is compiled into a
 // different layer from instrumentation.ts, which installs this.
 const STATUS_KEY = Symbol.for('astrid.listPermissions.coreStatus')
-type StatusHost = { [STATUS_KEY]?: CoreRulesStatus }
+type StatusHost = { [STATUS_KEY]?: RetiredRuleStatus }
 
 /** What instrumentation.ts installed in this process, for /api/health. `null` before it ran. */
-export function listPermissionsCoreStatus(): CoreRulesStatus | null {
+export function listPermissionsCoreStatus(): RetiredRuleStatus | null {
   const status = (globalThis as StatusHost)[STATUS_KEY]
   return status ? { ...status, stats: status.stats ? { ...status.stats } : null } : null
 }
@@ -65,8 +63,7 @@ export function listPermissionsCoreStatus(): CoreRulesStatus | null {
 export function installListPermissionsCore(setting: string | undefined = process.env.ASTRID_CORE_RULES): boolean {
   const mode = coreRulesModeFrom(setting)
   const host = globalThis as StatusHost
-  const sampleEvery = sampleEveryFrom()
-  host[STATUS_KEY] = { mode, sampleEvery, loaded: false, revision: null, stats: null }
+  host[STATUS_KEY] = { mode, compare: 'retired', loaded: false, revision: null, stats: null }
   if (mode === 'off') {
     setListPermissionsCore(null)
     return false
@@ -81,14 +78,13 @@ export function installListPermissionsCore(setting: string | undefined = process
     const decider = createListPermissionsCore(
       core.runJson,
       {
-        disagreement: (details) => log.warn(details, 'list permissions: astrid-core and the TypeScript rules disagree'),
         failure: (details) => log.error(details, 'list permissions: astrid-core could not answer; the TypeScript answer was used'),
         summary: (details) => log.info(details, 'list permissions: astrid-core totals'),
       },
-      { revision: core.revision, mode, sampleEvery },
+      { revision: core.revision, mode },
     )
     setListPermissionsCore(decider.decide)
-    host[STATUS_KEY] = { mode, sampleEvery, loaded: true, revision: core.revision, stats: decider.stats }
+    host[STATUS_KEY] = { mode, compare: 'retired', loaded: true, revision: core.revision, stats: decider.stats }
     log.info({ revision: core.revision, mode }, 'list permissions: astrid-core installed')
     return true
   } catch (error) {

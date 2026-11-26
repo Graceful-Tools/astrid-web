@@ -82,6 +82,7 @@ const DYNAMIC_SEGMENT_PARENTS: Record<string, Classification> = {
   // Opaque record ids — uuid or cuid, collapsed by shape before the parent is
   // ever consulted.
   admins: 'opaque-id',
+  'access-tokens': 'opaque-id', // app/api/v1/users/me/access-tokens/[id]/rotate — the MCPToken ROW id (uuid), never the token (AWTD-1567)
   connectors: 'opaque-id', // app/api/v1/projects/[id]/connectors/[connectorId] (ADEV-277)
   approvals: 'opaque-id', // app/api/v1/tasks/[id]/approvals/[commentId] (AWTD-1694)
   blockers: 'opaque-id',// app/api/v1/tasks/[id]/blockers/[blockingTaskId] (AWTD-1002)
