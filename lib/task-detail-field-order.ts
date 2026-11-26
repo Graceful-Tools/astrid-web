@@ -1,4 +1,6 @@
 /**
+ * Spec module, test-only by design: its value is the test that pins it.
+ *
  * The order of the fields under a task's title, in LIST mode.
  *
  * Jon (task 4dd640d9, web half of astrid-ios c8a1ff51): *"Order (under task

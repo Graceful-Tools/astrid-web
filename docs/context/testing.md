@@ -16,8 +16,7 @@ tests/
 ├── auth/          # Authentication & rate limiting tests
 ├── components/    # Component tests
 ├── lib/           # Utility function tests (date-utils)
-├── setup.ts       # Global test setup & mocks
-└── test-utils.tsx # Custom render with providers
+└── setup.ts       # Global test setup & mocks
 ```
 
 ## Running Tests
@@ -64,15 +63,6 @@ npm run test:rate-limit # Run specific rate limit test
 - **Prisma Mocks**: Database client mocking for unit tests
 - **Environment Variables**: Test-specific configuration
 - **DOM Mocks**: window.matchMedia and browser APIs
-
-### Custom Render (`tests/test-utils.tsx:1-21`)
-```typescript
-// Wraps components with necessary providers
-const customRender = (ui, options) => render(ui, { 
-  wrapper: AllTheProviders, 
-  ...options 
-})
-```
 
 ### Mock Exports
 - **mockPrisma**: Mocked Prisma client for database operations
