@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { buildContentSecurityPolicy, generateNonce } from '@/lib/csp'
+import { buildContentSecurityPolicy, generateNonce, shouldUpgradeInsecureRequests } from '@/lib/csp'
 
 function scriptSrc(policy: string): string {
   return policy.split(';').map((d) => d.trim()).find((d) => d.startsWith('script-src')) ?? ''
@@ -96,5 +96,22 @@ describe('the service worker runs no third-party code (task eea00b1b)', () => {
   it('ships the vendored copy the service worker imports', () => {
     const vendored = readFileSync(join(process.cwd(), 'public/vendor/dexie.min.js'), 'utf8')
     expect(vendored.length).toBeGreaterThan(1000)
+  })
+
+  it('ADEV-298: does not upgrade a plain-http loopback page, which WebKit would break', () => {
+    // CI serves a production build on http://localhost:3000. Chromium and
+    // Firefox exempt loopback from upgrade-insecure-requests; WebKit does not,
+    // so it fetched every chunk from https://localhost:3000, failed the TLS
+    // handshake and never hydrated.
+    expect(shouldUpgradeInsecureRequests(true, new URL('http://localhost:3000/auth/signin'))).toBe(false)
+    expect(shouldUpgradeInsecureRequests(true, new URL('http://127.0.0.1:3000/'))).toBe(false)
+    expect(shouldUpgradeInsecureRequests(true, new URL('http://[::1]:3000/'))).toBe(false)
+    // Real hosts keep the directive, over either scheme.
+    expect(shouldUpgradeInsecureRequests(true, new URL('https://tasks.example.com/'))).toBe(true)
+    expect(shouldUpgradeInsecureRequests(true, new URL('http://tasks.example.com/'))).toBe(true)
+    expect(shouldUpgradeInsecureRequests(true, new URL('https://localhost/'))).toBe(true)
+    // Dev never upgraded.
+    expect(shouldUpgradeInsecureRequests(false, new URL('https://tasks.example.com/'))).toBe(false)
+    expect(buildContentSecurityPolicy('n', true, false, false)).not.toContain('upgrade-insecure-requests')
   })
 })
