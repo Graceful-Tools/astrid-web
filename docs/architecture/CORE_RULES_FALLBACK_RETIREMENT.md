@@ -89,26 +89,46 @@ every date below by the same amount.
 
 | Rule | Core rule | TypeScript (server and browser) | Since | Step A, earliest | Step B, also needs | Done |
 |---|---|---|---|---|---|---|
-| List permissions | `listAccess` | `lib/list-permissions.ts` (~760 LOC) | AWTD-1061 | **2026-12-14** (taken early, see below) | AWTD-1586 | ☑ A (2026-11-26) ◐ B: server half (ADEV-304, 2026-11-26) |
+| List permissions | `listAccess` | deleted (ADEV-304); `lib/list-permissions.ts` only asks the core | AWTD-1061 | **2026-12-14** (taken early, see below) | AWTD-1586 | ☑ A (2026-11-26) ☑ B (ADEV-304) |
 | Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** (taken early) | AWTD-1586 (search box) | ☑ A (2026-11-26) ☐ B |
-| Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** (taken early) | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☑ A (2026-11-26) ☑ B (ADEV-306, 2026-11-26: the browser has no rollover caller, so the door stays without `nextOccurrence` and its zone table. The server refuses instead of guessing. The whole-rule `calculateTaskNextOccurrence` is deleted and the fixture's `completions` come from the core. `calculateNextOccurrence` and its siblings remain only for the fixture's `simple`/`custom` sections.) |
+| Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** (taken early) | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☑ A (2026-11-26) ☐ B |
 | Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy (taken early) | AWTD-1586 (the board and the menus are client code) | ☑ A (2026-11-26) ☐ B |
 | Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. Drops now have their own counters (`coreRulesBoard.stats.drops`, AWTD-1608). The clock starts once a server caller exists. | AWTD-1586 | ☐ A ☐ B |
 | Decision cards, trade-off grids | `decision`, `tradeoffGrid`, `ratingKey`; a grid is also a `tradeoffGrid` block from `renderMarkdown` | `lib/comment-formats.ts` (~230), browser only | AWTD-1626 (held to the core by `tests/lib/core-rules-decisions-parity.test.ts`) | n/a: no server caller, so there is nothing to sample | AWTD-1586 (every caller is client code). `RATING_STYLE`'s `className` values stay on web | ☐ B |
 | List filters, sort, My Tasks, manual order, snooze | none on the stateless door yet (AWTD2-161) | `lib/date-filter-utils.ts`, `lib/task-sort.ts`, `lib/my-tasks-scope.ts`, `lib/recently-completed-window.ts`, `lib/reminder-snooze.ts` | AWTD-1583 adopted the core's answers in TypeScript | n/a: nothing to compare until the core exposes these rules | AWTD2-161, then AWTD-1586 | ☐ |
 
-**List permissions, step B: server half done, browser half blocked (ADEV-304, 2026-11-26).**
-Evidence: production (5e446ef2) had `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER` on (the CSP carries
-`'wasm-unsafe-eval'`) and `/api/health` `coreRules` at `decide`, `loaded: true`, `failed: 0`. On the
-server the core is now the only rule: a question it cannot answer is refused, instrumentation.ts
-fails the boot if the core does not load, `/api/health` returns 503 without it, and the stdio MCP
-server installs it before connecting. The permissions fixture is generated through the core.
-The browser still answers with the TypeScript until its door loads. Deleting that was tried (an app
-shell that waits for the door, with a read-only notice when it cannot load) and the signed-in e2e
-journeys broke both ways: with the shell waiting, drag reorder, the agent hand-back and list delete
-failed; without it, settings, sharing and rename failed on refusals drawn before the door loaded.
-The core's answers were right in both builds (checked case by case), so the open work is the app's
-timing, not the rule. Tracked as its own task.
+**List permissions, step B (ADEV-304, 2026-11-26).** Jon authorised it (option 1 on the task).
+Evidence at prod commit 5e446ef2: `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER` is on in production (the
+CSP carries `'wasm-unsafe-eval'`), and `/api/health` showed `coreRules` `{ mode: decide, compare:
+retired, loaded: true, stats: { answered: 38, skipped: 0, failed: 0 } }`. What changed:
+
+- **The TypeScript rule is gone.** `lib/list-permissions.ts` keeps its function names (so no caller
+  changed) but each one only puts the question to the installed core. A question the core can't
+  answer is a **refusal**: no role, every predicate false. The Prisma visibility clauses,
+  `PROJECT_ACCESS_INCLUDE`, `SYSTEM_LIST_IDS`, the project-level `getUserRoleInProject`, the agent
+  assignment policy and the other non-`listAccess` helpers stay: they are not this rule.
+- **Server.** `instrumentation.ts` installs the core and then calls
+  `assertListPermissionsCoreInstalled()`, which **fails the boot** when the core did not load: a
+  process that refused every check would answer 200 while nobody could edit anything. So every
+  request 500s instead, and the deployment workflow's health check goes red. `/api/health` is
+  also unhealthy (503) if `coreRules.loaded` is not true. `ASTRID_CORE_RULES=shadow|off` no longer
+  applies to list permissions (a warning is logged); the rollback is redeploying an earlier build.
+- **Browser.** The door loads unless `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER=off` (the default
+  flipped to on, with the CSP). It publishes a permission state, `pending` → `ready` or
+  `unavailable` (`browserListPermissionsState`). `components/authenticated-app.tsx`, the shell of
+  every page that draws permission affordances, starts the load at mount (not at idle) and keeps
+  its loading skeleton up while it is `pending`. `unavailable` draws the app read-only with a
+  notice (`components/list-permissions-unavailable-notice.tsx`).
+- **Edge middleware** asks no permission question; `tests/middleware/middleware-edge-safety.test.ts`
+  now fails if its import graph reaches `lib/list-permissions.ts`.
+- **The token-based stdio MCP server** (`mcp/mcp-server-v2.ts`, which reads Prisma and asks
+  `lib/list-permissions.ts` directly) installs the Node core before it connects, and refuses to
+  start without it. The OAuth stdio server asks the HTTP API, so the server decides for it.
+- **Fixture.** `permissions.json` is core-owned: generated by astrid-core `cargo xtask
+  gen-core-contracts`, vendored in `packages/astrid-rules/fixtures/`, no longer exported from web.
+  astrid-core `docs/CONTRACTS.md` §5 names `listAccess` canonical.
+- **Tests** install the vendored core from the shared setup files
+  (`tests/helpers/list-permissions-core.ts`).
 
 **Board columns, step B in progress (ADEV-307, 2026-11-26).** The browser door now installs the
 board hook (`lib/core-rules/browser-board.ts`, inside the lazy load), so with

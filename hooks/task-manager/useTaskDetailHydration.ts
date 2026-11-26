@@ -26,17 +26,23 @@ import type { Task } from '@/types/task'
 export interface UseTaskDetailHydrationProps {
   /** The task whose pane is open; `""` when none is. */
   selectedTaskId: string
+  /**
+   * Whether the opened task is in the list yet (ADEV-322). The merge never inserts a row, so a read
+   * that lands before the list does is applied to nothing; it is not started until the row is there.
+   */
+  selectedTaskLoaded: boolean
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
 }
 
 export function useTaskDetailHydration({
   selectedTaskId,
+  selectedTaskLoaded,
   setTasks,
 }: UseTaskDetailHydrationProps): void {
   const handled = useRef<Set<string>>(new Set())
 
   useEffect(() => {
-    if (!selectedTaskId) return
+    if (!selectedTaskId || !selectedTaskLoaded) return
     // An optimistic row has no server id yet: `GET /api/v1/tasks/temp-…` is a
     // guaranteed 404. The real id arrives with the create response.
     if (selectedTaskId.startsWith('temp-')) return
@@ -73,5 +79,5 @@ export function useTaskDetailHydration({
     return () => {
       cancelled = true
     }
-  }, [selectedTaskId, setTasks])
+  }, [selectedTaskId, selectedTaskLoaded, setTasks])
 }

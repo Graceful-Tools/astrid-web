@@ -3314,5 +3314,9 @@
       "listOwner": "列表所有者",
       "taskCreator": "任务创建者"
     }
+  },
+  "permissions": {
+    "unavailable": "无法编辑：此浏览器未能加载 {appName} 的权限规则。",
+    "reload": "重新加载"
   }
 }

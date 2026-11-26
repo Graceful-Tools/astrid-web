@@ -3314,5 +3314,9 @@
       "listOwner": "Den Listeninhaber",
       "taskCreator": "Wer die Aufgabe erstellt hat"
     }
+  },
+  "permissions": {
+    "unavailable": "Bearbeiten ist nicht verfügbar: Dieser Browser konnte die Berechtigungsregeln von {appName} nicht laden.",
+    "reload": "Neu laden"
   }
 }

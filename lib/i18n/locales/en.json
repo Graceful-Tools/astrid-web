@@ -3314,5 +3314,9 @@
       "listOwner": "The list owner",
       "taskCreator": "Whoever created the task"
     }
+  },
+  "permissions": {
+    "unavailable": "Editing is unavailable: this browser could not load {appName}'s permission rules.",
+    "reload": "Reload"
   }
 }

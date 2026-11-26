@@ -3,6 +3,7 @@ import { flushSync } from "react-dom"
 import { apiPost, apiPut } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import type { Task, TaskList } from "@/types/task"
+import { completeManualOrder } from "@/lib/task-sort"
 import { resolvePromotion, shouldShowPromoteTarget } from "@/lib/subtask-promotion"
 
 // Type for task operations hook return value
@@ -354,18 +355,12 @@ export function useTaskDragDrop({
       return false
     }
 
-    const existingManualOrder = isMyTasksList
-      ? (myTasksManualSortOrder || []).filter(id => listTaskIds.includes(id))
-      : (Array.isArray((list as any)?.manualSortOrder)
-          ? (list!.manualSortOrder as string[]).filter(id => listTaskIds.includes(id))
-          : [])
-
-    const normalizedOrder = [...existingManualOrder]
-    listTaskIds.forEach(id => {
-      if (!normalizedOrder.includes(id)) {
-        normalizedOrder.push(id)
-      }
-    })
+    // The order the list draws (ADEV-322): tasks the saved order does not name sit newest first, not
+    // in the order `tasks` happens to hold them, which is only the order the data arrived in.
+    const savedManualOrder = isMyTasksList
+      ? myTasksManualSortOrder
+      : (list as { manualSortOrder?: unknown } | undefined)?.manualSortOrder
+    const normalizedOrder = completeManualOrder(Array.isArray(savedManualOrder) ? savedManualOrder : [], listTasks)
 
     const previousOrder = [...normalizedOrder]
 

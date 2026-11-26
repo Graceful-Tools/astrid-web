@@ -3314,5 +3314,9 @@
       "listOwner": "Le propriétaire de la liste",
       "taskCreator": "La personne qui a créé la tâche"
     }
+  },
+  "permissions": {
+    "unavailable": "La modification est indisponible : ce navigateur n'a pas pu charger les règles d'autorisation d'{appName}.",
+    "reload": "Recharger"
   }
 }
