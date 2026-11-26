@@ -18,6 +18,8 @@ export interface TaskCreationData {
   assigneeId?: string | null
   listIds?: string[]
   statusRole?: string
+  /** Set when the task is created as a subtask of another (ADEV-297). */
+  parentTaskId?: string
 }
 
 export interface TaskCreationDependencies {
@@ -155,7 +157,9 @@ export function mapTaskDataForApi(taskData: TaskCreationData) {
     listIds: taskData.listIds || [],
     // Board column at creation (task eb7fce2f); absent everywhere else, and
     // absence means Inbox.
-    statusRole: taskData.statusRole
+    statusRole: taskData.statusRole,
+    // Dropped here until ADEV-297: a subtask added in task detail was created top-level.
+    parentTaskId: taskData.parentTaskId
   }
 }
 
