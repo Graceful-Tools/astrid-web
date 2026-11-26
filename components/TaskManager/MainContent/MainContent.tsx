@@ -20,7 +20,7 @@ import { shouldVirtualizeTaskList } from "@/lib/virtualize-task-list"
 import { useTaskRowController } from "@/hooks/task-manager/useTaskRowController"
 import { AstridEmptyState } from "@/components/ui/astrid-empty-state"
 import { taskAreaPositionClasses } from '@/lib/task-area-position-classes'
-import { listHeaderBottomMarginClass } from '@/lib/list-header-spacing'
+import { listHeaderBottomMarginClass, listTitleRowBottomMarginClass } from '@/lib/list-header-spacing'
 import { useBoardRowContext } from "@/hooks/task-manager/useBoardRowContext"
 import { DescriptionDialog, type DescriptionDialogHandle } from "./DescriptionDialog"
 import {
@@ -595,7 +595,7 @@ export function MainContent({
                 if (!currentList) return null
 
                 return (
-                  <div className="flex items-center justify-start gap-4 mb-4">
+                  <div className={`flex items-center justify-start gap-4 ${listTitleRowBottomMarginClass({ boardMode: Boolean(hasProjectBoard && taskViewMode === 'board') })}`}>
                     <ListHeaderImage
                       list={currentList}
                       onPick={canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleListImageClick(currentList.id) : undefined}
@@ -661,7 +661,7 @@ export function MainContent({
 
             {/* Default view titles for system lists */}
             {isSystemListId(selectedListId) && (
-              <div className="flex items-center justify-start space-x-4 mb-4">
+              <div className={`flex items-center justify-start space-x-4 ${listTitleRowBottomMarginClass({ boardMode: Boolean(hasProjectBoard && taskViewMode === 'board') })}`}>
                 <div className="text-left flex-1 min-w-0">
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm truncate">{getSelectedListInfo().description}</p>
