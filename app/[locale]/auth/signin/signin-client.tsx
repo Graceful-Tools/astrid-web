@@ -48,6 +48,7 @@ export function SignInContent() {
   // Passkey support
   const {
     isSupported: isPasskeySupported,
+    isSupportChecked: isPasskeySupportChecked,
     isLoading: isPasskeyLoading,
     error: passkeyError,
     registerPasskey,
@@ -315,6 +316,7 @@ export function SignInContent() {
                 <>
                 <Button
                   type="button"
+                  data-passkey-support={!isPasskeySupportChecked ? "pending" : isPasskeySupported ? "supported" : "unsupported"}
                   onClick={() => {
                     setPasskeyEmail("")
                     setShowPasskeyEmailPrompt(true)
@@ -330,7 +332,7 @@ export function SignInContent() {
                   <KeyRound className="w-5 h-5 mr-2" />
                   {t('auth.continueWith', { provider: t('signInPage.passkey') })}
                 </Button>
-                {!isPasskeySupported && (
+                {isPasskeySupportChecked && !isPasskeySupported && (
                   <p className="text-xs theme-text-muted text-center -mt-2">
                     {t('signInPage.passkeysNotSupported')}
                   </p>
