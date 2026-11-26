@@ -25,6 +25,7 @@ import { LIST_TOOLS } from "./list-tools"
 import { ORCHESTRATION_TOOLS } from "./orchestration-policy-tool"
 import { DECISION_EVIDENCE_TOOLS } from "./decision-evidence-tool"
 import { PROJECT_GOALS_TOOLS } from "./project-goals-tool"
+import { GOAL_SIGNALS_TOOLS } from "./goal-signals-tool"
 
 /**
  * The Decision and trade-off grid formats, short enough for a tool description (AWTD-1531).
@@ -386,6 +387,7 @@ export const OAUTH_MCP_TOOLS = [
       ...LIST_TOOLS,
       ...ORCHESTRATION_TOOLS,
       ...PROJECT_GOALS_TOOLS,
+      ...GOAL_SIGNALS_TOOLS,
       ...DECISION_EVIDENCE_TOOLS,
 ] as const
 
