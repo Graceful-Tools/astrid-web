@@ -11,7 +11,7 @@
  *
  * This pins both halves without a database. That schema.prisma and the chain
  * agree is checked for real by `prisma migrate diff --exit-code` in
- * tests/integration/postgres-risk.test.ts.
+ * tests/integration/postgres/postgres-risk.test.ts.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'

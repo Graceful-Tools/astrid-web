@@ -69,6 +69,14 @@ URL on the task and end that report with a line of its own:
 incomplete in Doing, assigned to you. astrid-core has no deploy: the ship workflow merges
 the PR once its checks are green and completes the task. Open no astrid-web PR for it.
 
+**Re-pinning astrid-rules** (a web task that needs a newer core, such as a new rule or
+fixture) is `npm run build:astrid-rules -- --rev <core sha> --core "$ASTRID_CORE_DIR"`, never
+the script directly: this run's allowlist admits `npm run`, not `scripts/*.sh`. It needs the
+wasm32 target (`rustup target add wasm32-unknown-unknown`) and the wasm-bindgen CLI version the
+core's `scripts/build-wasm.sh` names (`cargo install wasm-bindgen-cli --version <it>`). Commit
+`packages/astrid-rules/` and the script change together. ADEV-279 and ADEV-281 stalled three
+runs on 2026-11-26 calling the script by path.
+
 When the task's fix is already on `main` (an earlier PR merged it), write no code
 and open no PR. Comment `AWAITING-DEPLOY: <the origin/main sha that contains the fix>`
 and leave the task in Doing; the runner accepts a commit on `main` and completes

@@ -55,28 +55,14 @@ function whereFromLastCall() {
 }
 
 describe('GET /api/v1/tasks — updatedSince (delta sync)', () => {
-  it('filters by updatedAt when updatedSince is supplied', async () => {
-    const since = '2026-07-26T12:00:00.000Z'
-
-    await get(`?updatedSince=${encodeURIComponent(since)}`)
-
-    expect(whereFromLastCall()?.updatedAt).toEqual({ gt: new Date(since) })
-  })
+  // "Filters by updatedAt" (an exact `{ gt }` shape) and "keeps the visibility clause" lived here.
+  // Both are now asserted on real rows: tests/integration/postgres/v1-tasks-sync.test.ts (ADEV-294).
 
   it('leaves the query untouched when updatedSince is omitted', async () => {
     // The additive guarantee: existing clients must see identical behaviour.
     await get('?limit=10')
 
     expect(whereFromLastCall()).not.toHaveProperty('updatedAt')
-  })
-
-  it('keeps the caller-visibility clause intact alongside the delta filter', async () => {
-    // A delta must narrow by time, never widen who can see what.
-    await get('?updatedSince=2026-07-26T12:00:00.000Z')
-
-    const where = whereFromLastCall()
-    expect(where?.OR, 'visibility OR clause must survive').toBeTruthy()
-    expect(where?.updatedAt).toBeTruthy()
   })
 
   it('combines with listId rather than replacing it', async () => {

@@ -1,7 +1,5 @@
 import { hasCapability } from '@/lib/brand/capabilities'
-import { brandOrigin } from "@/lib/brand/config"
 import type { NextApiRequest, NextApiResponse } from "next"
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js"
 import AstridMCPServerOAuth from "../../../mcp/mcp-server-oauth"
 import {
   extractAuthContext,
@@ -12,8 +10,6 @@ import {
 import { UnauthorizedError } from "@/lib/api-auth-middleware"
 import { OutboundUrlError } from "@/lib/security/outbound-url"
 import { createLogger } from "@/lib/logger"
-import { deleteSession, storeSession } from "../../../lib/server/mcp-session-store"
-import { recordMcpLegacySseUsage } from "../../../lib/server/mcp-legacy-sse-usage"
 
 export const config = {
   api: {
@@ -22,32 +18,13 @@ export const config = {
 }
 
 const log = createLogger("mcp.http")
-const ENABLE_DNS_PROTECTION = process.env.ASTRID_MCP_ENABLE_DNS_PROTECTION === "true"
-const ALLOWED_HOSTS = (process.env.ASTRID_MCP_ALLOWED_HOSTS || "")
-  .split(",")
-  .map(value => value.trim())
-  .filter(Boolean)
-const ALLOWED_ORIGINS = (process.env.ASTRID_MCP_ALLOWED_ORIGINS || "")
-  .split(",")
-  .map(value => value.trim())
-  .filter(Boolean)
-
-const securityOptions =
-  ENABLE_DNS_PROTECTION || ALLOWED_HOSTS.length || ALLOWED_ORIGINS.length
-    ? {
-        enableDnsRebindingProtection: ENABLE_DNS_PROTECTION,
-        allowedHosts: ALLOWED_HOSTS.length ? ALLOWED_HOSTS : undefined,
-        allowedOrigins: ALLOWED_ORIGINS.length ? ALLOWED_ORIGINS : undefined,
-      }
-    : undefined
-
 /**
  * Minimal MCP transport carrying one request/response pair (task a0e0808c).
  *
- * The SSE transport below keeps a long-lived stream and expects clients to POST
- * to a separate /mcp/messages URL. Streamable HTTP — what current MCP clients
- * (Copilot, Claude) speak — POSTs JSON-RPC to this single URL and reads the
- * reply from the response body. Each POST gets its own server and transport.
+ * Streamable HTTP — what current MCP clients (Copilot, Claude) speak — POSTs
+ * JSON-RPC to this single URL and reads the reply from the response body. Each
+ * POST gets its own server and transport. (The legacy SSE transport, a GET
+ * stream plus a separate /mcp/messages URL, was retired in AWTD-1569.)
  */
 class SingleRequestTransport {
   onmessage?: (message: unknown) => void
@@ -196,40 +173,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return
   }
 
-  // AWTD-1461: count legacy SSE streams so dropping the transport can be
-  // decided on durable evidence rather than Vercel's minutes-long log window.
-  recordMcpLegacySseUsage(req, "stream")
-
-  try {
-    const transport = new SSEServerTransport(
-      process.env.ASTRID_MCP_POST_PATH || "/mcp/messages",
-      res as any,
-      securityOptions
-    )
-    const sessionId = transport.sessionId
-    const serverInstance = new AstridMCPServerOAuth(authContext.options)
-
-    storeSession(sessionId, {
-      transport,
-      server: serverInstance,
-      authSignature: authContext.authSignature,
-      authOptions: { ...authContext.options },
-      authOrigin: mcpRequestBaseUrl(req),
-      createdAt: Date.now(),
-    })
-
-    transport.onclose = () => {
-      deleteSession(sessionId)
-    }
-
-    await serverInstance.startWithTransport(transport, "sse")
-    console.log(
-      `[MCP] SSE session established (${sessionId}) for base ${authContext.options.baseUrl || brandOrigin()}`
-    )
-  } catch (error) {
-    console.error("[MCP] Failed to establish SSE session:", error)
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to establish MCP session" })
-    }
-  }
+  // GET: a Streamable-HTTP client's optional listen stream (AWTD-1569).
+  //
+  // Clients such as Claude Code open this after initialize so the server can
+  // push requests and notifications. This server never pushes anything — every
+  // reply goes back in the body of the POST it answers — so the stream stays
+  // open and silent until the client hangs up or the function times out. That
+  // is what these clients saw while GET also served the legacy SSE transport
+  // (they ignored its `endpoint` event), minus the per-instance session that
+  // transport kept. Answering 405 instead is a separate, client-visible decision.
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+  })
+  // An SSE comment: flushes the headers now, and every client parser skips it.
+  res.write(": listening\n\n")
+  // The response (not the request) closes when the client disconnects; a GET's
+  // request stream can report "close" as soon as its empty body is read.
+  await new Promise<void>(resolve => {
+    if (res.destroyed) resolve()
+    else res.once("close", () => resolve())
+  })
+  if (!res.writableEnded) res.end()
 }

@@ -1161,8 +1161,7 @@
         "note": "把這個 URL 加到助理的 MCP 設定中。它會提示你登入 {appName}——不必複製任何金鑰。",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。"
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "步驟1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。",
         "claudeNote": "一道指令即可——它會開啟瀏覽器以核准存取，不必複製任何金鑰",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI 同樣一道指令即可連接",

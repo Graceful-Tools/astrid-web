@@ -16,10 +16,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Readable } from 'stream'
 import handler from '@/pages/api/mcp/index'
-import messagesHandler from '@/pages/api/mcp/messages'
 import { authenticateAPI, UnauthorizedError } from '@/lib/api-auth-middleware'
 import { BRAND } from '@/lib/brand/config'
-import { buildAuthSignature } from '@/lib/server/mcp-http-utils'
 
 vi.mock('@/lib/prisma', () => ({ prisma: {} }))
 vi.mock('undici', async importOriginal => ({
@@ -29,12 +27,6 @@ vi.mock('undici', async importOriginal => ({
 vi.mock('@/lib/api-auth-middleware', () => ({
   authenticateAPI: vi.fn(),
   UnauthorizedError: class extends Error {},
-}))
-const getSession = vi.hoisted(() => vi.fn())
-vi.mock('@/lib/server/mcp-session-store', () => ({
-  getSession,
-  storeSession: vi.fn(),
-  deleteSession: vi.fn(),
 }))
 
 function res() {
@@ -109,7 +101,7 @@ describe('/mcp unauthenticated challenge', () => {
     expect(challenge).toContain('/.well-known/oauth-protected-resource/mcp')
   })
 
-  it('tells an SSE (GET) client the same thing', async () => {
+  it('tells a GET (listen stream) client the same thing', async () => {
     const req = Object.assign(Readable.from([]), { method: 'GET', headers: {}, query: {} })
     const r = res()
 
@@ -191,42 +183,6 @@ describe('/mcp unauthenticated challenge', () => {
       else expect(authenticateAPI).toHaveBeenCalled()
     },
   )
-
-  it('AITD-447 revalidates a bearer on the legacy SSE message endpoint', async () => {
-    const handlePostMessage = vi.fn()
-    const req = request('POST', 'Bearer astrid_fixture_expired')
-    getSession.mockReturnValue({
-      authSignature: buildAuthSignature(req as never),
-      authOptions: { accessToken: 'astrid_fixture_expired' },
-      transport: { handlePostMessage },
-    })
-    vi.mocked(authenticateAPI).mockRejectedValue(new UnauthorizedError())
-    Object.assign(req.query, { sessionId: 'fixture-session' })
-    const r = res()
-    await messagesHandler(req as never, r as never)
-
-    expect(r.statusCode).toBe(401)
-    expect(r.headers['WWW-Authenticate']).toContain('error="invalid_token"')
-    expect(r.headers['WWW-Authenticate']).toContain('resource_metadata=')
-    expect(handlePostMessage).not.toHaveBeenCalled()
-    expect(authenticateAPI).toHaveBeenCalled()
-  })
-
-  it('AITD-447 rejects a POST selecting a different bearer than its retained SSE server', async () => {
-    const handlePostMessage = vi.fn()
-    const req = request('POST', 'Bearer astrid_fixture_A')
-    getSession.mockReturnValue({
-      authSignature: buildAuthSignature(req as never),
-      authOptions: { accessToken: 'astrid_fixture_A' },
-      transport: { handlePostMessage },
-    })
-    Object.assign(req.headers, { 'x-astrid-access-token': 'astrid_fixture_B' })
-    Object.assign(req.query, { sessionId: 'fixture-session' })
-    const r = res()
-    await messagesHandler(req as never, r as never)
-    expect(r.statusCode).toBe(401)
-    expect(handlePostMessage).not.toHaveBeenCalled()
-  })
 
   it('AITD-447 leaves an authenticated authorization failure as a tool error', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
