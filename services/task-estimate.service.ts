@@ -33,6 +33,7 @@ import { EstimatorError, pollEstimate, requestEstimate, type EstimatorReply, typ
 import { runBuiltinEstimator } from '@/lib/ai/builtin-estimator'
 import type { TradeoffReason } from '@/lib/core-rules/tradeoff-core'
 import { evaluateEstimateRow } from '@/services/tradeoff-evaluation.service'
+import { actOnGoalSignal } from '@/services/goal-action.service'
 
 const log = createLogger('task-estimate')
 
@@ -223,7 +224,10 @@ async function persist(
     }
   }
   // Label it against the policy that applies (ADEV-281). Unlabelled when no policy is stated.
-  return estimateView(await evaluateEstimateRow(row))
+  const labelled = await evaluateEstimateRow(row)
+  // A `do-now` label may be acted on: the policy decides whether the server promotes, asks or only recommends (ADEV-284).
+  if (labelled.label === 'do-now') await actOnGoalSignal(labelled.taskId, 'promoteIdea')
+  return estimateView(labelled)
 }
 
 /** The estimator to use: the named one, else the first service the environment defines, else the built-in. */
