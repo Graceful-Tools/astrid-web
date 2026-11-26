@@ -112,6 +112,25 @@ export function resolveRpID(requestOrigin?: string): string {
  */
 const rpID = resolveRpID()
 
+/**
+ * The plain-http origin of a deployment that declares itself to be on this machine
+ * (NEXTAUTH_URL=http://localhost:3000), or null. A production build served locally, which is
+ * how CI runs `next start` for the e2e suite, is on http, so the `https://` origin below never
+ * matches what the browser reports and no passkey ceremony can verify (ADEV-297). Only a
+ * loopback host qualifies: nothing off this machine can reach it, so it adds no real origin.
+ */
+function loopbackOrigin(): string | null {
+  const url = process.env.NEXTAUTH_URL
+  if (!url) return null
+  try {
+    const parsed = new URL(url)
+    const loopback = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1"
+    return parsed.protocol === "http:" && loopback ? parsed.origin : null
+  } catch {
+    return null
+  }
+}
+
 // The brand's own origins, plus the host we are actually served from — otherwise a
 // deployment reachable at a non-brand host cannot complete a passkey ceremony.
 const baseOrigins = isProduction
@@ -119,6 +138,7 @@ const baseOrigins = isProduction
       `https://${BRAND.domain}`,
       `https://www.${BRAND.domain}`,
       ...(servingHost() ? [`https://${servingHost()}`] : []),
+      ...(loopbackOrigin() ? [loopbackOrigin() as string] : []),
     ]))
   : [`http://localhost:${process.env.PORT || 3000}`]
 

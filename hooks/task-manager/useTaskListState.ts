@@ -420,19 +420,21 @@ export function useTaskListState({
   }, [])
 
   // Dedup ref for rapid-fire task_updated events
-  const lastTaskUpdateRef = useRef<Map<string, number>>(new Map())
+  const lastTaskUpdateRef = useRef<Map<string, { at: number; payload: string }>>(new Map())
 
   const handleTaskUpdated = useCallback((event: any) => {
     const taskData = taskFromUpdateEvent(event)
     if (!taskData) return
 
-    // Dedup: skip if we processed this task update within 500ms
+    // Dedup: skip only an event identical to the one just applied (ADEV-301).
+    // A distinct change to the same task inside the window must still land.
     const now = Date.now()
-    const lastUpdate = lastTaskUpdateRef.current.get(taskData.id)
-    if (lastUpdate && now - lastUpdate < 500) {
+    const payload = JSON.stringify(taskData)
+    const last = lastTaskUpdateRef.current.get(taskData.id)
+    if (last && last.payload === payload && now - last.at < 500) {
       return
     }
-    lastTaskUpdateRef.current.set(taskData.id, now)
+    lastTaskUpdateRef.current.set(taskData.id, { at: now, payload })
 
     if (process.env.NODE_ENV === 'development') {
       console.log('[useTaskListState] SSE: Task updated', event)
