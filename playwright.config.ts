@@ -16,6 +16,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'agent-journey',
   'realtime-two-sessions',
   'list-drag-and-subtasks',
+  'passkey-sign-in',
   'list-sharing',
   'reminder-snooze',
   'offline-round-trip',
