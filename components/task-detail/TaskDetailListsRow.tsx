@@ -34,8 +34,13 @@ import { useTranslations } from "@/lib/i18n/client"
 import { TaskDetailEstimateRow } from "./TaskDetailEstimateRow"
 
 // Loaded on demand: the row and its picker are not needed to paint the first screen.
+// Offline the chunk may not be cached; the row then renders nothing instead of
+// crashing task detail (offline-round-trip e2e, AWTD-1417).
 const TaskDetailExperimentRow = dynamic(
-  () => import("./TaskDetailExperimentRow").then((m) => m.TaskDetailExperimentRow),
+  () =>
+    import("./TaskDetailExperimentRow")
+      .then((m) => m.TaskDetailExperimentRow)
+      .catch(() => () => null),
   { ssr: false },
 )
 import type { Task, TaskList } from "@/types/task"
