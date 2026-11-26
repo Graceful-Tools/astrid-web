@@ -1729,6 +1729,19 @@
         "loadError": "Rechten van deze verbinding konden niet worden geladen",
         "selectAtLeastOne": "Selecteer minstens één scope",
         "selectApp": "Selecteer een app."
+      },
+      "tokenScope": {
+        "unscoped": "Volledige toegang (geen scopes ingesteld)",
+        "recorded": "Met scopes, nog niet afgedwongen",
+        "enforced": "Beperkt tot deze scopes"
+      },
+      "rotate": {
+        "action": "Vernieuwen",
+        "confirm": "{name} vernieuwen? Een nieuw token met dezelfde toegang vervangt het, en het oude werkt meteen niet meer.",
+        "newTokenTitle": "Nieuw token",
+        "newTokenDescription": "Kopieer het nu: het wordt niet opnieuw getoond. Werk alles bij dat het oude token gebruikte.",
+        "done": "Klaar",
+        "error": "Vernieuwen mislukt"
       }
     },
     "openInNewTab": "Openen in nieuw tabblad",

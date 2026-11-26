@@ -1729,6 +1729,19 @@
         "loadError": "Não foi possível carregar as permissões desta conexão",
         "selectAtLeastOne": "Selecione pelo menos um escopo",
         "selectApp": "Selecione um aplicativo."
+      },
+      "tokenScope": {
+        "unscoped": "Acesso total (sem escopos definidos)",
+        "recorded": "Com escopos, ainda não aplicados",
+        "enforced": "Limitado a estes escopos"
+      },
+      "rotate": {
+        "action": "Rotacionar",
+        "confirm": "Rotacionar {name}? Um novo token o substitui com o mesmo acesso, e o antigo para de funcionar imediatamente.",
+        "newTokenTitle": "Novo token",
+        "newTokenDescription": "Copie agora: ele não será mostrado de novo. Atualize tudo o que usava o token antigo.",
+        "done": "Concluído",
+        "error": "Não foi possível rotacionar"
       }
     },
     "openInNewTab": "Abrir em nova aba",

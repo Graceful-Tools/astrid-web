@@ -341,8 +341,10 @@ Two settings pages, two questions — keep them apart (2026-09-20):
 Native (iOS + Mac) has an Agent Hub twin and a shared `ConnectionsScreen`; the developer
 console stays on the web. Credential kinds the API accepts: OAuth bearer (`Authorization:
 Bearer astrid_…` or `X-OAuth-Token`), session cookie, and access tokens (`MCPToken` rows,
-`X-MCP-Access-Token`) — the last granted `*` today and shadow-scoped ahead of narrowing
-(`accessTokenShadowScopes` in `lib/api-auth-middleware.ts`).
+`X-MCP-Access-Token`) — the last granted `*` and shadow-scoped ahead of narrowing
+(`accessTokenShadowScopes` in `lib/api-auth-middleware.ts`), except a token minted with explicit
+`scopes`, which is held to them under `ASTRID_TOKEN_SCOPE_ENFORCEMENT` (default off; canary via
+`ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS`; `lib/token-scope-enforcement.ts`, AWTD-1567).
 
 ### Communication Protocol
 

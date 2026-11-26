@@ -173,6 +173,40 @@ describe('listConnections', () => {
     expect(where).toMatchObject({ userId: 'user-1', listId: null, isActive: true })
   })
 
+  it('AWTD-1567: shows a scoped token\'s own scopes and whether the flag enforces them', async () => {
+    mcpFindMany.mockResolvedValue([{
+      id: 'tok-2', description: 'Read-only reporter', permissions: ['read'], scope: 'tasks:read lists:read',
+      createdAt: EARLIER, expiresAt: null, isActive: true, agentMailbox: null, agentUser: null,
+    }])
+    const [off] = await listConnections('user-1')
+    expect(off.scopes).toEqual(['tasks:read', 'lists:read'])
+    expect(off.detail).toMatchObject({ scoped: true, scopeEnforced: false })
+
+    vi.stubEnv('ASTRID_TOKEN_SCOPE_ENFORCEMENT', 'canary')
+    vi.stubEnv('ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS', 'user-1')
+    try {
+      const [canary] = await listConnections('user-1')
+      expect(canary.detail).toMatchObject({ scoped: true, scopeEnforced: true })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
+  it('AWTD-1567: an unscoped token still says * and is never marked enforced', async () => {
+    vi.stubEnv('ASTRID_TOKEN_SCOPE_ENFORCEMENT', 'on')
+    try {
+      mcpFindMany.mockResolvedValue([{
+        id: 'tok-3', description: null, permissions: ['read', 'write'], scope: null,
+        createdAt: EARLIER, expiresAt: null, isActive: true, agentMailbox: null, agentUser: null,
+      }])
+      const [row] = await listConnections('user-1')
+      expect(row.scopes).toEqual(['*'])
+      expect(row.detail).toMatchObject({ scoped: false, scopeEnforced: false })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+  })
+
   it('lists the webhook server by host, decrypting the URL for display', async () => {
     webhookFindUnique.mockResolvedValue({
       webhookUrl: 'ciphertext', enabled: true, agents: ['claude'], createdAt: EARLIER, lastFiredAt: NOW,

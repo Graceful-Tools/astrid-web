@@ -1038,6 +1038,10 @@ model MCPToken {
   agentUserId    String?
   agentMailbox   String?
   permissions    String[]
+  // Explicit OAuth scopes the token was minted with, space-separated (AWTD-1567).
+  // Null = unscoped: every token minted before AWTD-1567 keeps '*'. Enforced
+  // only under ASTRID_TOKEN_SCOPE_ENFORCEMENT (lib/token-scope-enforcement.ts).
+  scope          String?
   description    String?
   expiresAt      DateTime?
   createdAt      DateTime  @default(now())

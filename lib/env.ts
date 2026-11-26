@@ -228,6 +228,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_API_BASE_URL', scope: 'optional', description: 'API base the standalone MCP servers call. Defaults to this brand’s own origin.', validate: isUrl },
   { name: 'ASTRID_AGENT_WAKE', scope: 'optional', description: 'Enables the opt-in event-driven agent wake (AWTD-1556) only when set to "on"; unset or any other value queues no wake and changes nothing.' },
   { name: 'ASTRID_AGENT_WAKE_LISTS', scope: 'optional', description: 'Comma-separated board IDs whose polling worker is woken by repository_dispatch when work becomes runnable; an entry may be "boardId=owner/repo" to name the repository, else the board\'s connected one. Ignored unless ASTRID_AGENT_WAKE is "on"; empty enrolls no boards.' },
+  { name: 'ASTRID_TOKEN_SCOPE_ENFORCEMENT', scope: 'optional', description: 'Holds access tokens minted with explicit scopes to those scopes (AWTD-1567): off (default; unset or any other value), canary (only owners in ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS) or on (all). Unscoped tokens keep * regardless. Rollback = off.', validate: v => (['off', 'canary', 'on'].includes(v.trim()) ? null : 'Must be off, canary, or on') },
+  { name: 'ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS', scope: 'optional', description: 'Comma-separated user ids whose explicitly scoped access tokens are enforced while ASTRID_TOKEN_SCOPE_ENFORCEMENT is canary. Ignored otherwise.' },
   { name: 'ASTRID_API_URL', scope: 'tooling', description: 'API base used by the SDK and local scripts.', validate: isUrl },
   { name: 'ASTRID_API_BASE', scope: 'tooling', description: 'Legacy alias read by older scripts.' },
   { name: 'ASTRID_OAUTH_CLIENT_ID', scope: 'optional', description: 'OAuth client the MCP server authenticates as.' },
