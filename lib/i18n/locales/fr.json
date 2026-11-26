@@ -2899,7 +2899,8 @@
       "doing": "En cours",
       "waiting": "En attente",
       "done": "Terminé",
-      "testing": "Test"
+      "testing": "Test",
+      "results": "Résultats en attente"
     },
     "empty": {
       "inbox": "Rien de nouveau à trier ! Les tâches sans statut arrivent ici.",
@@ -2915,7 +2916,8 @@
       "doing": "Travail en cours !",
       "waiting": "En pause jusqu’à ce que les conditions soient réunies.",
       "done": "Terminé — bravo !",
-      "testing": "En déploiement, en canary ou dans une expérience."
+      "testing": "En déploiement, en canary ou dans une expérience.",
+      "results": "Construit et publié ; en attente du rapport d'une expérience ou d'une vérification."
     }
   },
   "passkeyErrors": {

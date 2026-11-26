@@ -338,6 +338,7 @@ model Project {
   fields               ProjectField[]
   goalLinks            GoalLink[]
   taskEstimates        TaskEstimate[]
+  taskExperiments      TaskExperiment[]
   connectors           ProjectConnector[]
 
   @@unique([key])
@@ -396,6 +397,7 @@ model ProjectMember {
 model Task {
   goalLinks              GoalLink[]
   estimates              TaskEstimate[]
+  experiments            TaskExperiment[]
   id                     String             @id @default(dbgenerated("(gen_random_uuid())::text"))
   title                  String
   description            String             @default("")
@@ -2110,6 +2112,43 @@ model TaskEstimate {
   project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([taskId, createdAt])
+}
+
+/// A task's link to an experiment, or to a plain post-deploy verification window (ADEV-269,
+/// ADEV-279). One table: both are "wait for a result, then settle". Astrid computes no statistics:
+/// `snapshot` is the experiment service's sanitized reply and `verdict` is the service's, or for a
+/// verification the comparison of `baseline` with the project's current goal and guardrail values.
+model TaskExperiment {
+  id               String    @id @default(dbgenerated("(gen_random_uuid())::text"))
+  taskId           String
+  projectId        String
+  /// "experiment" | "verification"
+  kind             String
+  connectorId      String?
+  externalKey      String?
+  url              String?
+  /// "pending" | "running" | "concluded" | "stopped" | "unknown"
+  state            String    @default("pending")
+  /// "improving" | "flat" | "regressing" | "inconclusive"
+  verdict          String?
+  /// { action: "start" | "continue" | "stop" | "ship" | "rollback", reason }
+  recommendation   Json?
+  snapshot         Json?
+  snapshotDigest   String?
+  /// A verification's goal and guardrail values when it was started (the deploy).
+  baseline         Json?
+  startedAt        DateTime?
+  decideBy         DateTime?
+  fetchedAt        DateTime?
+  /// The last refresh's failure, short. Null when the last refresh worked.
+  lastError        String?
+  returnAssigneeId String?
+  createdAt        DateTime  @default(now())
+  task             Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([state, fetchedAt])
 }
 
 /// A project's binding to one outside service (ADEV-269, ADEV-277). `kind` and

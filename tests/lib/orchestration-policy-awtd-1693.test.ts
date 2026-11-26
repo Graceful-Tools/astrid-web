@@ -28,6 +28,7 @@ import {
 import { loadCoreRulesFrom, type CoreRules } from '@/lib/core-rules/wasm'
 import {
   defaultOrchestrationPolicy,
+  defaultTradeoffPolicy,
   parsePolicyOverride,
   runOrchestrationTs,
   withAssignTo,
@@ -60,8 +61,8 @@ function vendoredCore(): CoreRules | null {
 afterEach(() => setOrchestrationCoreForTests(undefined))
 
 describe('orchestration.json — the TypeScript mirror (AWTD-1693)', () => {
-  it('has the core\'s 28 cases, every kind among them', () => {
-    expect(fixture.cases).toHaveLength(28)
+  it('has the core\'s 37 cases, every kind among them', () => {
+    expect(fixture.cases).toHaveLength(37)
     expect(new Set(fixture.cases.map(c => c.request.kind))).toEqual(
       new Set(['orchestrationPolicy', 'orchestrationRoute', 'orchestrationMay', 'orchestrationEscalate']),
     )
@@ -129,6 +130,34 @@ describe('stored overrides (AWTD-1693)', () => {
     expect(parsePolicyOverride({ escalation: { to: 'people' } }).ok).toBe(false)
     expect(parsePolicyOverride({ routing: { assignTo: '' } }).ok).toBe(false)
     expect(parsePolicyOverride('allowed').ok).toBe(false)
+  })
+
+  it('refuses a trade-off threshold outside the vocabulary rather than guessing (ADEV-281)', () => {
+    expect(parsePolicyOverride({ tradeoff: { risk: { reviewAt: 'scary' } } })).toEqual({
+      ok: false,
+      error: { kind: 'badRequest', message: 'unknown variant `scary`, expected one of `low`, `medium`, `high`' },
+    })
+    expect(parsePolicyOverride({ tradeoff: { guardrail: { refuseAtBreachProbability: 1.5 } } })).toEqual({
+      ok: false,
+      error: { kind: 'badRequest', message: '1.5 is not a probability between 0 and 1' },
+    })
+    expect(parsePolicyOverride({ tradeoff: { goalOrder: 'g1' } }).ok).toBe(false)
+    expect(parsePolicyOverride({ tradeoff: { weights: {} } }).ok).toBe(false)
+    // A stored key that names nothing is still a policy (of the defaults), so it is kept, not dropped.
+    expect(parsePolicyOverride({ tradeoff: { risk: {} } })).toEqual({ ok: true, value: { tradeoff: {} } })
+    expect(runOrchestrationTs({ kind: 'orchestrationPolicy', project: { tradeoff: {} }, list: null })).toEqual({
+      ok: true,
+      value: { ...defaultOrchestrationPolicy(), tradeoff: defaultTradeoffPolicy() },
+    })
+  })
+
+  it('counts a promoteIdea estimate only when both label and confidence are given (ADEV-281)', () => {
+    const project = { autonomy: { promoteIdea: 'allowed' } }
+    const may = (extra: Record<string, unknown>) =>
+      runOrchestrationTs({ kind: 'orchestrationMay', project, list: null, agent: 'claude', action: 'promoteIdea', ...extra })
+    expect(may({ label: 'do-now' })).toEqual({ ok: true, value: { decision: 'never', mustAsk: false, reason: 'noEstimate' } })
+    expect(may({ label: 'do-now', confidence: 'medium' })).toEqual({ ok: true, value: { decision: 'allowed', mustAsk: false, reason: 'policy' } })
+    expect(may({ label: 'maybe', confidence: 'high' }).ok).toBe(false)
   })
 
   it('stores an override that says nothing as null', () => {

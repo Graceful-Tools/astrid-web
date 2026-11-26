@@ -723,6 +723,35 @@ when the task's lists span several projects. Rows are append-only in `TaskEstima
   estimate" tag (`rough: true`). Cost also writes `Task.costEstimateMicrocents` (source `model`, or `human`)
   and never replaces a human value with a model one.
 
+### GET|POST|DELETE `/api/v1/tasks/{id}/experiment`, POST `…/experiment/refresh`
+A task's experiment links and post-deploy verification windows (ADEV-279, spec:
+`docs/specs/GOALS_GUARDRAILS_SIGNALS.md` → *5. Experiments and verification*, *7. The Pending results lane*).
+Behind the goal-signals gate (404 where the capability is off, 403 `not_granted` without the flag), which is
+read per project from its owner by the settle job. Rows are in `TaskExperiment`. `projectId` is needed only when
+the task's lists span several projects. **Astrid computes no statistics**: an experiment's deltas, intervals,
+significance, verdict and recommendation are its service's, stored as given (clipped), never recomputed.
+- `GET` answers `{ experiments, inResultsColumn }`. A link is `{ id, kind: "experiment" | "verification",
+  connectorId, externalKey, url, state: "pending" | "running" | "concluded" | "stopped" | "unknown", verdict:
+  "improving" | "flat" | "regressing" | "inconclusive" | null, recommendation: { action, reason } | null, metrics,
+  findings, startedAt, decideBy, fetchedAt, stale, lastError }`. `stale` is "no data since `fetchedAt`" (48 h).
+- `POST { kind: "experiment", connectorId, externalKey, url?, decideBy? }` links a task to an experiment on one of
+  the project's `experiment` connectors (404 for any other). `POST { kind: "verification", days | decideBy }`
+  starts a verification window and records the project's fresh goal and guardrail values now (the deploy); at
+  `decideBy` the project's sources are read and compared: a guardrail breached or a goal regressed is `regressing`,
+  otherwise `improving` if anything could be compared, else `inconclusive` (unknown is never a pass). 201
+  `{ experiment }`. At most 10 links per task.
+- `DELETE ?experimentId=` removes one link. `POST …/refresh` reads every open link now and answers the same view
+  plus `lane`: what the lane rules did (`not-in-column`, `stay`, `completed`, `handed-back`, `skipped`).
+- **A link reports on every board.** The moment one concludes, a system comment on the task names the verdict and
+  the numbers. Nothing moves, completes or hands back a task that is not in the **Pending results** column.
+- **In the column** (a board added it; no migration, gate, connector or link ever does): entering needs an open
+  experiment or a verification with `decideBy` ahead, else 422 `RESULTS_NEEDS_CONDITION` (the client's cue to
+  show the picker); entering unassigns the task and remembers the holder. Then `/api/cron/results-settle` (every
+  15 minutes, bounded, stalest link first) or a Refresh asks astrid-core's `resultsSettle`: every link
+  `improving` completes the task with a system comment and a goal measurement naming the task; a regression, an
+  inconclusive result at `decideBy`, or a source silent past `decideBy` hands the task back to the policy's
+  escalation target with a Decision (iterate, roll back, ship anyway). Nothing rolls back automatically.
+
 ### Project connectors: `/api/v1/projects/{id}/connectors`
 A project's bindings to outside services (ADEV-277, spec: `docs/specs/GOALS_GUARDRAILS_SIGNALS.md` →
 *Connectors*). Behind the Goal Signals gate (404 where the capability is off, 403 `not_granted` without

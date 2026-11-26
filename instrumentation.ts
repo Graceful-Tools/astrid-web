@@ -121,5 +121,12 @@ export async function register() {
     } catch (error) {
       console.error('waiting: astrid-core module failed to import; the TypeScript decides', error)
     }
+    // The Pending results lane (ADEV-274, ADEV-279): lib/results-rules.ts's resultsWrite / resultsSettle.
+    try {
+      const { installResultsCore } = await import('@/lib/core-rules/results-core')
+      installResultsCore()
+    } catch (error) {
+      console.error('results: astrid-core module failed to import; the TypeScript decides', error)
+    }
   }
 }
