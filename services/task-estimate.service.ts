@@ -31,12 +31,16 @@ import {
 } from '@/lib/goal-signal-services'
 import { EstimatorError, pollEstimate, requestEstimate, type EstimatorReply, type EstimatorRequest } from '@/lib/estimator-client'
 import { runBuiltinEstimator } from '@/lib/ai/builtin-estimator'
+import { agentMayOnList } from '@/services/orchestration-policy.service'
+import type { TradeoffReason } from '@/lib/core-rules/tradeoff-core'
+import { evaluateEstimateRow } from '@/services/tradeoff-evaluation.service'
+import { actOnGoalSignal } from '@/services/goal-action.service'
 
 const log = createLogger('task-estimate')
 
 export type EstimateResult<T> =
   | { ok: true; value: T }
-  | { ok: false; status: 400 | 404 | 409 | 422 | 502; error: string; reason?: string }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 422 | 502; error: string; reason?: string }
 
 export interface EstimateView extends EstimateBody {
   id: string
@@ -48,7 +52,10 @@ export interface EstimateView extends EstimateBody {
   createdAt: string
   /** True for the built-in model: the card shows ranges under a "rough estimate" tag. */
   rough: boolean
+  /** The label the trade-off policy gave it, or null when no policy is stated (ADEV-281). */
   label: string | null
+  /** Why: a code and the numbers behind it, worded by the client. Null with the label. */
+  labelReasons: TradeoffReason[] | null
 }
 
 export type RequestOutcome =
@@ -81,6 +88,7 @@ export function estimateView(row: Row): EstimateView {
     rationale: row.rationale,
     rough: row.source === 'builtin_llm',
     label: row.label,
+    labelReasons: (row.labelReasons ?? null) as unknown as EstimateView['labelReasons'],
   }
 }
 
@@ -216,7 +224,11 @@ async function persist(
       })
     }
   }
-  return estimateView(row)
+  // Label it against the policy that applies (ADEV-281). Unlabelled when no policy is stated.
+  const labelled = await evaluateEstimateRow(row)
+  // A `do-now` label may be acted on: the policy decides whether the server promotes, asks or only recommends (ADEV-284).
+  if (labelled.label === 'do-now') await actOnGoalSignal(labelled.taskId, 'promoteIdea')
+  return estimateView(labelled)
 }
 
 /** The estimator to use: the named one, else the first service the environment defines, else the built-in. */
@@ -261,7 +273,7 @@ async function finishWithResult(
 export async function requestTaskEstimate(
   taskId: string,
   requestedById: string,
-  input: { estimator?: string; projectId?: string } = {},
+  input: { estimator?: string; projectId?: string; agentMailbox?: string | null } = {},
 ): Promise<EstimateResult<RequestOutcome>> {
   const task = await loadTask(taskId)
   if (!task) return { ok: false, status: 404, error: 'Task not found' }
@@ -273,6 +285,20 @@ export async function requestTaskEstimate(
   const base = { projectId: ctx.projectId, inputsDigest: ctx.inputsDigest, scope: ctx.scope, taskId, costSource: task.costEstimateSource }
 
   if (chosen.value.kind === 'builtin') {
+    // The built-in estimator spends the requester's own key, so an agent needs `spend` (ADEV-283).
+    if (input.agentMailbox) {
+      for (const list of task.lists) {
+        const may = await agentMayOnList(list.id, input.agentMailbox, 'spend')
+        if (may.decision !== 'allowed') {
+          return {
+            ok: false,
+            status: 403,
+            error: "The built-in estimator spends the requester's own model key, and this board's policy does not let an agent spend alone. Ask an estimator service, or ask a person in a Decision.",
+            reason: 'spend_not_allowed',
+          }
+        }
+      }
+    }
     const result = await runBuiltinEstimator(requestedById, ctx.listProvider, ctx.request)
     if (!result.ok) {
       return { ok: false, status: result.reason === 'no_api_key' ? 409 : 502, error: result.message, reason: result.reason }

@@ -5,10 +5,11 @@
  */
 import type * as WaitingPrompt from '@/lib/waiting-prompt'
 
-type Offline = Pick<typeof WaitingPrompt, 'sendWithWaitingPrompt' | 'isWaitingNeedsCondition' | 'waitingFieldsForCreate'>
+type Offline = Pick<typeof WaitingPrompt, 'sendWithWaitingPrompt' | 'isWaitingNeedsCondition' | 'needsPromptAnswer' | 'waitingFieldsForCreate'>
 
 export const WAITING_PROMPT_OFFLINE: Offline = {
   sendWithWaitingPrompt: async (_original, requested, send) => send(requested, {}),
   isWaitingNeedsCondition: () => false,
+  needsPromptAnswer: () => false,
   waitingFieldsForCreate: async () => undefined,
 }

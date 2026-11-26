@@ -51,6 +51,8 @@ export const GET = withAuth(
   async (req, auth) => {
     try {
       const url = new URL(req.url)
+      // `?identityOnly=true` — who is this agent, without the queue read (AWTD-1553).
+      const identityOnly = parseBooleanParam('identityOnly', url.searchParams.get('identityOnly'), false)
 
       const result = await buildAgentQueue({
         agent: url.searchParams.get('agent'),
@@ -76,6 +78,7 @@ export const GET = withAuth(
         // Only the runtime-binding pilot reads it (AWTD-1669): a bound board's
         // work is discoverable solely by its binding's enrolled OAuth client.
         runtimePrincipal: runtimePrincipalOf(auth),
+        identityOnly,
       })
 
       // The queue check is the agent's sign of life on each board it named or
@@ -83,7 +86,7 @@ export const GET = withAuth(
       const listIds = new Set<string>(result.queue.flatMap(task => (task.listId ? [task.listId] : [])))
       const named = url.searchParams.get('listId')
       if (named) listIds.add(named)
-      if (result.agent.id) {
+      if (result.agent.id && !identityOnly) {
         await recordAgentQueueCheck({ agentId: result.agent.id, userId: auth.userId, listIds: [...listIds] })
       }
 

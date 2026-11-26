@@ -1,5 +1,7 @@
 # Playwright E2E Testing - Quick Start Guide
 
+> Which test goes in which tier, and how the ratchets work: [Testing Strategy](../context/testing.md).
+
 ## ⚡ 3-Step Setup
 
 ### 1. Install Browser Binaries (One-Time)
@@ -78,6 +80,21 @@ npm run test:e2e           # Run all tests (headless)
 - ✅ Focus management
 
 ---
+
+## 🎲 Flaky tests (ADEV-298)
+
+CI retries a failing test once. A test that needs the retry is reported `flaky`, and
+`scripts/check-playwright-flaky.ts` annotates it with a `::warning` and lists it in the
+job summary, so a retry no longer hides a race. The run shows yellow. The step is not
+`--strict` yet because WebKit and mobile still have flakes outside the passkey and board
+tests; once they are fixed, add `--strict` to the workflow steps so a flake fails the job.
+Fix the race rather than adding the title to `KNOWN_FLAKY` (shrink-only).
+
+The old "Firefox E2E is flaky on PRs" note is retired. The cause was never Firefox:
+the signed-out passkey button is disabled before WebAuthn detection runs, so tests that
+polled `isEnabled()` raced hydration. Wait on `data-passkey-support` (`pending` →
+`supported|unsupported`) instead. The board-drag race was a drag started while the card
+was still settling after a Cancel; repeat the drag until the prompt confirms the drop.
 
 ## 🔧 Writing Your First Test
 

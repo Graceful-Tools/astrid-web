@@ -14,7 +14,7 @@
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   canUserDeleteList,
   canUserEditTask,
@@ -115,14 +115,19 @@ describe('the permissions fixture at the pinned core revision', () => {
         decision: 'role',
         user: { id: fixture.userId },
         list,
-        typescriptAnswer: () => null,
       })
       expect(built).not.toHaveProperty('skip')
     }
   })
 })
 
-describe('the TypeScript rules alone (the browser, and the server fallback)', () => {
+describe('the TypeScript rules alone (the browser, before its door loads)', () => {
+  // Since ADEV-304 the server refuses what the core cannot answer; only the browser runs the TypeScript.
+  beforeEach(() => {
+    setListPermissionsCore(null)
+    vi.stubGlobal('window', {})
+  })
+  afterEach(() => vi.unstubAllGlobals())
   it.each(cases)('%s', (_name, { list, expected }) => {
     expect(answersFor(list)).toEqual(expected)
   })
@@ -132,15 +137,14 @@ describe('the public functions with astrid-core deciding, as the server runs the
   it.each(cases)('%s', (_name, { list, expected }) => {
     const reports: unknown[] = []
     const decider = createListPermissionsCore(core.runJson, {
-      disagreement: (d) => reports.push(d),
       failure: (d) => reports.push(d),
     })
     setListPermissionsCore(decider.decide)
 
     expect(answersFor(list)).toEqual(expected)
-    // The core answered every question itself — no fallback, no skip — and agreed.
+    // The core answered every question itself — no fallback, no skip — with the fixture's answers.
     expect(reports).toEqual([])
-    expect(decider.stats).toEqual({ agreed: DECISIONS_PER_CASE, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
+    expect(decider.stats).toEqual({ answered: DECISIONS_PER_CASE, skipped: 0, failed: 0 })
   })
 
   it('nobody signed in has no access in the core either', () => {

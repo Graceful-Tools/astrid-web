@@ -71,7 +71,10 @@ const REACHED_BY_CONFIG: Record<string, string> = {
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
-    if (SKIP.has(entry) || entry.startsWith('.')) continue
+    // Dot directories are tooling state, except app/.well-known, which holds
+    // real routes: skipping it reported the OAuth discovery and AASA modules
+    // as test-only (ADEV-291).
+    if (SKIP.has(entry) || (entry.startsWith('.') && entry !== '.well-known')) continue
     const full = join(dir, entry)
     if (statSync(full).isDirectory()) walk(full, out)
     // repoRelativePath, not a hand-rolled replace: with a hardcoded `/` this

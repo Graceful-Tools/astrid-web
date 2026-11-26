@@ -1161,8 +1161,7 @@
         "note": "把這個 URL 加到助理的 MCP 設定中。它會提示你登入 {appName}——不必複製任何金鑰。",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。"
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "步驟1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。",
         "claudeNote": "一道指令即可——它會開啟瀏覽器以核准存取，不必複製任何金鑰",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI 同樣一道指令即可連接",
@@ -1731,6 +1729,19 @@
         "loadError": "無法載入此連線的權限",
         "selectAtLeastOne": "請至少選擇一個範圍",
         "selectApp": "請選擇一個應用程式。"
+      },
+      "tokenScope": {
+        "unscoped": "完整存取（未設定範圍）",
+        "recorded": "已設範圍，尚未強制執行",
+        "enforced": "僅限這些範圍"
+      },
+      "rotate": {
+        "action": "輪替",
+        "confirm": "輪替 {name}？新權杖會以相同的存取權限取代它，舊權杖會立即失效。",
+        "newTokenTitle": "新權杖",
+        "newTokenDescription": "請立即複製：它不會再次顯示。請更新所有使用舊權杖的地方。",
+        "done": "完成",
+        "error": "無法輪替"
       }
     },
     "openInNewTab": "在新分頁中開啟",
@@ -1893,6 +1904,61 @@
     "deleteProjectDetail": "其清單會保留，不屬於任何專案。看板專屬的欄位會一同刪除。",
     "deleteProjectAction": "刪除",
     "deleteProjectFailed": "無法刪除專案",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "估算",
       "button": "估算",
@@ -1932,7 +1998,30 @@
       "opportunity": "機會",
       "notEstimated": "未估算",
       "effort": "工作量 {hours} 小時",
-      "opportunityRange": "{low} 至 {high} {unit} / {period}"
+      "opportunityRange": "{low} 至 {high} {unit} / {period}",
+      "label": {
+        "do-now": "立即做",
+        "experiment-first": "先做實驗",
+        "needs-review": "需要審核",
+        "dont": "不做",
+        "chipAria": "建議：{label}。查看原因。",
+        "reasonsHeading": "原因"
+      },
+      "reason": {
+        "noEstimate": "目前還沒有估算。",
+        "stale": "估算已過期。",
+        "guardrailAtRefuse": "{name}：違規機率 {probability} 已達上限 {threshold}。",
+        "guardrailAtReview": "{name}：違規機率 {probability} 已達審核點 {threshold}。",
+        "riskAtRefuse": "風險為 {level}，達到或超過上限 {threshold}。",
+        "riskAtReview": "風險為 {level}，達到或超過審核點 {threshold}。",
+        "riskUnknown": "估算器未提供風險，而未知從來不是好事。",
+        "guardrailsUnknown": "估算器未提供對護欄的影響，而未知從來不是好事。",
+        "confidenceLow": "信心度偏低，或未提供。",
+        "experimentFirst": "信心度為 {confidence}，風險為 {risk}。",
+        "builtinCapped": "內建估算最好也只能是「先做實驗」。",
+        "goalImproves": "預計 {name} 會改善（{delta}）。",
+        "noGoalImproves": "預計沒有目標會改善。"
+      }
     },
     "goals": {
       "title": "目標與護欄",
@@ -2041,7 +2130,8 @@
       "who": "負責人",
       "completed": "完成優先",
       "incomplete": "待辦優先",
-      "manual": "手動"
+      "manual": "手動",
+      "policy": "政策"
     },
     "show": {
       "allTasks": "所有工作",
@@ -2888,7 +2978,8 @@
       "doing": "進行中",
       "waiting": "等待中",
       "done": "已完成",
-      "testing": "測試"
+      "testing": "測試",
+      "results": "等待結果"
     },
     "empty": {
       "inbox": "沒有需要整理的新任務！沒有狀態的任務會出現在這裡。",
@@ -2904,7 +2995,8 @@
       "doing": "工作進行中！",
       "waiting": "暫停，等待時機成熟。",
       "done": "已完成——恭喜！",
-      "testing": "正在部署、處於金絲雀發布或實驗中。"
+      "testing": "正在部署、處於金絲雀發布或實驗中。",
+      "results": "已建置並發布;等待實驗或驗證回報結果。"
     }
   },
   "passkeyErrors": {
@@ -3185,7 +3277,32 @@
       "migrateAdditive": "增量遷移",
       "migrateDestructive": "破壞性遷移",
       "release": "商店發佈",
-      "spend": "花錢"
+      "spend": "花錢",
+      "promoteIdea": "將「立即做」的想法移至就緒",
+      "experimentStart": "開始實驗",
+      "experimentStop": "停止實驗"
+    },
+    "tradeoff": {
+      "title": "權衡政策",
+      "switch": "設定權衡政策",
+      "stated": "已設定",
+      "none": "未設定",
+      "help": "為每個已估算的想法加上標籤（立即做、先做實驗、需要審核、不做），並決定政策排序的順序。未設定時，不加標籤，也沒有政策排序。",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "風險至少達到以下值時審核",
+        "riskRefuseAt": "風險至少達到以下值時不做",
+        "confidenceBelow": "信心度低於以下值時先做實驗",
+        "experimentRiskAtLeast": "…且風險至少為",
+        "minConfidenceToAct": "信心度至少達到以下值時，代理可以提升",
+        "guardrailReview": "違規機率達到以下值時審核",
+        "guardrailRefuse": "違規機率達到以下值時不做"
+      },
+      "goalOrder": "目標優先順序",
+      "goalOrderHelp": "以上各項都相同的想法，會依其對這些目標的影響排序，最重要的排在前面。",
+      "goalOrderReset": "使用預設順序",
+      "moveUp": "上移 {goal}",
+      "moveDown": "下移 {goal}"
     },
     "autonomy": {
       "allowed": "允許",

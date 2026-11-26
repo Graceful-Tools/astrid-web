@@ -12,7 +12,7 @@
 import { loadScriptEnv } from './lib/load-env'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { scriptClient } from './lib/script-client'
-import { claimsToRenew, type HeldClaimTask } from './lib/held-claims'
+import { claimsToRenew, nothingToRenewLine, type HeldClaimTask } from './lib/held-claims'
 
 loadScriptEnv()
 
@@ -44,7 +44,11 @@ async function main(): Promise<void> {
   }
   // A failed board read throws (`HTTP <n> from /api/v1/tasks`) and main() prints it.
   const { tasks } = await client.getBoardTasks({ listId, limit: 500 })
-  for (const id of claimsToRenew(tasks as HeldClaimTask[], { agentId, runStartedAt, now: new Date() })) {
+  const board = tasks as HeldClaimTask[]
+  const ids = claimsToRenew(board, { agentId, runStartedAt, now: new Date() })
+  // One line when there is nothing to do, so a silent no-op shows in the log (ADEV-310).
+  if (ids.length === 0) console.log(nothingToRenewLine(board, agentId))
+  for (const id of ids) {
     const result = await client.heartbeatTask(id, { agentMailbox: mailbox })
     console.log(`HEARTBEAT: ${id} → HTTP ${result.status}`)
   }

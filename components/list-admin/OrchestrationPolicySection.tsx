@@ -3,26 +3,42 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { ShieldCheck } from "lucide-react"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useTranslations } from "@/lib/i18n/client"
+import { useProjectGoals } from "@/hooks/use-project-goals"
 import { getAllListMembers } from "@/lib/list-member-utils"
 import { agentMailboxFromEmail } from "@/lib/brand/agent-emails"
 import {
   AUTONOMY_FIELDS,
   AUTONOMY_VALUES,
   autonomyFor,
+  LEVELS,
+  TRADEOFF_LEVEL_FIELDS,
+  TRADEOFF_PROBABILITY_FIELDS,
   defaultOrchestrationPolicy,
+  defaultTradeoffPolicy,
   overrideAutonomyFor,
+  overrideTradeoffFor,
   resolvePolicy,
+  tradeoffFor,
   withAssignTo,
   withAutonomy,
   withEscalation,
+  withGoalOrder,
+  withTradeoffField,
+  withTradeoffStated,
   type Autonomy,
   type AutonomyField,
   type Escalation,
+  type Level,
   type OrchestrationPolicy,
   type PolicyOverride,
+  type TradeoffField,
+  type TradeoffPolicy,
 } from "@/lib/orchestration-policy"
+import type { ProjectGoal } from "@/lib/goals-guardrails"
 import type { TaskList } from "@/types/task"
 
 /** GET /api/v1/lists/:id/orchestration-policy (services/orchestration-policy.service.ts). */
@@ -79,6 +95,9 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
       .catch(() => {})
     return () => { cancelled = true }
   }, [url])
+
+  // The project's goals, for the trade-off's goal order.
+  const { state: goals } = useProjectGoals(view?.projectId ?? undefined)
 
   const members = useMemo(() => getAllListMembers(list as never), [list])
   const agents = useMemo(
@@ -200,6 +219,17 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
               />
             ))}
 
+            <TradeoffEditor
+              scope={scope}
+              override={override}
+              inherited={inherited.tradeoff ?? defaultTradeoffPolicy()}
+              inheritedStated={!!inherited.tradeoff}
+              disabled={disabled}
+              goals={goals?.goals ?? []}
+              inheritLabel={inheritLabel}
+              onSave={next => save(scope, next)}
+            />
+
             <PolicyRow label={t("orchestrationPolicy.escalation.label")}>
               <Select
                 value={escalationValue}
@@ -238,11 +268,163 @@ export default function OrchestrationPolicySection({ list }: OrchestrationPolicy
             <li key={field}>{t("orchestrationPolicy.line", { label: t(`orchestrationPolicy.action.${field}`), value: autonomyLabel(autonomyFor(view.effective, field)) })}</li>
           ))}
           <li>{t("orchestrationPolicy.line", { label: t("orchestrationPolicy.escalation.label"), value: escalationLabel(view.effective.escalation) })}</li>
+          <li data-testid="orchestration-effective-tradeoff">
+            {t("orchestrationPolicy.line", {
+              label: t("orchestrationPolicy.tradeoff.title"),
+              value: view.effective.tradeoff ? t("orchestrationPolicy.tradeoff.stated") : t("orchestrationPolicy.tradeoff.none"),
+            })}
+          </li>
         </ul>
       </div>
 
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
+  )
+}
+
+/** The breach probabilities offered for a guardrail threshold; a stored one outside this list is added so it can be read. */
+const PROBABILITY_CHOICES = [0.05, 0.1, 0.25, 0.5, 0.75, 0.9]
+
+/**
+ * The trade-off policy (ADEV-281, docs/specs/GOALS_GUARDRAILS_SIGNALS.md → 6): thresholds, not a rule
+ * language. A switch states a policy (every threshold then takes its default until set); with none
+ * stated nothing is labelled and the Policy sort is not offered. Each field saves at once like the
+ * rows above it, and the server validates the values with the core's own vocabulary.
+ */
+function TradeoffEditor(props: {
+  scope: Scope
+  override: PolicyOverride | null
+  inherited: TradeoffPolicy
+  inheritedStated: boolean
+  disabled: boolean
+  goals: ProjectGoal[]
+  inheritLabel: (value: string) => string
+  onSave: (next: PolicyOverride | null) => void
+}) {
+  const { t } = useTranslations()
+  const { scope, override, inherited, disabled } = props
+  const stated = override?.tradeoff !== undefined
+  const levelLabel = (level: Level) => t(`projectMode.estimate.level.${level}`)
+  const probabilityLabel = (value: number) => t("orchestrationPolicy.tradeoff.probability", { pct: String(Math.round(value * 100)) })
+
+  const ranked = override?.tradeoff?.goalOrder
+  const orderedGoals = [
+    ...(ranked ?? inherited.goalOrder).flatMap(id => props.goals.filter(goal => goal.id === id)),
+    ...props.goals.filter(goal => !(ranked ?? inherited.goalOrder).includes(goal.id)),
+  ]
+  const move = (index: number, by: -1 | 1) => {
+    const ids = orderedGoals.map(goal => goal.id)
+    const target = index + by
+    if (target < 0 || target >= ids.length) return
+    ;[ids[index], ids[target]] = [ids[target], ids[index]]
+    props.onSave(withGoalOrder(override, ids))
+  }
+
+  return (
+    <div className="space-y-2" data-testid={`orchestration-${scope}-tradeoff`}>
+      <PolicyRow label={t("orchestrationPolicy.tradeoff.title")}>
+        <div className="flex items-center justify-end gap-2">
+          <span className="text-xs theme-text-muted">
+            {stated ? t("orchestrationPolicy.tradeoff.stated") : props.inheritedStated ? props.inheritLabel(t("orchestrationPolicy.tradeoff.stated")) : t("orchestrationPolicy.tradeoff.none")}
+          </span>
+          <Switch
+            checked={stated}
+            disabled={disabled}
+            aria-label={t("orchestrationPolicy.tradeoff.switch")}
+            onCheckedChange={checked => props.onSave(withTradeoffStated(override, checked))}
+            data-testid={`orchestration-${scope}-tradeoff-switch`}
+          />
+        </div>
+      </PolicyRow>
+      <p className="text-xs theme-text-muted">{t("orchestrationPolicy.tradeoff.help")}</p>
+
+      {stated && (
+        <>
+          {TRADEOFF_LEVEL_FIELDS.map(field => (
+            <TradeoffSelect
+              key={field}
+              scope={scope}
+              field={field}
+              label={t(`orchestrationPolicy.tradeoff.field.${field}`)}
+              value={overrideTradeoffFor(override, field) as Level | undefined}
+              inheritLabel={props.inheritLabel(levelLabel(tradeoffFor(inherited, field)))}
+              options={LEVELS.map(level => ({ value: level, label: levelLabel(level) }))}
+              disabled={disabled}
+              onChange={value => props.onSave(withTradeoffField(override, field, value as Level | undefined))}
+            />
+          ))}
+          {TRADEOFF_PROBABILITY_FIELDS.map(field => {
+            const current = overrideTradeoffFor(override, field) as number | undefined
+            const choices = [...new Set([...PROBABILITY_CHOICES, ...(current === undefined ? [] : [current])])].sort((a, b) => a - b)
+            return (
+              <TradeoffSelect
+                key={field}
+                scope={scope}
+                field={field}
+                label={t(`orchestrationPolicy.tradeoff.field.${field}`)}
+                value={current === undefined ? undefined : String(current)}
+                inheritLabel={props.inheritLabel(probabilityLabel(tradeoffFor(inherited, field)))}
+                options={choices.map(value => ({ value: String(value), label: probabilityLabel(value) }))}
+                disabled={disabled}
+                onChange={value => props.onSave(withTradeoffField(override, field, value === undefined ? undefined : Number(value)))}
+              />
+            )
+          })}
+
+          {orderedGoals.length > 1 && (
+            <div className="space-y-1" data-testid={`orchestration-${scope}-goal-order`}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm theme-text-primary">{t("orchestrationPolicy.tradeoff.goalOrder")}</span>
+                {ranked && (
+                  <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={disabled} onClick={() => props.onSave(withGoalOrder(override, undefined))}>
+                    {t("orchestrationPolicy.tradeoff.goalOrderReset")}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs theme-text-muted">{t("orchestrationPolicy.tradeoff.goalOrderHelp")}</p>
+              <ol className="space-y-0.5">
+                {orderedGoals.map((goal, index) => (
+                  <li key={goal.id} className="flex items-center justify-between gap-2 text-xs theme-text-secondary">
+                    <span className="truncate">{index + 1}. {goal.statement}</span>
+                    <span className="flex shrink-0 gap-1">
+                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={disabled || index === 0} aria-label={t("orchestrationPolicy.tradeoff.moveUp", { goal: goal.statement })} onClick={() => move(index, -1)}>↑</Button>
+                      <Button type="button" variant="ghost" size="sm" className="h-6 px-2 text-xs" disabled={disabled || index === orderedGoals.length - 1} aria-label={t("orchestrationPolicy.tradeoff.moveDown", { goal: goal.statement })} onClick={() => move(index, 1)}>↓</Button>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function TradeoffSelect(props: {
+  scope: Scope
+  field: TradeoffField
+  label: string
+  value: string | undefined
+  inheritLabel: string
+  options: { value: string; label: string }[]
+  disabled: boolean
+  onChange: (value: string | undefined) => void
+}) {
+  return (
+    <PolicyRow label={props.label}>
+      <Select value={props.value ?? INHERIT} disabled={props.disabled} onValueChange={value => props.onChange(value === INHERIT ? undefined : value)}>
+        <SelectTrigger className="theme-bg-tertiary theme-border theme-text-primary" data-testid={`orchestration-${props.scope}-tradeoff-${props.field}`}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent className="theme-bg-primary theme-border z-above-modal">
+          <SelectItem value={INHERIT}>{props.inheritLabel}</SelectItem>
+          {props.options.map(option => (
+            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </PolicyRow>
   )
 }
 

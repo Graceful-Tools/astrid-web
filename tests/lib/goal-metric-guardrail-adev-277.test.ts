@@ -15,7 +15,7 @@ import type { OrchestrationPolicy } from '@/lib/orchestration-autonomy'
 const NOW = new Date('2026-11-25T17:00:00Z')
 const policy: OrchestrationPolicy = {
   routing: { assignTo: null, agents: null },
-  autonomy: { merge: 'allowed', deploy: 'allowed', migrate: { additive: 'allowed', destructive: 'ask' }, release: 'ask', spend: 'ask' },
+  autonomy: { merge: 'allowed', deploy: 'allowed', migrate: { additive: 'allowed', destructive: 'ask' }, release: 'ask', spend: 'ask', promoteIdea: 'never', experimentStart: 'never', experimentStop: 'never' },
   escalation: { to: 'listOwner' },
 }
 const check = (over: Record<string, unknown> = {}) => ({

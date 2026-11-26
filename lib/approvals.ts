@@ -16,8 +16,17 @@
  */
 import { escalateTo, type OrchestrationPolicy } from '@/lib/orchestration-policy'
 
-export const APPROVAL_ACTIONS = ['deploy', 'migrate'] as const
+export const APPROVAL_ACTIONS = ['deploy', 'migrate', 'promoteIdea', 'experimentStart', 'experimentStop'] as const
 export type ApprovalAction = (typeof APPROVAL_ACTIONS)[number]
+
+/**
+ * The Goal signals actions (ADEV-284). Their card binds to a 40-hex digest of the estimate or the
+ * experiment snapshot it was asked about, in the place a deploy card keeps its commit sha: a newer
+ * estimate or snapshot has a different digest and needs a new card.
+ */
+export const GOAL_ACTIONS = ['promoteIdea', 'experimentStart', 'experimentStop'] as const
+export type GoalAction = (typeof GOAL_ACTIONS)[number]
+export const isGoalAction = (action: ApprovalAction): action is GoalAction => (GOAL_ACTIONS as readonly string[]).includes(action)
 
 export const APPROVAL_REQUEST = 'APPROVAL_REQUEST'
 export const APPROVAL_APPROVED = 'APPROVAL_APPROVED'
@@ -28,7 +37,7 @@ export type ApprovalVerdict = 'approve' | 'decline'
 
 export interface ApprovalRequest {
   action: ApprovalAction
-  /** The full 40-character commit the approval is for. */
+  /** The full 40-character commit the approval is for; for a Goal signals action, the snapshot digest. */
   sha: string
 }
 

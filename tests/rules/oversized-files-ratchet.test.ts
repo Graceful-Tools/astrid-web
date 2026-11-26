@@ -161,7 +161,9 @@ const BUDGETS: Record<string, number> = {
   // 1466 → 1448: AWTD-1329 moved the update path's event snapshot and its
   // notify filter into lib/task-event-snapshot.ts (taskEventSnapshot,
   // notifiableUpdateEvents).
-  'services/task.service.ts': 1269,
+  // 1269 → 1268: ADEV-279 added the Pending results step to the update path,
+  // paid for by moving the list-membership write to services/task-list-membership.ts.
+  'services/task.service.ts': 1268,
   // 1078 → 1039: AWTD-945 added the board-state row, which this budget
   // refused. Rather than raise it, the new row went straight into its own
   // TaskDetailBoardStateRow.tsx and the DESCRIPTION row — the largest
@@ -205,7 +207,7 @@ const BUDGETS: Record<string, number> = {
   // mcp/api-shapes.ts when the `agent` field pushed this past its budget, and the
   // mailbox lookup then moved to mcp/agent-identity.ts so the standalone stdio
   // build could still compile it. Taking pieces out, not raising the number.
-  'mcp/mcp-server-oauth.ts': 529,
+  'mcp/mcp-server-oauth.ts': 523,
   // 919 → 901: task 10f26dc6 added a card explaining when a manual client is
   // needed at all. Both that card and GRANT_TYPE_OPTIONS — the same question,
   // asked as a form field — moved to components/oauth-client-guide.tsx.

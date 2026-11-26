@@ -1,5 +1,4 @@
 import type { TaskList, User } from "@/types/task"
-import { lazyValue } from "@/lib/lazy-value"
 import { createLogger } from '@/lib/logger'
 import { LIST_TYPE_LABEL } from '@/lib/list-flavors'
 
@@ -93,13 +92,6 @@ export interface ListDecisionQuestion {
   list: ListLike
   /** For `canEditTask` only: the task's creator. */
   taskCreatorId?: string | null
-  /**
-   * The TypeScript rules' answer — what this module returns if the core does not answer, and
-   * what the core's answer is compared with when the decision is sampled. A getter, computed at
-   * most once and only when asked for, so a decision the core answers unsampled never runs the
-   * TypeScript (AWTD-1591).
-   */
-  typescriptAnswer: () => string | boolean | null
 }
 
 /**
@@ -118,15 +110,9 @@ type CoreHost = { [CORE_KEY]?: ListPermissionsCore | null }
  * as WebAssembly (lib/core-rules/list-permissions-core.ts), installed from instrumentation.ts on
  * the Node runtime (AWTD-1061).
  *
- * A hook rather than an import because this module is pulled into client bundles and the edge
- * middleware, neither of which may load WebAssembly from disk. There — and in scripts, tests and
- * the stdio MCP server, which install nothing — the TypeScript below decides, and it is pinned to
- * the core by the shared permissions fixture (tests/lib/core-rules-permissions-parity.test.ts).
- *
- * Fail-safe by construction: the TypeScript answer is what is returned when the core declines
- * (`undefined`), throws, or answers something that is not a valid answer to the question asked.
- * It is computed then, or when the core samples the decision for comparison — not otherwise
- * (AWTD-1591).
+ * A hook, not an import: client bundles and the edge middleware (which never asks) cannot load
+ * WebAssembly from disk. Since ADEV-304 the server refuses what the core cannot answer (`decided`);
+ * the TypeScript below is only the browser's rule, pinned by core-rules-permissions-parity.test.ts.
  */
 export function setListPermissionsCore(core: ListPermissionsCore | null): void {
   ;(globalThis as CoreHost)[CORE_KEY] = core
@@ -138,6 +124,13 @@ function isValidAnswer(decision: ListDecision, answer: unknown): boolean {
   return decision === "role" ? ROLE_ANSWERS.has(answer) : typeof answer === "boolean"
 }
 
+/** Whether a decider is installed in this realm (the server must have one: instrumentation.ts). */
+export const listPermissionsCoreInstalled = (): boolean => !!(globalThis as CoreHost)[CORE_KEY]
+
+let refusalLogged = false
+
+/** ADEV-304: the server refuses what the core cannot answer; the browser keeps the TypeScript
+ * until its door loads (the e2e journeys break when the shell waits for the door). */
 function decided<T extends string | boolean | null>(
   decision: ListDecision,
   user: UserLike,
@@ -145,17 +138,23 @@ function decided<T extends string | boolean | null>(
   computeTypescript: () => T,
   taskCreatorId?: string | null,
 ): T {
+  const inBrowser = typeof window !== "undefined"
+  const fallback = (): T => (inBrowser ? computeTypescript() : ((decision === "role" ? null : false) as T))
   const core = (globalThis as CoreHost)[CORE_KEY]
-  if (!core) return computeTypescript()
-  const typescriptAnswer = lazyValue(computeTypescript)
-  try {
-    const answer = core({ decision, user, list, taskCreatorId, typescriptAnswer })
-    if (answer === undefined || !isValidAnswer(decision, answer)) return typescriptAnswer()
-    return answer as T
-  } catch {
-    // A core that throws must never deny, allow or crash: the TypeScript answer stands.
-    return typescriptAnswer()
+  if (!core) {
+    if (!inBrowser && !refusalLogged) {
+      refusalLogged = true
+      log.error({ decision }, "list permissions: astrid-core is not installed; the check is refused")
+    }
+    return fallback()
   }
+  let answer: ReturnType<ListPermissionsCore>
+  try {
+    answer = core({ decision, user, list, taskCreatorId })
+  } catch {
+    return fallback() // never allow or crash; the decider logs and counts its own failures
+  }
+  return answer === undefined || !isValidAnswer(decision, answer) ? fallback() : (answer as T)
 }
 
 /**

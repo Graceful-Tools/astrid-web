@@ -29,3 +29,15 @@ export function claimsToRenew(
     .filter(task => task.claimHeartbeatAt && new Date(task.claimHeartbeatAt).getTime() >= opts.runStartedAt.getTime())
     .map(task => task.id)
 }
+
+/**
+ * The line a heartbeat tick prints when it renews nothing (ADEV-310). For its whole life
+ * the heartbeat was a silent no-op: the board read dropped the claim fields, so nothing
+ * ever matched and nothing was printed. "N doing, 0 mine" while this agent holds a claim
+ * is that failure, visible in the run log.
+ */
+export function nothingToRenewLine(tasks: HeldClaimTask[], agentId: string): string {
+  const doing = tasks.filter(task => (task.statusRole ?? '').toLowerCase() === 'doing')
+  const mine = doing.filter(task => task.claimHolderId === agentId)
+  return `HEARTBEAT: nothing to renew (${doing.length} doing, ${mine.length} mine)`
+}

@@ -78,3 +78,75 @@ export function resultsTable(rows: ReadonlyArray<{ scenario: string; call: strin
   }
   return lines.join('\n')
 }
+
+type Env = Readonly<Record<string, string | undefined>>
+
+export interface BenchCredentials {
+  /** A ready access token on the target (ASTRID_BENCH_TOKEN), or null to exchange the pair. */
+  token: string | null
+  clientId: string | null
+  clientSecret: string | null
+  /** Which variables the client pair came from, for the report. Never the values. */
+  pairSource: 'ASTRID_BENCH_CLIENT_*' | 'ASTRID_OAUTH_CLIENT_*' | null
+}
+
+/**
+ * Where the benchmark's credentials come from. A preview's own database knows the script OAuth
+ * client (`ASTRID_OAUTH_CLIENT_ID` / `_SECRET`), so a client-credentials token exchanged on the
+ * preview is enough and nobody has to mint ASTRID_BENCH_TOKEN by hand. The BENCH pair wins when
+ * set, so a run can still use a client that exists only on the target.
+ */
+export function benchCredentials(env: Env): BenchCredentials {
+  const token = env.ASTRID_BENCH_TOKEN?.trim() || null
+  if (env.ASTRID_BENCH_CLIENT_ID && env.ASTRID_BENCH_CLIENT_SECRET) {
+    return { token, clientId: env.ASTRID_BENCH_CLIENT_ID, clientSecret: env.ASTRID_BENCH_CLIENT_SECRET, pairSource: 'ASTRID_BENCH_CLIENT_*' }
+  }
+  if (env.ASTRID_OAUTH_CLIENT_ID && env.ASTRID_OAUTH_CLIENT_SECRET) {
+    return { token, clientId: env.ASTRID_OAUTH_CLIENT_ID, clientSecret: env.ASTRID_OAUTH_CLIENT_SECRET, pairSource: 'ASTRID_OAUTH_CLIENT_*' }
+  }
+  return { token, clientId: null, clientSecret: null, pairSource: null }
+}
+
+/**
+ * Why the stdio scenario cannot be trusted, or null. `mcp/astrid-mcp-launch.js` reloads the local
+ * env file with `override: true`, so whatever the harness passes the child is replaced by the
+ * file: an `ASTRID_API_BASE_URL` there would send the "preview" run to another origin (possibly
+ * production), and a BENCH pair would silently become the file's script pair. `env` is the
+ * harness's environment after loadScriptEnv(), which has the same file-wins values.
+ */
+export function stdioScenarioProblem(env: Env, origin: string, creds: BenchCredentials): string | null {
+  const fileBase = env.ASTRID_API_BASE_URL?.trim()
+  if (fileBase && fileBase.replace(/\/$/, '') !== origin.replace(/\/$/, '')) {
+    return 'ASTRID_API_BASE_URL is set to another origin, and the stdio launcher would use it instead of --origin'
+  }
+  if (!creds.clientId || !creds.clientSecret) {
+    return 'no client-credentials pair (ASTRID_BENCH_CLIENT_* or ASTRID_OAUTH_CLIENT_*)'
+  }
+  if (creds.pairSource === 'ASTRID_BENCH_CLIENT_*' && env.ASTRID_OAUTH_CLIENT_ID && env.ASTRID_OAUTH_CLIENT_ID !== creds.clientId) {
+    return 'the stdio launcher reloads the env file and would replace the ASTRID_BENCH_CLIENT_* pair with ASTRID_OAUTH_CLIENT_*'
+  }
+  return null
+}
+
+/**
+ * Why an MCP response is a failure, or null. A tool error comes back as HTTP 200 with
+ * `result.isError` (or a JSON-RPC `error`), so status alone would time error messages as if they
+ * were answers. Accepts a JSON body or a `text/event-stream` one (`data:` lines).
+ */
+export function rpcProblem(body: string): string | null {
+  const payloads = body.trimStart().startsWith('{')
+    ? [body]
+    : body.split('\n').filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trim())
+  if (payloads.length === 0) return 'no JSON-RPC message in the response'
+  for (const payload of payloads) {
+    let message: { error?: { message?: string }; result?: { isError?: boolean; content?: Array<{ text?: string }> } }
+    try {
+      message = JSON.parse(payload)
+    } catch {
+      return 'response is not JSON'
+    }
+    if (message.error) return `JSON-RPC error: ${message.error.message ?? 'unknown'}`
+    if (message.result?.isError) return `tool error: ${(message.result.content?.[0]?.text ?? '').slice(0, 200)}`
+  }
+  return null
+}

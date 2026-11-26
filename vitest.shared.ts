@@ -65,7 +65,7 @@ export const TEST_TIMEOUT_MS = 15_000
  * includes it as its entire suite. Two spellings of the same path is how one of
  * them silently stops matching, so there is only one.
  */
-export const POSTGRES_ONLY_TEST = 'tests/integration/postgres-risk.test.ts'
+export const POSTGRES_ONLY_TEST = 'tests/integration/postgres/**/*.test.ts'
 
 /** Tests that talk to real external services (spec §14.2). */
 export const LIVE_TESTS = 'tests/live/**'

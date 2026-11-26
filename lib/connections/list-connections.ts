@@ -22,6 +22,7 @@ import { agentEmail } from '@/lib/brand/agent-emails'
 import { listMyCustomAgentUsers } from '@/lib/custom-agents/list-my-agents'
 import { withTaxonomy } from '@/lib/connections/connection-taxonomy'
 import type { V1Connection } from '@/lib/api-contracts/v1-ios-shapes'
+import { explicitTokenScopes, tokenScopeEnforced } from '@/lib/token-scope-enforcement'
 
 /**
  * A row as its builder writes it. The `category` and `owner` facets are added
@@ -203,10 +204,11 @@ async function customAgents(userId: string): Promise<ConnectionRow[]> {
 }
 
 /**
- * User-level access tokens (MCPToken rows without a list). The API grants
- * these everything today (lib/api-auth-middleware returns '*'), so the audit
- * row says '*' rather than a narrower list nothing enforces; the raw
- * permissions ride along in `detail` for the day that changes.
+ * User-level access tokens (MCPToken rows without a list). An unscoped token is
+ * granted everything (lib/api-auth-middleware returns '*'), so its row says
+ * '*'. A token minted with explicit scopes (AWTD-1567) shows them, and
+ * `detail.scopeEnforced` says whether the flag holds it to them yet — the row
+ * never claims a limit the API is not applying.
  */
 async function accessTokens(userId: string): Promise<ConnectionRow[]> {
   const now = new Date()
@@ -216,6 +218,7 @@ async function accessTokens(userId: string): Promise<ConnectionRow[]> {
       id: true,
       description: true,
       permissions: true,
+      scope: true,
       createdAt: true,
       expiresAt: true,
       agentMailbox: true,
@@ -225,19 +228,24 @@ async function accessTokens(userId: string): Promise<ConnectionRow[]> {
   })
   return tokens.map(token => {
     const expired = !!token.expiresAt && new Date(token.expiresAt) <= now
+    const explicit = explicitTokenScopes(token.scope)
     return {
       id: token.id,
       kind: 'accessToken',
       name: token.description || 'Access token',
       actsAs: token.agentUser?.email ?? (token.agentMailbox ? agentEmail(token.agentMailbox) : null),
-      scopes: ['*'],
+      scopes: explicit ?? ['*'],
       createdAt: new Date(token.createdAt).toISOString(),
       lastUsedAt: null,
       expiresAt: iso(token.expiresAt),
       status: expired ? 'expired' : 'active',
       revocable: !expired,
       manageIn: 'agents',
-      detail: { permissions: token.permissions },
+      detail: {
+        permissions: token.permissions,
+        scoped: !!explicit,
+        scopeEnforced: !!explicit && tokenScopeEnforced(userId),
+      },
     }
   })
 }

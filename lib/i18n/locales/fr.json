@@ -1161,8 +1161,7 @@
         "note": "Ajoutez cette URL aux réglages MCP de votre assistant. Il vous demandera de vous connecter à {appName} — aucune clé à copier.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Enregistrez-le sous .vscode/mcp.json dans votre projet, puis appuyez sur Start sur le serveur",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Les anciens clients qui ne parlent que le transport SSE peuvent faire un GET sur la même URL et envoyer des messages en POST à /mcp/messages."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Étape 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Enregistrez-le sous .vscode/mcp.json dans votre projet, puis appuyez sur Start sur le serveur",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Les anciens clients qui ne parlent que le transport SSE peuvent faire un GET sur la même URL et envoyer des messages en POST à /mcp/messages.",
         "claudeNote": "Une seule commande — elle ouvre votre navigateur pour approuver l’accès, aucune clé à copier",
         "copilotTitle": "CLI GitHub Copilot",
         "copilotNote": "La même connexion en une commande pour la CLI Copilot",
@@ -1731,6 +1729,19 @@
         "loadError": "Impossible de charger les autorisations de cette connexion",
         "selectAtLeastOne": "Sélectionnez au moins une portée",
         "selectApp": "Sélectionnez une application."
+      },
+      "tokenScope": {
+        "unscoped": "Accès complet (aucune portée définie)",
+        "recorded": "Avec portées, pas encore appliquées",
+        "enforced": "Limité à ces portées"
+      },
+      "rotate": {
+        "action": "Renouveler",
+        "confirm": "Renouveler {name} ? Un nouveau jeton le remplace avec le même accès, et l'ancien cesse de fonctionner immédiatement.",
+        "newTokenTitle": "Nouveau jeton",
+        "newTokenDescription": "Copiez-le maintenant : il ne sera plus affiché. Mettez à jour tout ce qui utilisait l'ancien jeton.",
+        "done": "Terminé",
+        "error": "Impossible de renouveler"
       }
     },
     "openInNewTab": "Ouvrir dans un nouvel onglet",
@@ -1893,6 +1904,61 @@
     "deleteProjectDetail": "Ses listes sont conservées, hors de tout projet. Les colonnes propres au tableau sont supprimées avec lui.",
     "deleteProjectAction": "Supprimer",
     "deleteProjectFailed": "Impossible de supprimer le projet",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Estimation",
       "button": "Estimer",
@@ -1932,7 +1998,30 @@
       "opportunity": "Opportunité",
       "notEstimated": "Non estimé",
       "effort": "{hours} h d'effort",
-      "opportunityRange": "{low} à {high} {unit} / {period}"
+      "opportunityRange": "{low} à {high} {unit} / {period}",
+      "label": {
+        "do-now": "À faire maintenant",
+        "experiment-first": "Expérimenter d'abord",
+        "needs-review": "À examiner",
+        "dont": "À ne pas faire",
+        "chipAria": "Recommandation : {label}. Voir pourquoi.",
+        "reasonsHeading": "Pourquoi"
+      },
+      "reason": {
+        "noEstimate": "Il n'y a pas encore d'estimation.",
+        "stale": "L'estimation est périmée.",
+        "guardrailAtRefuse": "{name} : la probabilité de dépassement {probability} atteint la limite de {threshold}.",
+        "guardrailAtReview": "{name} : la probabilité de dépassement {probability} atteint le seuil d'examen de {threshold}.",
+        "riskAtRefuse": "Le risque est {level}, égal ou supérieur à la limite de {threshold}.",
+        "riskAtReview": "Le risque est {level}, égal ou supérieur au seuil d'examen de {threshold}.",
+        "riskUnknown": "L'estimateur n'a donné aucun risque, et l'inconnu n'est jamais bon.",
+        "guardrailsUnknown": "L'estimateur n'a donné aucun effet sur les garde-fous, et l'inconnu n'est jamais bon.",
+        "confidenceLow": "La confiance est faible, ou n'a pas été indiquée.",
+        "experimentFirst": "La confiance est {confidence} alors que le risque est {risk}.",
+        "builtinCapped": "Une estimation intégrée n'est jamais meilleure que « Expérimenter d'abord ».",
+        "goalImproves": "{name} devrait s'améliorer ({delta}).",
+        "noGoalImproves": "Aucun objectif ne devrait s'améliorer."
+      }
     },
     "goals": {
       "title": "Objectifs et garde-fous",
@@ -2041,7 +2130,8 @@
       "who": "Qui",
       "completed": "Terminées d'abord",
       "incomplete": "À faire d'abord",
-      "manual": "Manuel"
+      "manual": "Manuel",
+      "policy": "Politique"
     },
     "show": {
       "allTasks": "Toutes les tâches",
@@ -2888,7 +2978,8 @@
       "doing": "En cours",
       "waiting": "En attente",
       "done": "Terminé",
-      "testing": "Test"
+      "testing": "Test",
+      "results": "Résultats en attente"
     },
     "empty": {
       "inbox": "Rien de nouveau à trier ! Les tâches sans statut arrivent ici.",
@@ -2904,7 +2995,8 @@
       "doing": "Travail en cours !",
       "waiting": "En pause jusqu’à ce que les conditions soient réunies.",
       "done": "Terminé — bravo !",
-      "testing": "En déploiement, en canary ou dans une expérience."
+      "testing": "En déploiement, en canary ou dans une expérience.",
+      "results": "Construit et publié ; en attente du rapport d'une expérience ou d'une vérification."
     }
   },
   "passkeyErrors": {
@@ -3185,7 +3277,32 @@
       "migrateAdditive": "Migrations additives",
       "migrateDestructive": "Migrations destructives",
       "release": "Publications sur les stores",
-      "spend": "Dépenser de l'argent"
+      "spend": "Dépenser de l'argent",
+      "promoteIdea": "Passer une idée à faire maintenant à Prêt",
+      "experimentStart": "Lancer des expériences",
+      "experimentStop": "Arrêter des expériences"
+    },
+    "tradeoff": {
+      "title": "Politique d'arbitrage",
+      "switch": "Définir une politique d'arbitrage",
+      "stated": "Définie",
+      "none": "Aucune définie",
+      "help": "Étiquette chaque idée estimée (à faire maintenant, expérimenter d'abord, à examiner, à ne pas faire) et ordonne le tri par politique. Sans politique définie, rien n'est étiqueté et il n'y a pas de tri par politique.",
+      "probability": "{pct} %",
+      "field": {
+        "riskReviewAt": "Examiner quand le risque est d'au moins",
+        "riskRefuseAt": "Ne pas faire quand le risque est d'au moins",
+        "confidenceBelow": "Expérimenter d'abord quand la confiance est inférieure à",
+        "experimentRiskAtLeast": "…et que le risque est d'au moins",
+        "minConfidenceToAct": "Un agent peut promouvoir avec une confiance d'au moins",
+        "guardrailReview": "Examiner à la probabilité de dépassement de",
+        "guardrailRefuse": "Ne pas faire à la probabilité de dépassement de"
+      },
+      "goalOrder": "Priorité des objectifs",
+      "goalOrderHelp": "Les idées à égalité sur tout ce qui précède sont ordonnées selon leur effet sur ces objectifs, le plus important d'abord.",
+      "goalOrderReset": "Utiliser l'ordre par défaut",
+      "moveUp": "Monter {goal}",
+      "moveDown": "Descendre {goal}"
     },
     "autonomy": {
       "allowed": "Autorisé",

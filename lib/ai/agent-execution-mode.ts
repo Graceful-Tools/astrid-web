@@ -32,6 +32,7 @@ import {
 import { harnessAgentMailboxes } from '@/lib/ai/harness-agents'
 import { MCPSettingsSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { createLogger } from '@/lib/logger'
+import { agentExecutionModeHonorOffEnabled } from '@/lib/env'
 
 const log = createLogger('ai.agent-execution-mode')
 
@@ -184,11 +185,7 @@ interface StoredAgentSettings {
   credentialedServices: Set<string>
 }
 
-/** Shadow callers abort on failure instead of logging raw user/config diagnostics. */
-export async function readAgentSettings(
-  userId: string | null | undefined,
-  onFailure?: () => never,
-): Promise<StoredAgentSettings> {
+async function readAgentSettings(userId: string | null | undefined): Promise<StoredAgentSettings> {
   const empty: StoredAgentSettings = { modes: {}, credentialedServices: new Set() }
   if (!userId) return empty
 
@@ -199,7 +196,7 @@ export async function readAgentSettings(
     })
     if (!user) return empty
 
-    const settings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'agent-execution-mode', onFailure)
+    const settings = parseUserAIConfig(user.mcpSettings, MCPSettingsSchema, 'agent-execution-mode')
     const apiKeys = settings.apiKeys ?? {}
     const credentialedServices = new Set(
       Object.entries(apiKeys)
@@ -208,7 +205,6 @@ export async function readAgentSettings(
     )
     return { modes: (settings.agentModes ?? {}) as Record<string, unknown>, credentialedServices }
   } catch (err) {
-    if (onFailure) return onFailure()
     // A settings read that fails must not decide the mode by accident. Falling
     // through to the defaults keeps a database blip from silently firing paid API
     // calls for someone who had turned them off.
@@ -217,14 +213,23 @@ export async function readAgentSettings(
   }
 }
 
-/** The mode a given user's agent runs in, resolved against their saved settings. */
+/**
+ * The mode a given user's agent runs in, resolved against their saved settings.
+ *
+ * A polling-only mailbox (`codex`) used to short-circuit to `polling` before the
+ * settings were read, so a stored Off was saved, shown in the settings screen,
+ * and then ignored by every caller here (AWTD-1554 finding 13). With
+ * ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF on, the settings are read and the
+ * resolver's own rule applies: polling, unless the user stored `off`
+ * (AWTD-1563). With it off, nothing is read and the answer is `polling`.
+ */
 export async function getAgentExecutionMode(
   userId: string | null | undefined,
   agentEmailAddress: string | null | undefined
 ): Promise<AgentExecutionMode> {
   const mailbox = agentMailboxFromEmail(agentEmailAddress)
   if (!mailbox) return 'api'
-  if (isModeLockedToPolling(mailbox)) return 'polling'
+  if (isModeLockedToPolling(mailbox) && (!userId || !agentExecutionModeHonorOffEnabled())) return 'polling'
 
   const { modes, credentialedServices } = await readAgentSettings(userId)
   const credentialKey = MAILBOX_CREDENTIAL_KEYS[mailbox]

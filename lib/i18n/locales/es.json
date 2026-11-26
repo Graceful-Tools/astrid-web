@@ -1161,8 +1161,7 @@
         "note": "Añade esta URL en los ajustes MCP de tu asistente. Te pedirá iniciar sesión en {appName}; no hay claves que copiar.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Guárdalo como .vscode/mcp.json en tu proyecto y pulsa Start en el servidor",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Los clientes antiguos que solo hablan el transporte SSE pueden hacer GET a la misma URL y enviar mensajes con POST a /mcp/messages."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Paso 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Guárdalo como .vscode/mcp.json en tu proyecto y pulsa Start en el servidor",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Los clientes antiguos que solo hablan el transporte SSE pueden hacer GET a la misma URL y enviar mensajes con POST a /mcp/messages.",
         "claudeNote": "Un solo comando: abre el navegador para aprobar el acceso, sin claves que copiar",
         "copilotTitle": "CLI de GitHub Copilot",
         "copilotNote": "La misma conexión de un solo comando para la CLI de Copilot",
@@ -1731,6 +1729,19 @@
         "loadError": "No se pudieron cargar los permisos de esta conexión",
         "selectAtLeastOne": "Selecciona al menos un alcance",
         "selectApp": "Selecciona una aplicación."
+      },
+      "tokenScope": {
+        "unscoped": "Acceso completo (sin ámbitos)",
+        "recorded": "Con ámbitos, aún no aplicados",
+        "enforced": "Limitado a estos ámbitos"
+      },
+      "rotate": {
+        "action": "Rotar",
+        "confirm": "¿Rotar {name}? Un token nuevo lo reemplaza con el mismo acceso y el anterior deja de funcionar de inmediato.",
+        "newTokenTitle": "Token nuevo",
+        "newTokenDescription": "Cópialo ahora: no se volverá a mostrar. Actualiza todo lo que usaba el token anterior.",
+        "done": "Listo",
+        "error": "No se pudo rotar"
       }
     },
     "openInNewTab": "Abrir en una pestaña nueva",
@@ -1893,6 +1904,61 @@
     "deleteProjectDetail": "Sus listas se conservan, fuera de cualquier proyecto. Las columnas propias del tablero se eliminan con él.",
     "deleteProjectAction": "Eliminar",
     "deleteProjectFailed": "No se pudo eliminar el proyecto",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Estimación",
       "button": "Estimar",
@@ -1932,7 +1998,30 @@
       "opportunity": "Oportunidad",
       "notEstimated": "Sin estimar",
       "effort": "{hours} h de esfuerzo",
-      "opportunityRange": "{low} a {high} {unit} / {period}"
+      "opportunityRange": "{low} a {high} {unit} / {period}",
+      "label": {
+        "do-now": "Hacer ahora",
+        "experiment-first": "Experimentar primero",
+        "needs-review": "Requiere revisión",
+        "dont": "No hacer",
+        "chipAria": "Recomendación: {label}. Mostrar por qué.",
+        "reasonsHeading": "Por qué"
+      },
+      "reason": {
+        "noEstimate": "Todavía no hay una estimación.",
+        "stale": "La estimación está desactualizada.",
+        "guardrailAtRefuse": "{name}: la probabilidad de incumplimiento {probability} está en el límite de {threshold}.",
+        "guardrailAtReview": "{name}: la probabilidad de incumplimiento {probability} está en el punto de revisión de {threshold}.",
+        "riskAtRefuse": "El riesgo es {level}, igual o superior al límite de {threshold}.",
+        "riskAtReview": "El riesgo es {level}, igual o superior al punto de revisión de {threshold}.",
+        "riskUnknown": "El estimador no indicó el riesgo, y lo desconocido nunca es bueno.",
+        "guardrailsUnknown": "El estimador no indicó el efecto sobre los límites, y lo desconocido nunca es bueno.",
+        "confidenceLow": "La confianza es baja o no se indicó.",
+        "experimentFirst": "La confianza es {confidence} y el riesgo es {risk}.",
+        "builtinCapped": "Una estimación integrada nunca es mejor que experimentar primero.",
+        "goalImproves": "Se espera que {name} mejore ({delta}).",
+        "noGoalImproves": "No se espera que ningún objetivo mejore."
+      }
     },
     "goals": {
       "title": "Objetivos y límites",
@@ -2041,7 +2130,8 @@
       "who": "Quién",
       "completed": "Hechas primero",
       "incomplete": "Por hacer primero",
-      "manual": "Manual"
+      "manual": "Manual",
+      "policy": "Política"
     },
     "show": {
       "allTasks": "Todas las tareas",
@@ -2888,7 +2978,8 @@
       "doing": "En curso",
       "waiting": "En espera",
       "done": "Hecho",
-      "testing": "Pruebas"
+      "testing": "Pruebas",
+      "results": "Resultados pendientes"
     },
     "empty": {
       "inbox": "¡Nada nuevo que ordenar! Las tareas sin estado llegan aquí.",
@@ -2904,7 +2995,8 @@
       "doing": "¡Trabajo en curso!",
       "waiting": "En pausa hasta que se den las circunstancias.",
       "done": "Completado: ¡enhorabuena!",
-      "testing": "En despliegue, en canary o en un experimento."
+      "testing": "En despliegue, en canary o en un experimento.",
+      "results": "Construido y publicado; a la espera de que un experimento o una verificación informe."
     }
   },
   "passkeyErrors": {
@@ -3185,7 +3277,32 @@
       "migrateAdditive": "Migraciones aditivas",
       "migrateDestructive": "Migraciones destructivas",
       "release": "Publicaciones en tiendas",
-      "spend": "Gastar dinero"
+      "spend": "Gastar dinero",
+      "promoteIdea": "Pasar una idea de hacer ahora a Listo",
+      "experimentStart": "Iniciar experimentos",
+      "experimentStop": "Detener experimentos"
+    },
+    "tradeoff": {
+      "title": "Política de equilibrio",
+      "switch": "Definir una política de equilibrio",
+      "stated": "Definida",
+      "none": "Ninguna definida",
+      "help": "Etiqueta cada idea estimada (hacer ahora, experimentar primero, requiere revisión, no hacer) y ordena la clasificación por política. Sin una política definida, no se etiqueta nada y no hay clasificación por política.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Revisar cuando el riesgo sea como mínimo",
+        "riskRefuseAt": "No hacer cuando el riesgo sea como mínimo",
+        "confidenceBelow": "Experimentar primero cuando la confianza sea inferior a",
+        "experimentRiskAtLeast": "…y el riesgo sea como mínimo",
+        "minConfidenceToAct": "Un agente puede promover con una confianza de al menos",
+        "guardrailReview": "Revisar con probabilidad de incumplimiento",
+        "guardrailRefuse": "No hacer con probabilidad de incumplimiento"
+      },
+      "goalOrder": "Prioridad de objetivos",
+      "goalOrderHelp": "Las ideas que empatan en todo lo anterior se ordenan según cómo afectan a estos objetivos, el más importante primero.",
+      "goalOrderReset": "Usar el orden predeterminado",
+      "moveUp": "Subir {goal}",
+      "moveDown": "Bajar {goal}"
     },
     "autonomy": {
       "allowed": "Permitido",

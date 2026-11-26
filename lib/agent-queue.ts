@@ -26,15 +26,15 @@ import {
 import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { awaitsAgentReply } from '@/lib/ready-queue-scope'
 import { PAGE_LIMIT, selectAgentQueueTasks } from '@/lib/agent-queue-due-first'
-import { pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { isModeLockedToPolling, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
 import { RuntimeBindingDeniedError, resolveAgentRuntime } from '@/lib/ai/runtime-binding-resolver'
-import { runtimeBindingResolverEnabled } from '@/lib/env'
+import { agentExecutionModeHonorOffEnabled, runtimeBindingResolverEnabled } from '@/lib/env'
 import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
-import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions } from '@/lib/agent-queue-list-instructions'
 import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
 import { collectProjectGoals, type AgentProjectGoals } from '@/lib/agent-queue-project-goals'
-import { emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
+import { agentOffHint, emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
+import { emptyAgentQueue } from '@/lib/agent-queue-empty'
 import { pendingAgentAnswer, pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 import { buildInboxIdeas, type AgentInbox } from '@/lib/inbox-ideas'
 
@@ -253,6 +253,7 @@ export interface AgentQueueOptions {
    * discoverable solely by the binding's enrolled runtime (`runtimeSubjectId`).
    */
   runtimePrincipal?: string | null
+  identityOnly?: boolean // who the agent is, no queue read (AWTD-1553)
 }
 
 /**
@@ -323,6 +324,7 @@ export async function buildAgentQueue({
   includeUnassigned = false,
   includeChat = false,
   runtimePrincipal = null,
+  identityOnly = false,
 }: AgentQueueOptions): Promise<AgentQueueResult> {
   // No default identity, ever. A loop that guesses which agent it is claims
   // another harness's work — the one failure here that costs duplicated effort
@@ -389,7 +391,6 @@ export async function buildAgentQueue({
   const hiddenBoundBoards = await pilotQueueScope({ runtime, userId, agentEmail: email, runtimePrincipal })
   if (runtime.kind === 'denied') throw new RuntimeBindingDeniedError(runtime)
   const mode = runtime.mode
-  if (runtime.kind === 'legacy') observeAgentExecutionMode({ userId, mailbox, mode })
   // Identity only. The plan's credential and payer references stay server-side.
   const runtimeBinding =
     runtime.kind === 'bound' ? { id: runtime.plan.bindingId, revision: runtime.plan.revision } : undefined
@@ -407,24 +408,23 @@ export async function buildAgentQueue({
     throw new UnknownAgentError(`Unknown agent "${requested}"`)
   }
 
-  // An agent identity that does not exist yet is an empty queue, not an error:
-  // the row is created the first time someone assigns work to it.
-  if (!agentUser?.isAIAgent) {
-    return {
-      agent: { mailbox, email, id: null },
-      mode,
-      empty: true,
-      queue: [],
-      listInstructions: [],
-      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
-      truncated: false,
-      // An identity nobody has used yet has nothing to answer either.
-      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
-      hint: nothingAssignedHint(mailbox),
-      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
-      ...(runtimeBinding ? { runtimeBinding } : {}),
-    }
+  // A polling-only mailbox the caller turned Off gets no work (AWTD-1563). Its
+  // harness may still be scheduled, and Off means nothing should pick tasks up.
+  // Behind the flag, and only for those mailboxes: everything else is unchanged.
+  if (mode === 'off' && agentExecutionModeHonorOffEnabled() && isModeLockedToPolling(mailbox)) {
+    const agent = { mailbox, email, id: agentUser?.id ?? null, name: agentUser?.name }
+    return emptyAgentQueue(agent, mode, agentOffHint(mailbox), runtimeBinding)
   }
+
+  // An agent identity that does not exist yet is an empty queue, not an error:
+  // the row is created the first time someone assigns work to it. `identityOnly` (AWTD-1553): same shape, with the id.
+  if (!agentUser?.isAIAgent || identityOnly) {
+    // An identity nobody has used yet has nothing to answer either.
+    const id = agentUser?.isAIAgent ? agentUser.id : null
+    const { hint, ...empty } = emptyAgentQueue({ mailbox, email, id }, mode, nothingAssignedHint(mailbox), runtimeBinding)
+    return identityOnly ? empty : { ...empty, hint }
+  }
+
 
   // One shape, used by the queue and by the count that explains an empty one. A
   // count drawn more widely would report work the caller cannot see.

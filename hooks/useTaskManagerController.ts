@@ -532,8 +532,8 @@ export function useTaskManagerController({
         listState.setTasks(prevTasks => prevTasks.map((task) =>
           task.id === originalTask.id ? originalTask : task
         ))
-        // A 422 asking for a wait condition is answered by the prompt, not a toast.
-        if ((await waitingPrompt()).isWaitingNeedsCondition(error) && Object.keys(waitingFields).length === 0) throw error
+        // A 422 asking for a wait condition (or, ADEV-282, a Pending results one) is answered by the prompt, not a toast.
+        if ((await waitingPrompt()).needsPromptAnswer(error, waitingFields)) throw error
         toast({
           title: "Error",
           description: refusalReason(error) ?? "Failed to update task. Please try again.",

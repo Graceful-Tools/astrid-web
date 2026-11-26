@@ -9,6 +9,7 @@ import {
   type AuthContext,
 } from './api-auth-middleware'
 import { createLogger } from './logger'
+import { RolloverUnavailableError } from './repeating-rollover'
 import { createHash } from 'node:crypto'
 
 /**
@@ -106,6 +107,27 @@ function shouldSampleShadow(tokenIdHash: string | undefined, route: string): boo
   return true
 }
 
+/**
+ * Extra 403 fields for an access token held to its own scopes (AWTD-1567): which
+ * scope it lacked and what it has, so the owner can tell a too-narrow token from
+ * a list permission. Other callers' 403 bodies are unchanged.
+ */
+function scopedTokenDenial(
+  auth: AuthContext,
+  needed: string[] | null,
+  anyOf: string[]
+): { missingScopes: string[]; tokenScopes: string[]; hint: string } | Record<string, never> {
+  if (!auth.scopeEnforced) return {}
+  const missing = needed
+    ? needed.filter(scope => !hasRequiredScopes(auth.scopes, [scope]))
+    : anyOf
+  return {
+    missingScopes: missing,
+    tokenScopes: [...auth.scopes],
+    hint: 'This access token was minted with explicit scopes and is limited to them. Mint or rotate a token with the missing scope under Settings > Connections.',
+  }
+}
+
 type Handler<TContext> = (
   req: NextRequest,
   auth: AuthContext,
@@ -175,7 +197,10 @@ export function withAuth<TContext = unknown>(
         }
       } catch (err) {
         if (err instanceof ForbiddenError) {
-          return NextResponse.json({ error: 'Forbidden', message: err.message }, { status: 403 })
+          return NextResponse.json(
+            { error: 'Forbidden', message: err.message, ...scopedTokenDenial(auth, needed, anyOf) },
+            { status: 403 }
+          )
         }
         throw err
       }
@@ -211,6 +236,14 @@ export function withAuth<TContext = unknown>(
       }
       if (err instanceof ForbiddenError) {
         return NextResponse.json({ error: 'Forbidden', message: err.message }, { status: 403 })
+      }
+      if (err instanceof RolloverUnavailableError) {
+        // Nothing was written: the completion can simply be retried (ADEV-306).
+        log.error({ err, path: req.nextUrl.pathname }, 'Repeating rollover unavailable')
+        return NextResponse.json(
+          { error: 'Service unavailable', message: err.message, retryable: true },
+          { status: 503, headers: { 'Retry-After': '5' } },
+        )
       }
       log.error({ err, path: req.nextUrl.pathname }, 'Handler threw')
       return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

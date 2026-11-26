@@ -49,6 +49,7 @@ export const POST = withAuth(
       success: true,
       token: minted.token,
       permissions: minted.permissions,
+      scopes: minted.scopes,
       expiresAt: minted.expiresAt?.toISOString() ?? null,
       description: minted.description,
       createdAt: minted.createdAt.toISOString(),

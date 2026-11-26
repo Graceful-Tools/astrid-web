@@ -2,6 +2,8 @@ import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 import type { Session } from 'next-auth'
 import 'fake-indexeddb/auto'
+import './support/install-repeating-core'
+import { installTestListPermissionsCore } from './helpers/list-permissions-core'
 import rawEnMessages from '@/lib/i18n/locales/en.json'
 import { applyBrandToMessages } from '@/lib/brand/i18n-values'
 
@@ -619,3 +621,7 @@ vi.mock('@/lib/redis', () => ({
     }
   }
 }))
+
+// astrid-core is the server's only list-permission rule since ADEV-304: without a decider every
+// server-side check is refused. Install the vendored core the way instrumentation.ts does.
+installTestListPermissionsCore()

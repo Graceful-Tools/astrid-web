@@ -47,7 +47,7 @@ import { loadScriptEnv } from './lib/load-env'
 import type { RowOutcome } from '../lib/reencrypt-plan'
 import { reencrypt, type ReencryptOptions, type ReencryptReporter } from '../lib/reencrypt-runner'
 
-// tests/integration/postgres-risk.test.ts imports the pass from here.
+// tests/integration/postgres/postgres-risk.test.ts imports the pass from here.
 export { reencrypt }
 
 export interface Options extends ReencryptOptions {

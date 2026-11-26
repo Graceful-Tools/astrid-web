@@ -1161,8 +1161,7 @@
         "note": "이 URL을 어시스턴트의 MCP 설정에 추가하세요. {appName}에 로그인하라는 안내가 나타납니다 — 복사할 키는 없습니다.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "프로젝트에 .vscode/mcp.json으로 저장한 다음 서버에서 Start를 누르세요",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "SSE 전송만 지원하는 이전 클라이언트는 같은 URL에 GET 요청을 보내고 /mcp/messages로 POST 메시지를 보낼 수 있습니다."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "단계 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "프로젝트에 .vscode/mcp.json으로 저장한 다음 서버에서 Start를 누르세요",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "SSE 전송만 지원하는 이전 클라이언트는 같은 URL에 GET 요청을 보내고 /mcp/messages로 POST 메시지를 보낼 수 있습니다.",
         "claudeNote": "명령 하나면 됩니다. 브라우저가 열려 액세스를 승인하고, 복사할 키는 없습니다",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI에서도 동일하게 명령 하나로 연결합니다",
@@ -1731,6 +1729,19 @@
         "loadError": "이 연결의 권한을 불러올 수 없습니다",
         "selectAtLeastOne": "범위를 하나 이상 선택하세요",
         "selectApp": "앱을 선택하세요."
+      },
+      "tokenScope": {
+        "unscoped": "전체 액세스(범위 미설정)",
+        "recorded": "범위 있음, 아직 적용 안 됨",
+        "enforced": "이 범위로 제한됨"
+      },
+      "rotate": {
+        "action": "교체",
+        "confirm": "{name}을(를) 교체할까요? 같은 액세스 권한의 새 토큰으로 바뀌고 이전 토큰은 즉시 작동을 멈춥니다.",
+        "newTokenTitle": "새 토큰",
+        "newTokenDescription": "지금 복사하세요. 다시 표시되지 않습니다. 이전 토큰을 사용하던 곳을 모두 업데이트하세요.",
+        "done": "완료",
+        "error": "교체하지 못했습니다"
       }
     },
     "openInNewTab": "새 탭에서 열기",
@@ -1893,6 +1904,61 @@
     "deleteProjectDetail": "목록은 어떤 프로젝트에도 속하지 않은 채로 남습니다. 보드 고유의 열은 함께 삭제됩니다.",
     "deleteProjectAction": "삭제",
     "deleteProjectFailed": "프로젝트를 삭제할 수 없습니다",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "추정",
       "button": "추정",
@@ -1932,7 +1998,30 @@
       "opportunity": "기회",
       "notEstimated": "추정 안 됨",
       "effort": "작업 {hours}시간",
-      "opportunityRange": "{low} ~ {high} {unit} / {period}"
+      "opportunityRange": "{low} ~ {high} {unit} / {period}",
+      "label": {
+        "do-now": "지금 하기",
+        "experiment-first": "먼저 실험",
+        "needs-review": "검토 필요",
+        "dont": "하지 않기",
+        "chipAria": "추천: {label}. 이유 보기.",
+        "reasonsHeading": "이유"
+      },
+      "reason": {
+        "noEstimate": "아직 추정치가 없습니다.",
+        "stale": "추정치가 오래되었습니다.",
+        "guardrailAtRefuse": "{name}: 위반 확률 {probability}이(가) 한도 {threshold}에 도달했습니다.",
+        "guardrailAtReview": "{name}: 위반 확률 {probability}이(가) 검토 기준 {threshold}에 도달했습니다.",
+        "riskAtRefuse": "위험도는 {level}이며, 한도 {threshold} 이상입니다.",
+        "riskAtReview": "위험도는 {level}이며, 검토 기준 {threshold} 이상입니다.",
+        "riskUnknown": "추정기가 위험도를 제공하지 않았으며, 알 수 없음은 결코 좋지 않습니다.",
+        "guardrailsUnknown": "추정기가 가드레일에 미치는 영향을 제공하지 않았으며, 알 수 없음은 결코 좋지 않습니다.",
+        "confidenceLow": "신뢰도가 낮거나 제공되지 않았습니다.",
+        "experimentFirst": "신뢰도는 {confidence}, 위험도는 {risk}입니다.",
+        "builtinCapped": "기본 제공 추정치는 '먼저 실험'보다 좋아질 수 없습니다.",
+        "goalImproves": "{name}이(가) 개선될 것으로 예상됩니다({delta}).",
+        "noGoalImproves": "개선될 것으로 예상되는 목표가 없습니다."
+      }
     },
     "goals": {
       "title": "목표와 가드레일",
@@ -2041,7 +2130,8 @@
       "who": "담당자",
       "completed": "완료 먼저",
       "incomplete": "할 일 먼저",
-      "manual": "수동"
+      "manual": "수동",
+      "policy": "정책"
     },
     "show": {
       "allTasks": "모든 작업",
@@ -2888,7 +2978,8 @@
       "doing": "진행 중",
       "waiting": "대기 중",
       "done": "완료",
-      "testing": "테스트"
+      "testing": "테스트",
+      "results": "결과 대기 중"
     },
     "empty": {
       "inbox": "정리할 새 항목이 없어요! 상태가 없는 작업은 여기에 들어와요.",
@@ -2904,7 +2995,8 @@
       "doing": "작업이 진행 중입니다!",
       "waiting": "상황이 맞을 때까지 일시 중지.",
       "done": "완료 — 축하합니다!",
-      "testing": "배포 중, 카나리 중 또는 실험 중."
+      "testing": "배포 중, 카나리 중 또는 실험 중.",
+      "results": "빌드 및 릴리스 완료. 실험 또는 검증 결과를 기다리는 중입니다."
     }
   },
   "passkeyErrors": {
@@ -3185,7 +3277,32 @@
       "migrateAdditive": "추가형 마이그레이션",
       "migrateDestructive": "파괴적 마이그레이션",
       "release": "스토어 출시",
-      "spend": "비용 지출"
+      "spend": "비용 지출",
+      "promoteIdea": "'지금 하기' 아이디어를 준비됨으로 이동",
+      "experimentStart": "실험 시작",
+      "experimentStop": "실험 중지"
+    },
+    "tradeoff": {
+      "title": "트레이드오프 정책",
+      "switch": "트레이드오프 정책 지정",
+      "stated": "지정됨",
+      "none": "지정 안 됨",
+      "help": "추정된 각 아이디어에 라벨(지금 하기, 먼저 실험, 검토 필요, 하지 않기)을 붙이고 정책 정렬 순서를 정합니다. 지정하지 않으면 라벨이 붙지 않고 정책 정렬도 없습니다.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "위험도가 다음 이상이면 검토",
+        "riskRefuseAt": "위험도가 다음 이상이면 하지 않기",
+        "confidenceBelow": "신뢰도가 다음 미만이면 먼저 실험",
+        "experimentRiskAtLeast": "…그리고 위험도가 다음 이상",
+        "minConfidenceToAct": "신뢰도가 다음 이상이면 에이전트가 승격 가능",
+        "guardrailReview": "위반 확률이 다음일 때 검토",
+        "guardrailRefuse": "위반 확률이 다음일 때 하지 않기"
+      },
+      "goalOrder": "목표 우선순위",
+      "goalOrderHelp": "위 기준이 모두 같은 아이디어는 이 목표들에 미치는 영향이 큰 순서대로 정렬됩니다.",
+      "goalOrderReset": "기본 순서 사용",
+      "moveUp": "{goal} 위로 이동",
+      "moveDown": "{goal} 아래로 이동"
     },
     "autonomy": {
       "allowed": "허용",

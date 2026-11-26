@@ -1161,8 +1161,7 @@
         "note": "Add this URL to your assistant's MCP settings. It will prompt you to sign in to {appName} — no keys to copy.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Step 1",
@@ -1561,7 +1560,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Save as .vscode/mcp.json in your project, then press Start on the server",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Older clients that only speak the SSE transport can GET the same URL and POST messages to /mcp/messages.",
         "claudeNote": "One command — it opens your browser to approve access, no keys to copy",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Same one-command connect for the Copilot CLI",
@@ -1731,6 +1729,19 @@
         "loadError": "Could not load this connection's permissions",
         "selectAtLeastOne": "Select at least one scope",
         "selectApp": "Select an app."
+      },
+      "tokenScope": {
+        "unscoped": "Full access (no scopes set)",
+        "recorded": "Scoped, not enforced yet",
+        "enforced": "Limited to these scopes"
+      },
+      "rotate": {
+        "action": "Rotate",
+        "confirm": "Rotate {name}? A new token replaces it with the same access, and the old one stops working immediately.",
+        "newTokenTitle": "New token",
+        "newTokenDescription": "Copy it now: it won't be shown again. Update everything that used the old token.",
+        "done": "Done",
+        "error": "Could not rotate"
       }
     },
     "openInNewTab": "Open in new tab",
@@ -1893,6 +1904,61 @@
     "deleteProjectDetail": "Its lists stay, outside any project. The board's own columns go with it.",
     "deleteProjectAction": "Delete",
     "deleteProjectFailed": "Couldn't delete the project",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Estimate",
       "button": "Estimate",
@@ -1932,7 +1998,30 @@
       "opportunity": "Opportunity",
       "notEstimated": "Not estimated",
       "effort": "{hours} h of effort",
-      "opportunityRange": "{low} to {high} {unit} / {period}"
+      "opportunityRange": "{low} to {high} {unit} / {period}",
+      "label": {
+        "do-now": "Do now",
+        "experiment-first": "Experiment first",
+        "needs-review": "Needs review",
+        "dont": "Don't",
+        "chipAria": "Recommendation: {label}. Show why.",
+        "reasonsHeading": "Why"
+      },
+      "reason": {
+        "noEstimate": "There is no estimate yet.",
+        "stale": "The estimate is out of date.",
+        "guardrailAtRefuse": "{name}: breach probability {probability} is at the limit of {threshold}.",
+        "guardrailAtReview": "{name}: breach probability {probability} is at the review point of {threshold}.",
+        "riskAtRefuse": "Risk is {level}, at or above the limit of {threshold}.",
+        "riskAtReview": "Risk is {level}, at or above the review point of {threshold}.",
+        "riskUnknown": "The estimator gave no risk, and unknown is never good.",
+        "guardrailsUnknown": "The estimator gave no effect on the guardrails, and unknown is never good.",
+        "confidenceLow": "Confidence is low, or was not given.",
+        "experimentFirst": "Confidence is {confidence} while risk is {risk}.",
+        "builtinCapped": "A built-in estimate is never better than experiment first.",
+        "goalImproves": "{name} is expected to improve ({delta}).",
+        "noGoalImproves": "No goal is expected to improve."
+      }
     },
     "goals": {
       "title": "Goals & guardrails",
@@ -2041,7 +2130,8 @@
       "who": "Who",
       "completed": "Done First",
       "incomplete": "To-do First",
-      "manual": "Manual"
+      "manual": "Manual",
+      "policy": "Policy"
     },
     "show": {
       "allTasks": "All tasks",
@@ -2888,7 +2978,8 @@
       "doing": "Doing",
       "waiting": "Waiting",
       "done": "Done",
-      "testing": "Testing"
+      "testing": "Testing",
+      "results": "Pending results"
     },
     "empty": {
       "inbox": "Nothing new to sort! Tasks without a status land here.",
@@ -2904,7 +2995,8 @@
       "doing": "Active work in progress!",
       "waiting": "Paused until the circumstances are right.",
       "done": "Complete — congrats!",
-      "testing": "Deploying, in canary, or in an experiment."
+      "testing": "Deploying, in canary, or in an experiment.",
+      "results": "Built and released; waiting for an experiment or a verification to report."
     }
   },
   "passkeyErrors": {
@@ -3185,7 +3277,32 @@
       "migrateAdditive": "Additive migrations",
       "migrateDestructive": "Destructive migrations",
       "release": "Store releases",
-      "spend": "Spending money"
+      "spend": "Spending money",
+      "promoteIdea": "Moving a do-now idea to Ready",
+      "experimentStart": "Starting experiments",
+      "experimentStop": "Stopping experiments"
+    },
+    "tradeoff": {
+      "title": "Trade-off policy",
+      "switch": "State a trade-off policy",
+      "stated": "Stated",
+      "none": "None stated",
+      "help": "Labels each estimated idea (do now, experiment first, needs review, don't) and orders the Policy sort. With none stated, nothing is labelled and there is no Policy sort.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Review when risk is at least",
+        "riskRefuseAt": "Don't when risk is at least",
+        "confidenceBelow": "Experiment first when confidence is below",
+        "experimentRiskAtLeast": "…and risk is at least",
+        "minConfidenceToAct": "An agent may promote at confidence of at least",
+        "guardrailReview": "Review at breach probability",
+        "guardrailRefuse": "Don't at breach probability"
+      },
+      "goalOrder": "Goal priority",
+      "goalOrderHelp": "Ideas that tie on everything above are ordered by how they affect these goals, most important first.",
+      "goalOrderReset": "Use the default order",
+      "moveUp": "Move {goal} up",
+      "moveDown": "Move {goal} down"
     },
     "autonomy": {
       "allowed": "Allowed",

@@ -9,7 +9,7 @@
  *
  * This pins both halves, because they have to agree: the migration has to
  * create the indexes, and schema.prisma has to declare them, or
- * `prisma migrate diff` (tests/integration/postgres-risk.test.ts) reports drift
+ * `prisma migrate diff` (tests/integration/postgres/postgres-risk.test.ts) reports drift
  * and a later `migrate dev` offers to "repair" it by dropping them.
  *
  * It also pins that the migration is additive and safe to re-run: no DROP, and

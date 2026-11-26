@@ -50,12 +50,12 @@ export interface CoreMoveQuestion {
 
 /**
  * The installed core. Each method returns its answer, or `undefined` to leave the TypeScript's
- * answer standing (shadow mode, or the core could not answer). The TypeScript answer is a getter,
- * computed at most once and only when asked for: for a fallback or a sampled comparison
- * (AWTD-1591).
+ * answer standing (shadow mode, or the core could not answer). `columns` is not given the
+ * TypeScript's answer: its server comparison was retired (AWTD-1608). `move` still is, as a getter
+ * computed at most once and only for a fallback or a sampled comparison (AWTD-1591).
  */
 export interface BoardCore {
-  columns(customStates: unknown, typescriptAnswer: () => CoreBoardColumn[]): CoreBoardColumn[] | undefined
+  columns(customStates: unknown): CoreBoardColumn[] | undefined
   move(question: CoreMoveQuestion, typescriptAnswer: () => CoreColumnMove): CoreColumnMove | undefined
 }
 
@@ -75,13 +75,14 @@ const installed = (): BoardCore | null | undefined => (globalThis as CoreHost)[C
 export function boardColumnsThroughCore(customStates: unknown, computeTypescript: () => CoreBoardColumn[]): CoreBoardColumn[] {
   const core = installed()
   if (!core) return computeTypescript()
-  const typescriptAnswer = lazyValue(computeTypescript)
+  let answer: CoreBoardColumn[] | undefined
   try {
-    return core.columns(customStates, typescriptAnswer) ?? typescriptAnswer()
+    answer = core.columns(customStates)
   } catch {
     // A hook that throws must not take a board down; the TypeScript answer stands.
-    return typescriptAnswer()
+    return computeTypescript()
   }
+  return answer ?? computeTypescript()
 }
 
 /** What a drop writes: the core's answer when one is installed and answers, else the TypeScript's. */

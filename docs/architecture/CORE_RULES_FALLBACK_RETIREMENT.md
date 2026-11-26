@@ -16,6 +16,11 @@ with the core. That comparison is now **sampled**: in decide mode the core answe
 TypeScript runs on 1 decision in `ASTRID_CORE_RULES_SAMPLE` (default 20,
 `lib/core-rules/sampling.ts`) and on every fallback. In shadow mode the core is asked on 1 in N.
 
+**Since AWTD-1608 (2026-11-26)** step A is done for listAccess, searchParse, nextOccurrence and the
+board's columns: the server no longer compares them at all. In decide mode the core answers and
+the TypeScript runs only when the core cannot (`lib/core-rules/core-asker.ts`); in shadow mode
+the core is not asked. Board drops and the Waiting lane are still sampled as above.
+
 ## Reading the evidence
 
 `GET /api/health` returns `coreRules` (permissions), `coreRulesSearch`, `coreRulesRepeating` and
@@ -24,6 +29,7 @@ TypeScript runs on 1 decision in `ASTRID_CORE_RULES_SAMPLE` (default 20,
 | Field | Meaning |
 |---|---|
 | `mode` | `decide` (the core answers), `shadow` (the TypeScript answers, the core is compared) or `off` |
+| `compare` | `retired` for a rule past step A (`coreRules`, `coreRulesSearch`, `coreRulesRepeating`); `coreRulesBoard` shows `{ columns: 'retired', drops: 'sampled' }`. A retired rule's `stats` are `{ answered, skipped, failed }` only: there is no comparison to count. `coreRulesBoard.stats` is split into `columns` and `drops`. |
 | `loaded` | Whether the wasm loaded. `decide` with `loaded: false` means the TypeScript is deciding everything. |
 | `sampleEvery` | N: one decision in this many is compared |
 | `stats.agreed` / `stats.disagreed` | Comparisons that matched or differed. Their sum is the number of comparisons, so the disagreement rate is `disagreed / (agreed + disagreed)` whatever N is. |
@@ -83,13 +89,47 @@ every date below by the same amount.
 
 | Rule | Core rule | TypeScript (server and browser) | Since | Step A, earliest | Step B, also needs | Done |
 |---|---|---|---|---|---|---|
-| List permissions | `listAccess` | `lib/list-permissions.ts` (~760 LOC) | AWTD-1061 | **2026-12-14** | AWTD-1586 | ☐ A ☐ B |
-| Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** | AWTD-1586 (search box) | ☐ A ☐ B |
-| Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☐ A ☐ B |
-| Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy | AWTD-1586 (the board and the menus are client code) | ☐ A ☐ B |
-| Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. `coreRulesBoard` counts columns and drops together, so its `agreed` says nothing about drops. The clock starts once a server caller exists and drops have their own counters. | AWTD-1586 | ☐ A ☐ B |
+| List permissions | `listAccess` | `lib/list-permissions.ts` (~760 LOC) | AWTD-1061 | **2026-12-14** (taken early, see below) | AWTD-1586 | ☑ A (2026-11-26) ◐ B: server half (ADEV-304, 2026-11-26) |
+| Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** (taken early) | AWTD-1586 (search box) | ☑ A (2026-11-26) ☐ B |
+| Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** (taken early) | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☑ A (2026-11-26) ☑ B (ADEV-306, 2026-11-26: the browser has no rollover caller, so the door stays without `nextOccurrence` and its zone table. The server refuses instead of guessing. The whole-rule `calculateTaskNextOccurrence` is deleted and the fixture's `completions` come from the core. `calculateNextOccurrence` and its siblings remain only for the fixture's `simple`/`custom` sections.) |
+| Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy (taken early) | AWTD-1586 (the board and the menus are client code) | ☑ A (2026-11-26) ☐ B |
+| Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. Drops now have their own counters (`coreRulesBoard.stats.drops`, AWTD-1608). The clock starts once a server caller exists. | AWTD-1586 | ☐ A ☐ B |
 | Decision cards, trade-off grids | `decision`, `tradeoffGrid`, `ratingKey`; a grid is also a `tradeoffGrid` block from `renderMarkdown` | `lib/comment-formats.ts` (~230), browser only | AWTD-1626 (held to the core by `tests/lib/core-rules-decisions-parity.test.ts`) | n/a: no server caller, so there is nothing to sample | AWTD-1586 (every caller is client code). `RATING_STYLE`'s `className` values stay on web | ☐ B |
 | List filters, sort, My Tasks, manual order, snooze | none on the stateless door yet (AWTD2-161) | `lib/date-filter-utils.ts`, `lib/task-sort.ts`, `lib/my-tasks-scope.ts`, `lib/recently-completed-window.ts`, `lib/reminder-snooze.ts` | AWTD-1583 adopted the core's answers in TypeScript | n/a: nothing to compare until the core exposes these rules | AWTD2-161, then AWTD-1586 | ☐ |
+
+**List permissions, step B: server half done, browser half blocked (ADEV-304, 2026-11-26).**
+Evidence: production (5e446ef2) had `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER` on (the CSP carries
+`'wasm-unsafe-eval'`) and `/api/health` `coreRules` at `decide`, `loaded: true`, `failed: 0`. On the
+server the core is now the only rule: a question it cannot answer is refused, instrumentation.ts
+fails the boot if the core does not load, `/api/health` returns 503 without it, and the stdio MCP
+server installs it before connecting. The permissions fixture is generated through the core.
+The browser still answers with the TypeScript until its door loads. Deleting that was tried (an app
+shell that waits for the door, with a read-only notice when it cannot load) and the signed-in e2e
+journeys broke both ways: with the shell waiting, drag reorder, the agent hand-back and list delete
+failed; without it, settings, sharing and rename failed on refusals drawn before the door loaded.
+The core's answers were right in both builds (checked case by case), so the open work is the app's
+timing, not the rule. Tracked as its own task.
+
+**Board columns, step B in progress (ADEV-307, 2026-11-26).** The browser door now installs the
+board hook (`lib/core-rules/browser-board.ts`, inside the lazy load), so with
+`NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER=on` the columns come from the core once it has loaded. Until
+then, and when the core cannot answer, the TypeScript answers. A component that rendered before the
+door loaded keeps its TypeScript columns until its next render (the two are held equal by the
+fixture parity tests). Still to do before ticking B: re-render on load or accept it once the flag
+is on in production, mark `board` canonical in astrid-core CONTRACTS.md and generate the fixture
+from the core, then delete the TypeScript behind `getProjectBoardColumns` / `boardColumnsFor`.
+
+**Step A evidence (AWTD-1608, 2026-11-26).** Production Vercel logs keep about 15 days, so the
+read covered 2026-11-11 to 2026-11-26, about 14 days of the sampled build (in production since
+2026-11-12). Across that window: no "disagree", "parse differently", "roll over differently",
+"could not answer", "could not parse", "did not load" or "install failed" line for any rule.
+`/api/health` showed every `coreRules*` block in `decide`, `loaded: true`, `failed: 0`,
+`disagreed: 0`. Each rule was in use: listAccess on every request, 178 `/api/v1/search`
+requests, about 14 repeating rollovers, and 50+ project-route requests a day for the board. No
+daily snapshots were collected. Jon chose to take step A on this ~14-day read rather than wait
+for 30 days (option 1 on AWTD-1608). The TypeScript stays as the server's fail-safe and the
+browser's rule; the fixture parity tests still hold it to the core. Step B for each rule is its
+own "[core-rules] Step B: …" task.
 
 **On 2026-12-14** (the follow-up task "Retire the core-rules TypeScript fallbacks", due that
 day): read 30 days of `core-rules` logs and the daily `/api/health` snapshots. For each rule that meets 1

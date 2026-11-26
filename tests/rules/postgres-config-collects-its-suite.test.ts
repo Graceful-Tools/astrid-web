@@ -34,17 +34,25 @@ import { POSTGRES_ONLY_TEST, SHARED_EXCLUDE } from '@/vitest.shared'
 const excludedBy = (patterns: string[], file: string) =>
   patterns.some(pattern => minimatch(file, pattern))
 
+/** A concrete file in the tier, so the checks run on a path rather than on a glob. */
+const SUITE_FILE = 'tests/integration/postgres/postgres-risk.test.ts'
+
 const test = (postgresConfig as { test?: Record<string, unknown> }).test ?? {}
 const include = (test.include ?? []) as string[]
 const exclude = (test.exclude ?? []) as string[]
 
 describe('the Postgres tier collects its own suite', () => {
   it('includes exactly the one file that needs a real database', () => {
-    expect(include).toEqual(['tests/integration/postgres-risk.test.ts'])
+    expect(include).toEqual(['tests/integration/postgres/**/*.test.ts'])
+  })
+
+  it('collects every file in the directory, including the original risk suite', () => {
+    expect(include.some(pattern => minimatch(SUITE_FILE, pattern))).toBe(true)
+    expect(include.some(pattern => minimatch('tests/integration/postgres/nested/x.test.ts', pattern))).toBe(true)
   })
 
   it('does not exclude the file it includes', () => {
-    const swallowed = include.filter(file => excludedBy(exclude, file))
+    const swallowed = [SUITE_FILE].filter(file => excludedBy(exclude, file))
 
     expect(
       swallowed,
@@ -64,6 +72,7 @@ describe('the Postgres tier collects its own suite', () => {
     // The obvious wrong fix is to drop the path from SHARED_EXCLUDE. That would
     // green this file while handing the mocked-Prisma suites a test that opens
     // a real database connection.
-    expect(excludedBy(SHARED_EXCLUDE, POSTGRES_ONLY_TEST)).toBe(true)
+    expect(POSTGRES_ONLY_TEST).toBe('tests/integration/postgres/**/*.test.ts')
+    expect(excludedBy(SHARED_EXCLUDE, SUITE_FILE)).toBe(true)
   })
 })

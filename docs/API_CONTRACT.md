@@ -102,6 +102,14 @@ existing `empty`-based behavior.
 - `orchestrationPolicy[]`: the named board's effective policy as this agent sees it (ADEV-36); only
   with `listId`.
 
+**A polling-only agent the caller turned Off (AWTD-1563).** Inert unless the
+server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true`. Then, for a
+polling-only mailbox (`codex`) whose stored mode is `off`, the response has
+`mode: "off"`, `empty: true`, an empty `queue` and `attention`,
+`runnable.hasWork: false`, and a `hint` saying the agent is turned Off. Every
+other mailbox, and `codex` without a stored Off, is unchanged. Clients should
+treat `mode: "off"` as "stop polling until the user turns it back on".
+
 **Explicit business runtime bindings (AWTD-1667).** Inert unless the server sets
 `ASTRID_RUNTIME_BINDING_RESOLVER=true`. Even then, a response for a board with no
 binding, or for a request with no `listId`, is unchanged byte for byte. When the
@@ -594,8 +602,25 @@ claims, questions go to the list owner.
 - **Project.** `GET` (scope `projects:read`) is for its owner and members. `PUT` (scope
   `projects:write`) is for its owner or an admin (`canUserManageProject`).
 - **An agent never writes a policy**, whatever its token's scopes: 403.
+- **The trade-off policy** (ADEV-281, core D72, `docs/specs/GOALS_GUARDRAILS_SIGNALS.md` → 6) is a `tradeoff` key
+  beside `routing`, `autonomy` and `escalation`: `{ goalOrder?, risk?: { reviewAt?, refuseAt? }, guardrail?:
+  { reviewAtBreachProbability?, refuseAtBreachProbability? }, experimentFirst?: { confidenceBelow?, riskAtLeast? },
+  minConfidenceToAct? }`, levels being `low`, `medium` or `high` and probabilities 0 to 1. **Nothing stored is no
+  policy**: `effective.tradeoff` is absent, no estimate is labelled and the Policy sort is not offered. A stored
+  `{}` states one, on the defaults. Three actions join `autonomy`, each `never` by default: `promoteIdea` (moving
+  a `do-now` idea, with confidence at least `minConfidenceToAct`, to Ready), `experimentStart` and `experimentStop`.
+  A write that changes `tradeoff` queues a bounded re-evaluation of the project's latest estimates; stored labels
+  follow within a job or two.
+- **Acting on a label** (ADEV-284). `POST /api/v1/tasks/{id}/approvals` accepts `promoteIdea`, `experimentStart` and
+  `experimentStop` beside `deploy` and `migrate`. For these the card's `sha` is a 40-hex **digest of the estimate or
+  experiment snapshot** it was asked about, not a commit; a newer snapshot has a new digest and needs a new card, and
+  approving a card whose digest is no longer current answers 409 `STALE_SNAPSHOT`. The server asks the policy on its own
+  when an estimate is labelled `do-now` or an experiment's recommendation is `start`/`stop`: `allowed` moves the idea
+  to Ready or calls the service's `/experiments/action`, `ask` posts the card first, `never` (the default) leaves a
+  recommendation. An estimate below `minConfidenceToAct`, and any built-in estimate, never acts, and any error resolving
+  the policy is `never`.
 - `PUT { "policy": <PolicyOverride> | null }`. `null` clears it. A value the rules do not know
-  (`"merge": "sometimes"`) is a 400, and so is an unknown key. People named under `escalation` must
+  (`"merge": "sometimes"`, a probability of 1.5) is a 400, and so is an unknown key. People named under `escalation` must
   be on the list, or on one of the project's boards.
 
 **List GET / PUT response:** `effective` is resolved by astrid-core (`orchestrationPolicy`).
@@ -607,7 +632,7 @@ claims, questions go to the list owner.
   "list": { "autonomy": { "merge": "ask" } },
   "effective": {
     "routing": { "assignTo": null, "agents": null },
-    "autonomy": { "merge": "ask", "deploy": "allowed", "migrate": { "additive": "never", "destructive": "never" }, "release": "never", "spend": "never" },
+    "autonomy": { "merge": "ask", "deploy": "allowed", "migrate": { "additive": "never", "destructive": "never" }, "release": "never", "spend": "never", "promoteIdea": "never", "experimentStart": "never", "experimentStop": "never" },
     "escalation": { "to": "listOwner" }
   },
   "engine": "core",
@@ -662,6 +687,13 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
   same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
   listId | taskId }`.
+- **Goal-signal MCP tools (ADEV-283).** `link_task_goal { taskId, goalId, projectId? }` (adds to the
+  task's own links over `PUT tasks/:id/goals`), `get_task_estimate { taskId, projectId? }`,
+  `request_estimate { taskId, estimator?, projectId? }`, `link_task_experiment { taskId, kind, … }` and
+  `get_experiment_status { taskId }`, proxies over `tasks/:id/{goals,estimates,experiment}`. Replies are
+  wrapped in `<untrusted_goal_signals>`. No tool writes an estimate, policy or connector. **Behaviour
+  change:** `POST tasks/:id/estimates` from an agent that resolves to the built-in estimator returns
+  `403 { reason: "spend_not_allowed" }` unless every board the task is on lets that agent `spend` alone.
 - **Typed metric (ADEV-270).** A goal may carry `metric: { unit?, direction: "up" | "down", target?,
   baseline?, current?, measuredAt?, source?: { connectorId, metricKey }, staleAfterHours? }` beside its
   free text. `current` and `measuredAt` are the server's: a `PUT …/goals` never overwrites them.
@@ -710,8 +742,13 @@ Behind the goal-signals gate: capability off is 404, flag off is 403 `not_grante
 when the task's lists span several projects. Rows are append-only in `TaskEstimate`.
 - `GET` answers `{ taskId, latest, history }` (newest first, at most 20). An estimate is `{ id, source:
   "builtin_llm" | "service:<key>" | "human", goalImpacts, guardrailImpacts, risk, costMicrocents, effortHours,
-  reach, confidence, rationale, rough, label, createdAt }`. A missing section is "not estimated", never zero.
+  reach, confidence, rationale, rough, label, labelReasons, createdAt }`. A missing section is "not estimated", never zero.
   `rationale` is plain text: show it as text and quote it to an agent as data.
+- **`label` and `labelReasons`** (ADEV-281) are the trade-off policy's answer, written by the server when the
+  estimate arrives and again when the policy changes: `label` is `do-now`, `experiment-first`, `needs-review` or
+  `dont`, and each reason is `{ code, …values }` (`guardrailAtReview { guardrailId, breachProbability, threshold }`),
+  worded by the client. **Both are `null` where no `tradeoff` policy is stated.** The sort key is not on this
+  route: it is on `GET /api/v1/tasks?include=estimate`, below.
 - `POST { estimator?: "builtin" | "<service key>", projectId? }` asks an estimator. 201 `{ estimate }`; 202
   `{ pending: true }` when a service answered 202 (the server polls it through the Job queue and writes the row
   when it is ready); 409 `no_api_key` when the built-in estimator needs the caller's own AI key; 422
@@ -722,6 +759,43 @@ when the task's lists span several projects. Rows are append-only in `TaskEstima
   capped. The built-in estimator is forced to `confidence: "low"`; its card shows ranges under a "rough
   estimate" tag (`rough: true`). Cost also writes `Task.costEstimateMicrocents` (source `model`, or `human`)
   and never replaces a human value with a model one.
+
+### GET `/api/v1/tasks?include=estimate`
+Each task's latest trade-off label and sort key (ADEV-281), for the **Policy** sort. Opt-in, like `include=fields`,
+because the full task response is near its wire budget and only that sort reads them. A task carries
+`estimate: { label, labelReasons, sortKey }` only when its latest estimate has a label, so there is **no key at all**
+on a project with no policy. `sortKey` is a list of integers compared lexicographically, smaller first; a client
+compares it and never derives it (astrid-core `sort_by_setting`, the `policy` arm). A list saved as `sortBy:
+"policy"` reads as Auto on a client that does not know it.
+
+### GET|POST|DELETE `/api/v1/tasks/{id}/experiment`, POST `…/experiment/refresh`
+A task's experiment links and post-deploy verification windows (ADEV-279, spec:
+`docs/specs/GOALS_GUARDRAILS_SIGNALS.md` → *5. Experiments and verification*, *7. The Pending results lane*).
+Behind the goal-signals gate (404 where the capability is off, 403 `not_granted` without the flag), which is
+read per project from its owner by the settle job. Rows are in `TaskExperiment`. `projectId` is needed only when
+the task's lists span several projects. **Astrid computes no statistics**: an experiment's deltas, intervals,
+significance, verdict and recommendation are its service's, stored as given (clipped), never recomputed.
+- `GET` answers `{ experiments, inResultsColumn }`. A link is `{ id, kind: "experiment" | "verification",
+  connectorId, externalKey, url, state: "pending" | "running" | "concluded" | "stopped" | "unknown", verdict:
+  "improving" | "flat" | "regressing" | "inconclusive" | null, recommendation: { action, reason } | null, metrics,
+  findings, startedAt, decideBy, fetchedAt, stale, lastError }`. `stale` is "no data since `fetchedAt`" (48 h).
+- `POST { kind: "experiment", connectorId, externalKey, url?, decideBy? }` links a task to an experiment on one of
+  the project's `experiment` connectors (404 for any other). `POST { kind: "verification", days | decideBy }`
+  starts a verification window and records the project's fresh goal and guardrail values now (the deploy); at
+  `decideBy` the project's sources are read and compared: a guardrail breached or a goal regressed is `regressing`,
+  otherwise `improving` if anything could be compared, else `inconclusive` (unknown is never a pass). 201
+  `{ experiment }`. At most 10 links per task.
+- `DELETE ?experimentId=` removes one link. `POST …/refresh` reads every open link now and answers the same view
+  plus `lane`: what the lane rules did (`not-in-column`, `stay`, `completed`, `handed-back`, `skipped`).
+- **A link reports on every board.** The moment one concludes, a system comment on the task names the verdict and
+  the numbers. Nothing moves, completes or hands back a task that is not in the **Pending results** column.
+- **In the column** (a board added it; no migration, gate, connector or link ever does): entering needs an open
+  experiment or a verification with `decideBy` ahead, else 422 `RESULTS_NEEDS_CONDITION` (the client's cue to
+  show the picker); entering unassigns the task and remembers the holder. Then `/api/cron/results-settle` (every
+  15 minutes, bounded, stalest link first) or a Refresh asks astrid-core's `resultsSettle`: every link
+  `improving` completes the task with a system comment and a goal measurement naming the task; a regression, an
+  inconclusive result at `decideBy`, or a source silent past `decideBy` hands the task back to the policy's
+  escalation target with a Decision (iterate, roll back, ship anyway). Nothing rolls back automatically.
 
 ### Project connectors: `/api/v1/projects/{id}/connectors`
 A project's bindings to outside services (ADEV-277, spec: `docs/specs/GOALS_GUARDRAILS_SIGNALS.md` →
@@ -1053,15 +1127,75 @@ bearer minted from a delegated token would outlive revoking that token. The new 
 - `expiresInDays` — 1–365. If omitted, the token never expires.
 - `agent` — optional. It's an agent mailbox from the consent screen's roster, and comments made
   with the token are authored as that agent rather than as the user.
+- `scopes` — optional (AWTD-1567). OAuth scope names from the same set an OAuth client can hold,
+  for example `["tasks:read", "lists:read"]`. If omitted, the token is **unscoped** and granted
+  `*`, like every token minted before this field existed. If given, the scopes are stored on the
+  token and the token is held to them under `ASTRID_TOKEN_SCOPE_ENFORCEMENT` (see *Access-token
+  scope enforcement* below). `*`, an unknown name or an empty list is a 400 that names the
+  refused entry. Nothing is dropped silently.
 
 **Response:**
 ```json
 { "success": true, "token": "astrid_mcp_…", "permissions": ["read", "write"],
+  "scopes": ["tasks:read", "lists:read"] | null,
   "expiresAt": "ISO 8601 | null", "description": "string | null", "createdAt": "ISO 8601",
   "meta": { "apiVersion": "v1", "authSource": "session" } }
 ```
-Errors: 400 for an invalid body, 403 when MCP access is disabled for the account, 409 when the
-requested agent identity cannot be resolved.
+Errors: 400 for an invalid body or a scope a token cannot hold, 403 when MCP access is disabled
+for the account, 409 when the requested agent identity cannot be resolved.
+
+### POST `/api/v1/users/me/access-tokens/:id/rotate`
+Replace an access token's secret (AWTD-1567). The new token has the old one's `permissions`,
+`scopes` (or none), agent binding and description. A token with an expiry gets the same
+lifetime again, counted from now. The old token is revoked in the same transaction. The plaintext
+appears only in this response. It requires `user:write` and is **session-only**: a token cannot
+rotate itself. Settings → Connections offers it as **Rotate** on every active access token.
+
+**Response:** the mint response plus `"id"` (the new `MCPToken.id`) and `"replacedId"`.
+Errors: 403 for a non-session caller or when MCP access is disabled, 404 when the token is not
+the caller's, is already revoked, or is list-level.
+
+### Access-token scope enforcement (AWTD-1567)
+An access token minted with `scopes` is limited to them once the flag covers its owner:
+
+| `ASTRID_TOKEN_SCOPE_ENFORCEMENT` | Effect |
+|---|---|
+| unset, `off`, anything else | Nobody is enforced (the default). Scoped tokens keep `*`, and their own scopes are the `shadowScopes` the would-deny log measures. |
+| `canary` | Only tokens whose owner's user id is in `ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS` (comma-separated). |
+| `on` | Every token minted with `scopes`. |
+
+**Unscoped tokens are never enforced**, whatever the flag says. That includes every token minted
+before AWTD-1567, because its `scope` column is null. To roll back, set the flag to `off`.
+
+**Canary procedure.** First, mint a scoped token on the canary account. Do this signed in, from
+the browser, with a `POST /api/v1/users/me/access-tokens` that carries `scopes`; the Copilot setup
+card still mints unscoped tokens. Then set `ASTRID_TOKEN_SCOPE_ENFORCEMENT=canary` and
+`ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS=<that user id>` and redeploy: environment variables are
+read at deploy time. Use the token on `/api/v1` and `/mcp`. Its Connections row should say it is
+limited to its scopes. A call outside them should return the 403 below, and the other accounts'
+tokens should be unchanged. Widen to `on` only after that.
+
+An enforced token is refused wherever a route declares scopes (`withAuth` `scopes`/`anyOfScopes`,
+or `requireScopes`), exactly as an OAuth token with the same scopes would be. The 403 names what
+was missing:
+```json
+{ "error": "Forbidden", "message": "Missing required scopes: tasks:write",
+  "missingScopes": ["tasks:write"], "tokenScopes": ["tasks:read", "lists:read"],
+  "hint": "This access token was minted with explicit scopes…" }
+```
+Limits:
+- A route that declares no scope (`none` or `handler-auth` in
+  `tests/fixtures/route-scope-inventory.json`) accepts any authenticated caller, which is also true
+  of OAuth tokens. Scope enforcement does not add a check to such a route. List and task permissions
+  still apply.
+- **`/mcp`**: each tool call is an `/api/v1` request carrying the same token, so it meets the same
+  gate. The tool result carries the 403 message (`Forbidden: Missing required scopes: …`).
+  Connecting and `tools/list` are not gated by scope.
+- **`/api/mcp/operations`** checks no scopes, so an enforced token gets a 403 there and must use
+  `/api/v1` or `/mcp`.
+- `GET /api/v1/users/me/connections` lists a scoped token with its own `scopes` and
+  `detail.scoped: true`. `detail.scopeEnforced` says whether the flag holds it to them now. An
+  unscoped token shows `["*"]`.
 
 ### AI service ids
 `serviceId` in `PUT|DELETE /api/v1/users/me/ai-credentials` and
@@ -1401,7 +1535,10 @@ All errors follow this format:
 ### Hosted MCP authentication challenges
 
 `/mcp` validates bearer credentials before initialization, tool discovery, or
-dispatch; `/mcp/messages` revalidates them before an SSE message is dispatched.
+dispatch. It speaks Streamable HTTP only: POST a JSON-RPC message and read the
+reply from the response body; an authenticated GET opens the optional listen
+stream, which stays open and sends no events. The legacy SSE transport and its
+`/mcp/messages` URL were retired in AWTD-1569.
 OAuth and legacy MCP bearer tokens remain supported, as do Basic client
 credentials and the existing `X-Astrid-*` headers. Browser sessions cannot
 substitute for an invalid hosted bearer.
@@ -1412,7 +1549,7 @@ Rejected bearer credentials return HTTP 401 with:
 WWW-Authenticate: Bearer resource_metadata="https://www.astrid.cc/.well-known/oauth-protected-resource/mcp", error="invalid_token"
 ```
 
-On `/mcp` and `/mcp/messages` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
+On `/mcp` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
 falling back to the request's Host only when that is unset, so a proxy's `localhost` Host is
 never advertised (ADEV-99); `/api/mcp/operations` uses the request origin. Missing credentials receive the same
 discovery challenge without `error="invalid_token"`. `/api/mcp/operations` also
@@ -1426,8 +1563,6 @@ database. Remote backends must support `GET /api/v1/oauth/validate`: token-only,
 no scope requirement, no cookie fallback, HTTP 204 with an empty body for a valid
 OAuth/legacy bearer, HTTP 401 for rejection, HTTP 500 for backend failure.
 Validation never follows redirects or returns token/account metadata.
-SSE messages must match the retained stream's effective credential and backend;
-the retained options, not an independently selected POST credential, are revalidated.
 
 Hosted backend overrides require public HTTPS without URL credentials, query,
 or fragment. Every outbound validation, token exchange, and API request rejects
@@ -1462,3 +1597,8 @@ X-RateLimit-Reset: 1640000000
 - Added the `muse` AI service id (Meta Model API). `muse@` can now be server-run (AWTD-1053)
 - Added `serverTime` to `GET /api/v1/tasks` and `GET /api/v1/lists`, and keyset paging
   (`?cursor=` → `nextCursor`) to `GET /api/v1/tasks`. Additive (AWTD-1470)
+- Added the claim lease (`claimHolderId`, `claimLeaseExpiresAt`, `claimHeartbeatAt`) to each
+  row of `GET /api/v1/tasks`; `GET /api/v1/tasks/{id}` already carried it. Additive. The claim
+  heartbeat reads the board from this list and, without the fields, never renewed a lease (ADEV-310)
+- `GET /api/v1/agent-queue` can answer `mode: "off"` with no work for a polling-only agent the
+  caller turned Off, when the server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true` (AWTD-1563)

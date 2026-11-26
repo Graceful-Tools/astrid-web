@@ -43,6 +43,7 @@
  */
 
 import { execFileSync } from 'child_process'
+import { appendFileSync } from 'fs'
 import { isAwaitingDeployLane, parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { agentEmail, agentMailboxFromEmail } from '@/lib/brand/agent-emails'
@@ -85,6 +86,7 @@ import {
   tasksProductionServes,
   taskIdsInBranch,
   automaticDeployHold,
+  waitingOnChecks,
   type AwaitingDeployTask,
   type DeployRunOutcome,
   type DeployRunView,
@@ -476,6 +478,10 @@ interface CoreTick {
   landed: string[]
   skipped: Array<{ ref: string; why: string }>
   completed: string[]
+  /** Green and eligible, but past the one-per-tick cap. */
+  deferred: number
+  /** Eligible handoffs whose CI is still running (ADEV-265). */
+  waiting: number
 }
 
 /**
@@ -485,7 +491,7 @@ interface CoreTick {
  */
 async function landAndCompleteCore(repo: string, listId: string): Promise<CoreTick> {
   const ref = (n: number) => `${repo}#${n}`
-  const result: CoreTick = { landed: [], skipped: [], completed: [] }
+  const result: CoreTick = { landed: [], skipped: [], completed: [], deferred: 0, waiting: 0 }
   const { token, auth } = await astridAuth()
 
   const listed = JSON.parse(ghCore(['pr', 'list', '--repo', repo, '--state', 'open', '--limit', '60', '--json',
@@ -535,11 +541,13 @@ async function landAndCompleteCore(repo: string, listId: string): Promise<CoreTi
   }
 
   const { land, skipped } = landableCorePullRequests(prs)
+  result.waiting = waitingOnChecks(prs, skipped).length
   for (const skip of skipped) {
     log(`  ${ref(skip.number)} held back — ${skip.why}`)
     result.skipped.push({ ref: ref(skip.number), why: skip.why })
   }
   const take = land.slice(0, Math.max(0, options.maxLand))
+  result.deferred = land.length - take.length
   for (const pr of land.slice(take.length)) log(`  ${ref(pr.number)} is green too — left for the next tick`)
   for (const pr of take) {
     if (options.dryRun) {
@@ -691,6 +699,7 @@ async function main() {
   })
   const land = mergeHold ? [] : landable
   for (const skip of skipped) log(`  #${skip.number} held back — ${skip.why}`)
+  const waiting = mergeHold ? [] : waitingOnChecks(open, skipped)
 
   // ADEV-200: a PR that cannot land goes back to its agent instead of being held forever.
   let reworked: string[] = []
@@ -916,7 +925,7 @@ async function main() {
     }
   }
 
-  let core: CoreTick = { landed: [], skipped: [], completed: [] }
+  let core: CoreTick = { landed: [], skipped: [], completed: [], deferred: 0, waiting: 0 }
   if (options.coreRepo && options.listId) {
     try {
       core = await landAndCompleteCore(options.coreRepo, options.listId)
@@ -979,6 +988,19 @@ async function main() {
         log(`  ⚠️  could not post to list chat: ${(error as Error).message.split('\n')[0]}`)
       }
     }
+  }
+
+  // ADEV-265: GitHub fires the schedule about every 6-9 hours and core CI cannot start this
+  // workflow, so the run chains itself. `more`: it landed something and more green PRs remain
+  // (only after progress, so a PR that keeps failing to land cannot loop). `wait`: a handoff's CI
+  // is still running; the workflow waits a little and looks again, up to a chain-depth cap.
+  const progressed = landed.length > 0 || core.landed.length > 0
+  const more = progressed && (deferred.length > 0 || core.deferred > 0)
+  const wait = waiting.length > 0 || core.waiting > 0
+  if (!options.dryRun && process.env.GITHUB_OUTPUT && (more || wait)) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `${more ? 'more=true\n' : ''}${wait ? 'wait=true\n' : ''}`)
+    if (more) log('  more eligible PRs remain — the workflow will chain another run')
+    if (wait) log(`  ${waiting.length + core.waiting} handoff(s) still in CI — the workflow will look again shortly`)
   }
 
   // A run still going is not a failure: exit clean and let the next tick verify (ADEV-268).

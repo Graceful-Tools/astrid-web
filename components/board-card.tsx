@@ -10,6 +10,7 @@ import React from "react"
 import { TaskRowContent } from "@/components/task-row-content"
 import { BoardCompletedOnPill } from "@/components/board-completed-on-pill"
 import { EstimateControl } from "@/components/projects/EstimateControl"
+import { PendingResultsLine } from "@/components/projects/PendingResultsLine"
 import { shouldShowTaskIdentifier } from "@/lib/task-identifier-links"
 import type { Task, TaskList } from "@/types/task"
 
@@ -107,7 +108,10 @@ export function BoardCard({
           ) : isIdea ? (
             /* An idea is an open Inbox card (ADEV-280); draws nothing outside Project Mode. */
             <EstimateControl taskId={task.id} projectId={task.lists?.find(list => list.projectId)?.projectId} compact />
-          ) : null
+          ) : (
+            /* A card in the Pending results column says what it waits for (ADEV-282); nothing elsewhere. */
+            <PendingResultsLine taskId={task.id} statusRole={task.statusRole} />
+          )
         }
         onOpenOptions={onOpenOptions}
       />

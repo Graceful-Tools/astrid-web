@@ -10,7 +10,8 @@
  * the user-visible changes one at a time so a regression reads as a sentence.
  */
 import { describe, expect, it } from 'vitest'
-import { calculateTaskNextOccurrence, type TaskNextOccurrenceInput } from '@/types/repeating'
+import { nextOccurrenceForTask as calculateTaskNextOccurrence } from '@/lib/repeating-rollover'
+import type { TaskNextOccurrenceInput } from '@/types/repeating'
 
 const LA = 'America/Los_Angeles'
 

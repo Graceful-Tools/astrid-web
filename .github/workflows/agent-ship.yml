@@ -9,20 +9,22 @@ on:
         description: 'Inspect eligibility without merging, deploying, or updating Astrid'
         type: boolean
         default: true
+      chain_depth:
+        description: 'How many runs in a row this chain has made (ADEV-265); people leave it at 0'
+        type: number
+        default: 0
+  # A backstop only. GitHub fires this every 6-9 hours, not every 30 minutes (ADEV-265: a
+  # week of history, 2026-11-19..26), so nothing may depend on it.
   schedule:
     - cron: '17,47 * * * *'
   # An agent PR becomes landable when its CI finishes, so that is when to look.
-  # (An astrid-core PR's CI runs in that repo and cannot start this one, so core
-  # handoffs land on the schedule, AWTD-1682.)
-  # The schedule alone landed one PR every few hours (agent-run.yml, chain job).
+  # 'Agent Run' finishing is when a cloud worker's PR appears, astrid-core's included: core CI
+  # runs in that repo and cannot start this one (AWTD-1682), so the run that starts here
+  # watches the core PR's CI through the chain below (ADEV-265).
   # workflow_run always runs THIS file from main, never the PR's copy.
   workflow_run:
-    workflows: ['Unit Tests', 'E2E Tests', 'Preview Deployment', 'Security Gates']
+    workflows: ['Unit Tests', 'E2E Tests', 'Preview Deployment', 'Security Gates', 'Agent Run']
     types: [completed]
-
-concurrency:
-  group: astrid-web-ship
-  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -37,8 +39,16 @@ jobs:
       && github.ref == 'refs/heads/main'
       && (github.event_name == 'workflow_dispatch' || vars.ASTRID_SHIP_ENABLED == 'true')
       && (github.event_name != 'workflow_run'
+          || github.event.workflow_run.name == 'Agent Run'
           || (github.event.workflow_run.conclusion == 'success'
               && startsWith(github.event.workflow_run.head_branch, 'agent/'))) }}
+    # ADEV-265: on the JOB, not the workflow. At workflow level every event joined the queue
+    # before the `if` above was read, and GitHub keeps one pending run per group: a CI run on
+    # main finishing queued a run that replaced the pending one for an agent PR, then was itself
+    # skipped. #999's go-ahead was lost that way on 2026-11-26. A skipped job never joins this.
+    concurrency:
+      group: astrid-web-ship
+      cancel-in-progress: false
     runs-on: ubuntu-26.04
     environment: release
     timeout-minutes: 55
@@ -63,6 +73,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Land eligible handoffs and reconcile production
+        id: land
         run: |
           mkdir -p .agent-output
           FLAGS=()
@@ -70,6 +81,24 @@ jobs:
           set -o pipefail
           npx tsx scripts/land-and-deploy.ts --list-id "${ASTRID_WEB_LIST_ID}" \
             --max-land 1 --core-repo Graceful-Tools/astrid-core "${FLAGS[@]}" 2>&1 | tee .agent-output/ship.log
+      # ADEV-265: start the next run now instead of waiting for a tick that may be hours away.
+      # `more`: this run landed a PR and more green ones remain (set only after progress, so a
+      # PR that cannot land does not loop). `wait`: a handoff's CI is still running, so look
+      # again in a minute and a half. CHAIN_LIMIT bounds a chain to about two hours; any new CI
+      # event starts a fresh one. workflow_dispatch is the event the built-in token may start.
+      - name: Chain the next run while PRs are landable or still in CI
+        if: ${{ !cancelled() && (steps.land.outputs.more == 'true' || steps.land.outputs.wait == 'true') }}
+        env:
+          MORE: ${{ steps.land.outputs.more }}
+          DEPTH: ${{ inputs.chain_depth || 0 }}
+          CHAIN_LIMIT: 30
+        run: |
+          if [ "${DEPTH}" -ge "${CHAIN_LIMIT}" ]; then
+            echo "::warning title=Ship chain stopped::${DEPTH} runs in a row; the next CI event or tick picks it up"
+            exit 0
+          fi
+          if [ "${MORE}" != true ]; then sleep 90; fi
+          gh workflow run agent-ship.yml --ref main -f dry_run=false -f chain_depth=$((DEPTH + 1))
       - name: Persist shipping evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7

@@ -27,9 +27,14 @@ export async function GET(request: NextRequest) {
     // Perform database health check
     const healthCheck = await safeHealthCheck()
     const commitSha = getDeployedCommitSha()
-    
+    // Since ADEV-304 astrid-core is the only list-permissions rule: a process without it refuses
+    // every permission check. instrumentation.ts fails the boot first; this is the backstop.
+    const coreRules = listPermissionsCoreStatus()
+    const permissionsHealthy = coreRules?.loaded === true
+    const healthy = healthCheck.healthy && permissionsHealthy
+
     const response = {
-      status: healthCheck.healthy ? 'healthy' : 'unhealthy',
+      status: healthy ? 'healthy' : 'unhealthy',
       timestamp: new Date().toISOString(),
       database: {
         healthy: healthCheck.healthy,
@@ -54,15 +59,15 @@ export async function GET(request: NextRequest) {
       // error anyone sees. Production ran that way from 2026-08-19 until a log
       // review found it. This flag is what makes it observable (task a5eb65a4).
       cronSecretConfigured: !!process.env.CRON_SECRET,
-      // Whether astrid-core decides list permissions in this process (AWTD-1061). The fallback is
-      // silent by design — the TypeScript gives the same answers — so this is the one place a
-      // deploy can see that the core did not load: { mode: 'decide', loaded: false }.
-      coreRules: listPermissionsCoreStatus(),
-      // The same for search-query parsing (AWTD-1062).
+      // Whether astrid-core decides list permissions in this process (AWTD-1061). Since ADEV-304
+      // there is no TypeScript fallback, so `loaded: false` (or null: never installed) makes this
+      // endpoint unhealthy. stats are { answered, skipped, failed }; `failed` checks were refused.
+      coreRules,
+      // The same for search-query parsing (AWTD-1062), also retired.
       coreRulesSearch: searchQueryCoreStatus(),
-      // And for repeating-task rollover on completion (AWTD-1063).
+      // And for repeating-task rollover on completion (AWTD-1063), also retired.
       coreRulesRepeating: repeatingCoreStatus(),
-      // And for the project board's columns and drops (AWTD-1585).
+      // And for the project board (AWTD-1585): stats.columns (retired) and stats.drops (still compared).
       coreRulesBoard: boardCoreStatus(),
       // And for the Waiting lane (Jon, 2026-11-12).
       coreRulesWaiting: waitingCoreStatus(),
@@ -75,8 +80,8 @@ export async function GET(request: NextRequest) {
       webhookSecretConfigured: !!process.env.CLAUDE_REMOTE_WEBHOOK_SECRET,
     }
 
-    return NextResponse.json(response, { 
-      status: healthCheck.healthy ? 200 : 503 
+    return NextResponse.json(response, {
+      status: healthy ? 200 : 503
     })
   } catch (error) {
     log.error({ err: error }, 'Health check failed:')

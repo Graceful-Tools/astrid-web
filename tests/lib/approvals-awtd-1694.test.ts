@@ -22,6 +22,13 @@ describe('approval request card (AWTD-1694)', () => {
     expect(approvalSummary(content)).toBe('Runs the deploy.')
   })
 
+  it('binds the Goal signals actions to a snapshot digest (ADEV-284)', () => {
+    for (const action of ['promoteIdea', 'experimentStart', 'experimentStop'] as const) {
+      const content = buildApprovalRequestContent({ action, sha: SHA }, 'Does it.')
+      expect(parseApprovalRequest(content)).toEqual({ action, sha: SHA })
+    }
+  })
+
   it('does not read a short sha, an unknown action or a marker that is not the last line', () => {
     expect(parseApprovalRequest('x\n\nAPPROVAL-REQUEST: deploy abc1234')).toBeNull()
     expect(parseApprovalRequest(`x\n\nAPPROVAL-REQUEST: format-disk ${SHA}`)).toBeNull()

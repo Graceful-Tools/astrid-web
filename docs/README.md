@@ -14,7 +14,7 @@ instead of restating values, commands, or policy.
 | Platform assessment (2026-11) | [PLATFORM_ASSESSMENT_2026-11](./architecture/PLATFORM_ASSESSMENT_2026-11.md) | Historical 2026-11-01 findings with current-status pass dated 2026-11-08 |
 | Local operations | [CLI operations](./CLI_OPERATIONS.md) | Deploy, quality-gate, OAuth, and task-management commands |
 | API contracts | [API contract](./API_CONTRACT.md) | Stable external and mobile wire contract |
-| Testing | [Testing strategy](./context/testing.md) | Test policy, locations, and selection |
+| Testing | [Testing strategy](./context/testing.md) | Test tiers, route-test harness, naming, ratchets |
 | Security | [Security policy](../SECURITY.md) | Reporting policy and repository-wide security requirements |
 | Product behavior | [Product contract](./PRODUCT_CONTRACT.md) | Cross-platform permissions, behavior, and shared copy |
 | Asking a person to choose | [Decisions and trade-off grids](./DECISIONS.md) | The Decision card and rated-grid formats, for users and agents |
@@ -84,7 +84,7 @@ and stack versions with `npm run check:docs`.
 - **[GitHub Copilot SDK integration](./COPILOT_SDK_INTEGRATION_PLAN.md)** - plan: the SDK in the agent runner, and server-run Copilot behind a hosted gateway
 - **[Copilot Local](./COPILOT_LOCAL_PLAN.md)** - for later (December): Copilot working tasks on your own Mac or Windows PC as a `copilot-local@` agent, through the Rust SDK
 - **[SDK channel restart recovery](./SDK_CHANNEL_RECOVERY.md)** - AWTD-1565: opt-in session recovery for SDK channels after a restart
-- **[Agent integration benchmark](./benchmarks/AGENT_INTEGRATION.md)** - AWTD-1551: what Astrid adds to an agent run versus Claude Code or Codex directly, measured
+- **[Agent integration benchmark](./benchmarks/AGENT_INTEGRATION.md)** - AWTD-1551: what Astrid adds to an agent run versus Claude Code or Codex directly, measured. First results: [AGENT_INTEGRATION_RESULTS.md](./benchmarks/AGENT_INTEGRATION_RESULTS.md)
 - **[Testing the GitHub coding agent locally](./guides/testing-github-agent-locally.md)** - run the GitHub agent workflow on your machine
 - **[Weekly deep review](./WEEKLY_DEEP_REVIEW.md)** - the weekly eight-lens review over astrid-web and astrid-ios
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history

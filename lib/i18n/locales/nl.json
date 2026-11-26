@@ -1161,8 +1161,7 @@
         "note": "Voeg deze URL toe aan de MCP-instellingen van je assistent. Hij vraagt je om in te loggen bij {appName} — geen sleutels om te kopiëren.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Sla het op als .vscode/mcp.json in je project en klik dan bij de server op Start",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Oudere clients die alleen het SSE-transport spreken, kunnen dezelfde URL met GET ophalen en berichten met POST naar /mcp/messages sturen."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Stap 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Sla het op als .vscode/mcp.json in je project en klik dan bij de server op Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Oudere clients die alleen het SSE-transport spreken, kunnen dezelfde URL met GET ophalen en berichten met POST naar /mcp/messages sturen.",
         "claudeNote": "Eén commando — het opent je browser om toegang goed te keuren, geen sleutels om te kopiëren",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Dezelfde verbinding met één commando voor de Copilot-CLI",
@@ -1731,6 +1729,19 @@
         "loadError": "Rechten van deze verbinding konden niet worden geladen",
         "selectAtLeastOne": "Selecteer minstens één scope",
         "selectApp": "Selecteer een app."
+      },
+      "tokenScope": {
+        "unscoped": "Volledige toegang (geen scopes ingesteld)",
+        "recorded": "Met scopes, nog niet afgedwongen",
+        "enforced": "Beperkt tot deze scopes"
+      },
+      "rotate": {
+        "action": "Vernieuwen",
+        "confirm": "{name} vernieuwen? Een nieuw token met dezelfde toegang vervangt het, en het oude werkt meteen niet meer.",
+        "newTokenTitle": "Nieuw token",
+        "newTokenDescription": "Kopieer het nu: het wordt niet opnieuw getoond. Werk alles bij dat het oude token gebruikte.",
+        "done": "Klaar",
+        "error": "Vernieuwen mislukt"
       }
     },
     "openInNewTab": "Openen in nieuw tabblad",
@@ -1893,6 +1904,61 @@
     "deleteProjectDetail": "De lijsten blijven, buiten elk project. De eigen kolommen van het bord gaan mee.",
     "deleteProjectAction": "Verwijderen",
     "deleteProjectFailed": "Het project kon niet worden verwijderd",
+    "experiment": {
+      "title": "Experiment",
+      "experiment": "Experiment",
+      "verification": "Verification",
+      "none": "Not linked to an experiment or a verification.",
+      "addButton": "Link experiment or verify",
+      "add": "Add",
+      "linkKind": "What to link",
+      "linkExperiment": "Link an experiment",
+      "verifyFor": "Verify for",
+      "days": "days",
+      "daysLabel": "Days to verify for",
+      "connectorLabel": "Experiment source",
+      "keyLabel": "Experiment key",
+      "keyPlaceholder": "Experiment key",
+      "linkFailed": "Couldn't link that. Try again.",
+      "open": "Open",
+      "remove": "Remove this link",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…",
+      "refreshFailed": "Couldn't refresh the results. Try again.",
+      "notSignificant": "not significant",
+      "recommends": "Recommends {action}",
+      "decideBy": "Decide by {date}",
+      "noDataSince": "No data since {age} ago",
+      "noDataYet": "No data yet",
+      "waitingFor": "Waiting for {name}",
+      "waitingVerification": "Waiting for the verification window to end {date}",
+      "promptTitle": "What is this task waiting for?",
+      "promptBody": "Pending results holds a task until a result is in. Link an experiment, or verify for a number of days.",
+      "offer": "Hold tasks like this in a Pending results column until the result is in?",
+      "offerAdd": "Add column",
+      "offerDismiss": "Not now",
+      "offerFailed": "Couldn't add the column. Try again.",
+      "state": {
+        "pending": "Pending",
+        "running": "Running",
+        "concluded": "Concluded",
+        "stopped": "Stopped",
+        "unknown": "Unknown"
+      },
+      "verdict": {
+        "improving": "Improving",
+        "flat": "Flat",
+        "regressing": "Regressing",
+        "inconclusive": "Inconclusive"
+      },
+      "action": {
+        "start": "start",
+        "continue": "continue",
+        "stop": "stop",
+        "ship": "ship",
+        "rollback": "roll back"
+      }
+    },
     "estimate": {
       "title": "Schatting",
       "button": "Schat",
@@ -1932,7 +1998,30 @@
       "opportunity": "Kans",
       "notEstimated": "Niet geschat",
       "effort": "{hours} u werk",
-      "opportunityRange": "{low} tot {high} {unit} / {period}"
+      "opportunityRange": "{low} tot {high} {unit} / {period}",
+      "label": {
+        "do-now": "Nu doen",
+        "experiment-first": "Eerst experimenteren",
+        "needs-review": "Beoordeling nodig",
+        "dont": "Niet doen",
+        "chipAria": "Aanbeveling: {label}. Toon waarom.",
+        "reasonsHeading": "Waarom"
+      },
+      "reason": {
+        "noEstimate": "Er is nog geen schatting.",
+        "stale": "De schatting is verouderd.",
+        "guardrailAtRefuse": "{name}: de overschrijdingskans {probability} zit op de grens van {threshold}.",
+        "guardrailAtReview": "{name}: de overschrijdingskans {probability} zit op het beoordelingspunt van {threshold}.",
+        "riskAtRefuse": "Het risico is {level}, gelijk aan of boven de grens van {threshold}.",
+        "riskAtReview": "Het risico is {level}, gelijk aan of boven het beoordelingspunt van {threshold}.",
+        "riskUnknown": "De schatter gaf geen risico, en onbekend is nooit goed.",
+        "guardrailsUnknown": "De schatter gaf geen effect op de vangrails, en onbekend is nooit goed.",
+        "confidenceLow": "Het vertrouwen is laag, of is niet opgegeven.",
+        "experimentFirst": "Het vertrouwen is {confidence} terwijl het risico {risk} is.",
+        "builtinCapped": "Een ingebouwde schatting is nooit beter dan eerst experimenteren.",
+        "goalImproves": "{name} verbetert naar verwachting ({delta}).",
+        "noGoalImproves": "Er wordt verwacht dat geen enkel doel verbetert."
+      }
     },
     "goals": {
       "title": "Doelen en vangrails",
@@ -2041,7 +2130,8 @@
       "who": "Wie",
       "completed": "Klaar eerst",
       "incomplete": "Te doen eerst",
-      "manual": "Handmatig"
+      "manual": "Handmatig",
+      "policy": "Beleid"
     },
     "show": {
       "allTasks": "Alle taken",
@@ -2888,7 +2978,8 @@
       "doing": "Bezig",
       "waiting": "Wachten",
       "done": "Gedaan",
-      "testing": "Testen"
+      "testing": "Testen",
+      "results": "Resultaten in afwachting"
     },
     "empty": {
       "inbox": "Niets nieuws om te sorteren! Taken zonder status komen hier terecht.",
@@ -2904,7 +2995,8 @@
       "doing": "Werk in uitvoering!",
       "waiting": "Gepauzeerd tot de omstandigheden goed zijn.",
       "done": "Voltooid — gefeliciteerd!",
-      "testing": "Wordt uitgerold, in canary of in een experiment."
+      "testing": "Wordt uitgerold, in canary of in een experiment.",
+      "results": "Gebouwd en uitgebracht; wacht op de uitkomst van een experiment of verificatie."
     }
   },
   "passkeyErrors": {
@@ -3185,7 +3277,32 @@
       "migrateAdditive": "Additieve migraties",
       "migrateDestructive": "Destructieve migraties",
       "release": "Store-releases",
-      "spend": "Geld uitgeven"
+      "spend": "Geld uitgeven",
+      "promoteIdea": "Een idee dat nu gedaan kan worden naar Klaar verplaatsen",
+      "experimentStart": "Experimenten starten",
+      "experimentStop": "Experimenten stoppen"
+    },
+    "tradeoff": {
+      "title": "Afwegingsbeleid",
+      "switch": "Een afwegingsbeleid vastleggen",
+      "stated": "Vastgelegd",
+      "none": "Niets vastgelegd",
+      "help": "Labelt elk geschat idee (nu doen, eerst experimenteren, beoordeling nodig, niet doen) en bepaalt de volgorde van de beleidssortering. Zonder vastgelegd beleid wordt niets gelabeld en is er geen beleidssortering.",
+      "probability": "{pct}%",
+      "field": {
+        "riskReviewAt": "Beoordelen bij een risico van minstens",
+        "riskRefuseAt": "Niet doen bij een risico van minstens",
+        "confidenceBelow": "Eerst experimenteren bij een vertrouwen onder",
+        "experimentRiskAtLeast": "…en het risico minstens",
+        "minConfidenceToAct": "Een agent mag promoveren bij een vertrouwen van minstens",
+        "guardrailReview": "Beoordelen bij overschrijdingskans",
+        "guardrailRefuse": "Niet doen bij overschrijdingskans"
+      },
+      "goalOrder": "Doelprioriteit",
+      "goalOrderHelp": "Ideeën die op alles hierboven gelijk scoren, worden gerangschikt op hun effect op deze doelen, het belangrijkste eerst.",
+      "goalOrderReset": "Standaardvolgorde gebruiken",
+      "moveUp": "{goal} omhoog verplaatsen",
+      "moveDown": "{goal} omlaag verplaatsen"
     },
     "autonomy": {
       "allowed": "Toegestaan",

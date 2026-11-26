@@ -37,7 +37,7 @@ const LOCAL_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
  * 4. If terminating, clear the repeating configuration
  *
  * The arithmetic is astrid-core's `nextOccurrence` (lib/repeating-rollover.ts, AWTD-1063), the
- * rule iOS and the Mac run, with the TypeScript as the fail-safe. A TIMED task steps on the
+ * rule iOS and the Mac run, and a core that cannot answer refuses the completion (RolloverUnavailableError). A TIMED task steps on the
  * person's calendar when the client says which zone they are in (`timeZone`). Without one it
  * steps on UTC's, as the server always did. An ALL-DAY task steps on UTC's calendar either way.
  *

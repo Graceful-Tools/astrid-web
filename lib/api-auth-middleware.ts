@@ -21,6 +21,7 @@ import { ensureAgentUser } from '@/lib/ai/ensure-agent-user'
 import { agentEmail } from '@/lib/brand/agent-emails'
 import { normalizeStoredAgentMailbox } from './oauth/agent-consent'
 import { listTasksByIdWhere, listVisibilityWhere } from '@/lib/list-permissions'
+import { explicitTokenScopes, tokenScopeEnforced } from '@/lib/token-scope-enforcement'
 
 const log = createLogger('api-auth-middleware')
 
@@ -37,6 +38,12 @@ export interface AuthContext {
    * wrapper logs every call the shadow would refuse (accessTokenShadowScopes).
    */
   shadowScopes?: string[]
+  /**
+   * True when `scopes` is an access token's own explicit scope list rather
+   * than '*': the token was minted with a scope and ASTRID_TOKEN_SCOPE_ENFORCEMENT
+   * applies to its owner (AWTD-1567, lib/token-scope-enforcement.ts).
+   */
+  scopeEnforced?: boolean
   /** MCPToken row id (access tokens only); hash-labels shadow telemetry and is never logged raw. */
   tokenId?: string
   clientId?: string
@@ -164,6 +171,8 @@ async function validateMCPToken(token: string): Promise<{
   tokenId: string
   userId: string
   permissions: string[]
+  /** Scopes the token was minted with (AWTD-1567); null for an unscoped token. */
+  explicitScopes: string[] | null
   user: {
     id: string
     email: string
@@ -233,6 +242,7 @@ async function validateMCPToken(token: string): Promise<{
     tokenId: mcpToken.id,
     userId: mcpToken.userId,
     permissions: mcpToken.permissions ?? [],
+    explicitScopes: explicitTokenScopes(mcpToken.scope),
     user: mcpToken.user,
     agentUser,
   }
@@ -322,11 +332,19 @@ export async function authenticateAPI(
   if (mcpToken) {
     const validated = await validateMCPToken(mcpToken)
     if (validated) {
+      // An unscoped token (every token minted before AWTD-1567) keeps '*' and is
+      // shadowed by its permissions' mapping. A token minted with an explicit
+      // scope is held to it once the flag covers its owner; until then its own
+      // scopes are the shadow, so the would-deny log measures exactly what
+      // enforcing it would refuse.
+      const explicit = validated.explicitScopes
+      const enforced = !!explicit && tokenScopeEnforced(validated.userId)
       return {
         userId: validated.userId,
         source: 'legacy_mcp',
-        scopes: ['*'], // Full access today; see accessTokenShadowScopes for what comes next.
-        shadowScopes: accessTokenShadowScopes(validated.permissions),
+        scopes: enforced ? [...explicit] : ['*'],
+        shadowScopes: explicit ? [...explicit] : accessTokenShadowScopes(validated.permissions),
+        ...(enforced ? { scopeEnforced: true } : {}),
         tokenId: validated.tokenId,
         isAIAgent: validated.user.isAIAgent,
         user: validated.user,

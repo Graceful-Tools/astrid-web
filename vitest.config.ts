@@ -1,6 +1,44 @@
 import { defineConfig, mergeConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
-import { sharedTestConfig } from './vitest.shared'
+import { SHARED_EXCLUDE, sharedTestConfig } from './vitest.shared'
+
+/**
+ * Tests that need no DOM (ADEV-295): they scan the repo or spawn scripts, so they
+ * run in the node environment with tests/setup.node.ts instead of paying for
+ * jsdom, jest-dom, fake-indexeddb and the global mocks in every file.
+ * Everything else stays in the `dom` project with the full setup.
+ */
+const NODE_PROJECT_INCLUDE = [
+  'tests/rules/**/*.test.ts',
+  'tests/scripts/**/*.test.ts',
+  'tests/sdk/**/*.test.ts',
+  'tests/mcp/**/*.test.ts',
+  'tests/workflows/**/*.test.ts',
+  'tests/contracts/**/*.test.ts',
+  'tests/brands/**/*.test.ts',
+  'tests/utils/**/*.test.ts',
+  'tests/*.test.ts',
+]
+
+/**
+ * Tests that render or touch the DOM keep jsdom and the full setup.
+ * Anything in neither list (tests/lib, api, services, ...) runs in the node
+ * environment with the full setup, so it still gets the global mocks.
+ */
+const DOM_PROJECT_INCLUDE = [
+  'tests/components/**/*.test.{ts,tsx}',
+  'tests/hooks/**/*.test.{ts,tsx}',
+  'tests/pages/**/*.test.{ts,tsx}',
+  'tests/styles/**/*.test.{ts,tsx}',
+  'tests/i18n/**/*.test.{ts,tsx}',
+  'tests/**/*.test.tsx',
+  // tests/lib files that reach for `document`, `window` or IndexedDB.
+  'tests/lib/{core-rules-markdown-parity,markdown-parity,offline-sync,markdown-render,markdown-references}.test.ts',
+  'tests/lib/{cross-tab-sync,comment-formats,client-reminder-sync,markdown-follow-ios}.test.ts',
+  'tests/lib/{tradeoff-even-grid-awtd-1536,offline-retry-backoff,my-tasks-scope,favorites-sse-isolation}.test.ts',
+  'tests/lib/{markdown-tradeoff-grid-block-awtd-1626,core-rules-rows-awtd-1663,decisions-numbered-awtd-1533}.test.ts',
+  'tests/lib/{task-identifier-links,sse-manager}.test.ts',
+]
 
 /**
  * The main suite. Everything shared with the risk and postgres configs lives in
@@ -38,7 +76,33 @@ export default mergeConfig(
       'process.env.NODE_ENV': '"development"',
     },
     test: {
-      environment: 'jsdom',
+      projects: [
+        {
+          extends: true,
+          test: {
+            name: 'dom',
+            environment: 'jsdom',
+            include: DOM_PROJECT_INCLUDE,
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: 'node-mocked',
+            environment: 'node',
+            exclude: [...SHARED_EXCLUDE, ...NODE_PROJECT_INCLUDE, ...DOM_PROJECT_INCLUDE],
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: 'node',
+            environment: 'node',
+            setupFiles: ['./tests/setup.node.ts'],
+            include: NODE_PROJECT_INCLUDE,
+          },
+        },
+      ],
       coverage: {
         provider: 'v8',
         reporter: ['text', 'json', 'html'],

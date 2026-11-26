@@ -652,8 +652,16 @@ rules: the core PR and its fixtures land, then web re-pins and mirrors.
 | 3b | One-tap Estimate and the estimate card | web | 3a |
 | 4a | Trade-off rule, new autonomy actions, policy sort, fixtures | core first | — |
 | 4b | Re-pin, evaluate on write, sort option, policy editor | web | 4a, 3a |
+
+**4b as built (ADEV-281).** Pinned at astrid-core `7bc3e21` (4a's merge), not core `main`: the pending-results
+lane (5a) is a later task and would change the waiting fixture. `services/tradeoff-evaluation.service.ts` runs
+`tradeoffEvaluate` through the core and stores the answer; a policy edit queues `tradeoff-reevaluate` (a page of
+100 tasks per job, each page queueing the next, rows whose `policyDigest` already matches untouched). There is no
+TypeScript mirror of the evaluation, only of the policy's shape: a build that cannot answer stores no label, which
+reads as no policy. The core's "unknown" sort-key value, `i64::MAX`, is clamped to the safe-integer range before
+storing (`storableSortKey`), which keeps the order. The browser gets keys through `?include=estimate`.
 | 5a | `results` preset and lane rules, fixtures | core first | — |
-| 5b | `TaskExperiment`, experiment client, settle job, lane wiring | web | 5a, 2a |
+| 5b | `TaskExperiment`, experiment client, settle job, lane wiring (**built**, ADEV-279) | web | 5a, 2a |
 | 5c | Experiment row, lane cards, the one-tap "Add column" offer | web | 5b |
 | 6a | Acting on labels: approvals for the three new actions | web | 4b, 5b |
 | 6b | MCP tools | web | 3a, 5b |

@@ -1,33 +1,31 @@
 /**
  * Where a repeating task goes next when it is completed — asked of astrid-core on the server
- * (AWTD-1063, web phase 4).
+ * (AWTD-1063, web phase 4; ADEV-306, step B of
+ * docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md).
  *
  * The rule is astrid-core's `nextOccurrence`, the code the iOS and Mac apps run. On the Node
- * runtime, lib/core-rules/repeating-core.ts installs it here from instrumentation.ts. Its answer is
- * returned. types/repeating.ts `calculateTaskNextOccurrence` is the same rule in TypeScript. It is
- * computed first, every time, and it is the answer whenever the core declines: not installed
- * (scripts, tests, the edge, the stdio MCP server, `ASTRID_CORE_RULES=off`), threw, or answered
- * something that is not an answer. tests/lib/core-rules-repeating-parity.test.ts holds the two to
- * the same answers over the shared fixture.
+ * runtime, lib/core-rules/repeating-core.ts installs it here from instrumentation.ts. There is no
+ * TypeScript copy of the rule: when the core is not installed, throws, or answers something that is
+ * not an answer, the rollover is REFUSED with {@link RolloverUnavailableError} (a 503 the client
+ * can retry), never a guessed date.
  *
  * Pure: no database and no WebAssembly. The caller (lib/repeating-task-handler.ts) reads the task.
  */
-import { lazyValue } from '@/lib/lazy-value'
-import {
-  calculateTaskNextOccurrence,
-  type TaskNextOccurrence,
-  type TaskNextOccurrenceInput,
-} from '@/types/repeating'
+import type { TaskNextOccurrence, TaskNextOccurrenceInput } from '@/types/repeating'
+
+/** The core could not give the next occurrence. Retry later; nothing was written. */
+export class RolloverUnavailableError extends Error {
+  readonly retryable = true
+  constructor(reason: string) {
+    super(`Repeating rollover is unavailable: ${reason}`)
+    this.name = 'RolloverUnavailableError'
+  }
+}
 
 /**
- * Answers one rollover, or returns `undefined` to leave it to the TypeScript. Given the
- * TypeScript's own answer so it can compare.
+ * Answers one rollover, or returns `undefined` when it cannot (the rollover is then refused).
  */
-export type RepeatingCore = (
-  input: TaskNextOccurrenceInput,
-  /** Computed at most once, and only for a fallback or a sampled comparison (AWTD-1591). */
-  typescriptAnswer: () => TaskNextOccurrence,
-) => TaskNextOccurrence | undefined
+export type RepeatingCore = (input: TaskNextOccurrenceInput) => TaskNextOccurrence | undefined
 
 // On globalThis, as with the other core hooks: Next compiles this module into several layers, each
 // with its own module state, and the core is installed once from instrumentation.ts.
@@ -54,19 +52,20 @@ export function isTaskNextOccurrence(value: unknown): value is TaskNextOccurrenc
 }
 
 /**
- * The next occurrence of a just-completed repeating task: astrid-core's answer where it is
- * installed, the TypeScript's otherwise. Throws only what the TypeScript throws (an unknown zone,
- * a completion that is not a date), which the caller prevents by validating first.
+ * The next occurrence of a just-completed repeating task, as astrid-core answers it. Throws
+ * {@link RolloverUnavailableError} when the core is not installed or cannot answer.
  */
 export function nextOccurrenceForTask(input: TaskNextOccurrenceInput): TaskNextOccurrence {
   const core = (globalThis as CoreHost)[CORE_KEY]
-  if (!core) return calculateTaskNextOccurrence(input)
-  const typescriptAnswer = lazyValue(() => calculateTaskNextOccurrence(input))
+  if (!core) throw new RolloverUnavailableError('astrid-core is not loaded')
+  let answer: TaskNextOccurrence | undefined
   try {
-    const answer = core(input, typescriptAnswer)
-    return answer !== undefined && isTaskNextOccurrence(answer) ? answer : typescriptAnswer()
+    answer = core(input)
   } catch {
-    // A hook that throws must not fail the completion; the TypeScript answer stands.
-    return typescriptAnswer()
+    throw new RolloverUnavailableError('astrid-core threw')
   }
+  if (answer === undefined || !isTaskNextOccurrence(answer)) {
+    throw new RolloverUnavailableError('astrid-core did not answer')
+  }
+  return answer
 }
