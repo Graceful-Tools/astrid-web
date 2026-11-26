@@ -1729,6 +1729,19 @@
         "loadError": "无法加载此连接的权限",
         "selectAtLeastOne": "请至少选择一个作用域",
         "selectApp": "请选择一个应用。"
+      },
+      "tokenScope": {
+        "unscoped": "完全访问（未设置范围）",
+        "recorded": "已设范围，尚未强制执行",
+        "enforced": "仅限这些范围"
+      },
+      "rotate": {
+        "action": "轮换",
+        "confirm": "轮换 {name}？新令牌将以相同的访问权限替换它，旧令牌会立即失效。",
+        "newTokenTitle": "新令牌",
+        "newTokenDescription": "请立即复制：它不会再次显示。请更新所有使用旧令牌的地方。",
+        "done": "完成",
+        "error": "无法轮换"
       }
     },
     "openInNewTab": "在新标签页中打开",
@@ -2886,7 +2899,8 @@
       "doing": "进行中",
       "waiting": "等待中",
       "done": "已完成",
-      "testing": "测试"
+      "testing": "测试",
+      "results": "等待结果"
     },
     "empty": {
       "inbox": "没有需要整理的新任务！没有状态的任务会出现在这里。",
@@ -2902,7 +2916,8 @@
       "doing": "工作进行中！",
       "waiting": "暂停，等待时机成熟。",
       "done": "已完成——恭喜！",
-      "testing": "正在部署、处于金丝雀发布或实验中。"
+      "testing": "正在部署、处于金丝雀发布或实验中。",
+      "results": "已构建并发布;等待实验或验证报告结果。"
     }
   },
   "passkeyErrors": {

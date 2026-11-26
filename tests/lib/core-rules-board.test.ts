@@ -2,8 +2,9 @@
 /**
  * astrid-core decides the project board on the server (AWTD-1585) — and fails safe. Whatever the
  * core does short of answering (throws, answers garbage or an error envelope), the board functions
- * return the TypeScript answer and nothing escapes to the caller. A disagreement is logged once per
- * shape, never with a column's name or role (words a person typed).
+ * return the TypeScript answer and nothing escapes to the caller. Columns are no longer compared
+ * (AWTD-1608); a drop disagreement is logged once per shape, never with a column's name or role
+ * (words a person typed).
  */
 import { afterEach, describe, expect, it } from 'vitest'
 import { setBoardCore } from '@/lib/board-core-hook'
@@ -38,7 +39,8 @@ describe('AWTD-1585: the board through astrid-core fails safe', () => {
     expect(getProjectBoardColumns(custom)).toEqual(typescriptColumns)
     expect(resolveProjectColumnMove(task, done, lists)).toEqual({ listIds: ['l1'], completed: true, statusRole: null })
     expect(calls).toBe(1)
-    expect(hook.stats.failed).toBe(2)
+    expect(hook.stats.columns.failed).toBe(1)
+    expect(hook.stats.drops.failed).toBe(1)
   })
 
   it('returns the TypeScript answer for an error envelope or an answer that is not one', () => {
@@ -47,24 +49,38 @@ describe('AWTD-1585: the board through astrid-core fails safe', () => {
     )
     expect(getProjectBoardColumns(custom)).toEqual(typescriptColumns)
     expect(resolveColumnMove({ statusRole: null }, 'doing')).toEqual({ statusRole: 'doing', completed: false })
-    expect(hook.stats).toEqual({ agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 2 })
+    expect(hook.stats).toEqual({
+      columns: { answered: 0, skipped: 0, failed: 1 },
+      drops: { agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 1 },
+    })
   })
 
-  it("returns the core's answer in decide mode and logs the disagreement without names or roles", () => {
+  it("returns the core's columns in decide mode, without comparing them (AWTD-1608)", () => {
     const renamed = typescriptColumns.map((column) => (column.id === 'ready' ? { ...column, name: 'Up next', taskIds: [] } : { ...column, taskIds: [] }))
     const { hook, reports } = install(() => JSON.stringify({ ok: true, value: renamed }))
     expect(getProjectBoardColumns(custom).find((column) => column.id === 'ready')?.name).toBe('Up next')
-    getProjectBoardColumns(custom)
-    expect(hook.stats.disagreed).toBe(2)
-    expect(reports).toHaveLength(1)
-    expect(reports[0]).toMatchObject({ rule: 'board', differing: ['name'], customCount: 1, returned: 'core' })
-    expect(JSON.stringify(reports)).not.toMatch(/Payroll|secret-review|Up next/)
+    expect(hook.stats.columns).toEqual({ answered: 1, skipped: 0, failed: 0 })
+    expect(reports).toEqual([])
   })
 
-  it('keeps the TypeScript deciding in shadow mode', () => {
-    const { hook } = install(() => JSON.stringify({ ok: true, value: [] }), 'shadow')
+  it("returns the core's drop in decide mode and logs the disagreement without names or roles", () => {
+    const { hook, reports } = install(() => JSON.stringify({ ok: true, value: { listIds: ['l1'], completed: false, statusRole: 'ready' } }))
+    expect(resolveProjectColumnMove(task, done, lists)).toEqual({ listIds: ['l1'], completed: false, statusRole: 'ready' })
+    expect(hook.stats.drops.disagreed).toBe(1)
+    expect(reports).toHaveLength(1)
+    expect(reports[0]).toMatchObject({ rule: 'boardMove', differing: ['completed', 'statusRole'], target: 'done', returned: 'core' })
+    expect(JSON.stringify(reports)).not.toMatch(/Payroll|secret-review/)
+  })
+
+  it('keeps the TypeScript deciding in shadow mode, without asking the core for columns', () => {
+    let calls = 0
+    const { hook } = install(() => {
+      calls++
+      return JSON.stringify({ ok: true, value: [] })
+    }, 'shadow')
     expect(boardColumnsFor({ customStates: custom })).toHaveLength(typescriptColumns.length)
-    expect(hook.stats.disagreed).toBe(1)
+    expect(calls).toBe(0)
+    expect(hook.stats.columns.skipped).toBe(1)
   })
 
   it('does not ask the core about a column it would read differently', () => {
@@ -74,18 +90,28 @@ describe('AWTD-1585: the board through astrid-core fails safe', () => {
       throw new Error('never asked')
     })
     expect(resolveColumnMove({ statusRole: null }, '')).toEqual({ statusRole: '', completed: false })
-    expect(hook.stats).toEqual({ agreed: 0, disagreed: 0, unsampled: 0, skipped: 1, failed: 0 })
+    expect(hook.stats.drops).toEqual({ agreed: 0, disagreed: 0, unsampled: 0, skipped: 1, failed: 0 })
   })
 
   it.skipIf(corePinBehindBoard)('reports its mode, revision and totals for /api/health', () => {
     expect(installBoardCore('off')).toBe(false)
-    expect(boardCoreStatus()).toEqual({ mode: 'off', sampleEvery: 20, loaded: false, revision: null, stats: null })
+    expect(boardCoreStatus()).toEqual({
+      mode: 'off',
+      compare: { columns: 'retired', drops: 'sampled' },
+      sampleEvery: 20,
+      loaded: false,
+      revision: null,
+      stats: null,
+    })
     expect(installBoardCore(undefined)).toBe(true)
     const status = boardCoreStatus()!
     expect(status).toMatchObject({ mode: 'decide', loaded: true })
     expect(status.revision).toMatch(/^[0-9a-f]{40}$/)
     getProjectBoardColumns(custom)
-    expect(boardCoreStatus()!.stats).toEqual({ agreed: 1, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
+    expect(boardCoreStatus()!.stats).toEqual({
+      columns: { answered: 1, skipped: 0, failed: 0 },
+      drops: { agreed: 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 },
+    })
   })
 })
 

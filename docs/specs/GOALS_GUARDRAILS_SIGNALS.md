@@ -653,7 +653,7 @@ rules: the core PR and its fixtures land, then web re-pins and mirrors.
 | 4a | Trade-off rule, new autonomy actions, policy sort, fixtures | core first | — |
 | 4b | Re-pin, evaluate on write, sort option, policy editor | web | 4a, 3a |
 | 5a | `results` preset and lane rules, fixtures | core first | — |
-| 5b | `TaskExperiment`, experiment client, settle job, lane wiring | web | 5a, 2a |
+| 5b | `TaskExperiment`, experiment client, settle job, lane wiring (**built**, ADEV-279) | web | 5a, 2a |
 | 5c | Experiment row, lane cards, the one-tap "Add column" offer | web | 5b |
 | 6a | Acting on labels: approvals for the three new actions | web | 4b, 5b |
 | 6b | MCP tools | web | 3a, 5b |

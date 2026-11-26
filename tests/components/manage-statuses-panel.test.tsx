@@ -23,6 +23,9 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ManageStatusesPanel } from '@/components/list-admin/ManageStatusesPanel'
 import type { ProjectBoardColumn } from '@/lib/project-status'
 
+const goalSignals = vi.hoisted(() => ({ on: false }))
+vi.mock('@/hooks/use-goal-signals', () => ({ useGoalSignals: () => goalSignals.on }))
+
 const statuses: ProjectBoardColumn[] = [
   { id: 'ready', name: 'Ready', description: '', kind: 'status' },
   { id: 'doing', name: 'Doing', description: '', kind: 'status' },
@@ -217,6 +220,28 @@ describe('ManageStatusesPanel', () => {
   it('does not offer a preset the board already has', () => {
     setup([...statuses, { id: 'testing', name: 'Testing', description: '', kind: 'status' }])
     expect(screen.queryByTestId('status-preset-testing')).toBeNull()
+  })
+
+  // ── Pending results (ADEV-279): offered only while goal signals are on ────
+
+  it('does not offer Pending results while goal signals are off', () => {
+    goalSignals.on = false
+    setup()
+    expect(screen.getByTestId('status-preset-testing')).toBeInTheDocument()
+    expect(screen.queryByTestId('status-preset-results')).toBeNull()
+  })
+
+  it('offers Pending results beside Testing while goal signals are on, and adds it by its fixed role', async () => {
+    goalSignals.on = true
+    okFetch()
+    const { onChanged } = setup()
+    expect(screen.getByTestId('status-preset-testing')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('status-preset-results'))
+
+    await waitFor(() => expect(onChanged).toHaveBeenCalled())
+    expect(JSON.parse(calls()[0][1].body)).toEqual({ preset: 'results', projectId: 'p1' })
+    goalSignals.on = false
   })
 })
 

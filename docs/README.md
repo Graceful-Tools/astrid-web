@@ -84,7 +84,7 @@ and stack versions with `npm run check:docs`.
 - **[GitHub Copilot SDK integration](./COPILOT_SDK_INTEGRATION_PLAN.md)** - plan: the SDK in the agent runner, and server-run Copilot behind a hosted gateway
 - **[Copilot Local](./COPILOT_LOCAL_PLAN.md)** - for later (December): Copilot working tasks on your own Mac or Windows PC as a `copilot-local@` agent, through the Rust SDK
 - **[SDK channel restart recovery](./SDK_CHANNEL_RECOVERY.md)** - AWTD-1565: opt-in session recovery for SDK channels after a restart
-- **[Agent integration benchmark](./benchmarks/AGENT_INTEGRATION.md)** - AWTD-1551: what Astrid adds to an agent run versus Claude Code or Codex directly, measured
+- **[Agent integration benchmark](./benchmarks/AGENT_INTEGRATION.md)** - AWTD-1551: what Astrid adds to an agent run versus Claude Code or Codex directly, measured. First results: [AGENT_INTEGRATION_RESULTS.md](./benchmarks/AGENT_INTEGRATION_RESULTS.md)
 - **[Testing the GitHub coding agent locally](./guides/testing-github-agent-locally.md)** - run the GitHub agent workflow on your machine
 - **[Weekly deep review](./WEEKLY_DEEP_REVIEW.md)** - the weekly eight-lens review over astrid-web and astrid-ios
 - **[Legacy AI agent setup (archived)](./archive/ai-agents/README.md)** - superseded GitHub-App walkthrough, kept for history

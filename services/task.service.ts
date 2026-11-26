@@ -48,6 +48,7 @@ import { broadcastTaskDeleted } from '@/services/task-delete-broadcast'
 import { broadcastTaskUpdated } from '@/services/task-update-broadcast'
 import { RedisCache, isRedisAvailable } from '@/lib/redis'
 import { mintTaskIdentifierBestEffort } from '@/services/task-identifier-mint'
+import { resolveListMembershipWrite } from '@/services/task-list-membership'
 import { normalizeProjectStatusListIds } from '@/lib/project-status'
 import {
   recordTaskCreationComment,
@@ -57,7 +58,6 @@ import {
 import { applyRepeatingTaskRollForward } from '@/lib/repeating-task-handler'
 import { parseClosedReason } from '@/lib/closed-reason'
 import { normalizeRepeatingData, parseCompletionStamp, parseRepeating } from '@/lib/task-enums'
-import { statusListIdsToDetachOnCompletion } from '@/lib/project-status'
 import { TASK_FULL_INCLUDE } from '@/lib/task-query-utils'
 import { diffTaskEvents, recordTaskEvents } from '@/lib/task-events'
 import { taskEventSnapshot } from '@/lib/task-event-snapshot'
@@ -1048,20 +1048,19 @@ export async function updateTaskWithSideEffects(args: {
   if (!waiting.ok) return { ok: false, status: waiting.status, error: waiting.error, code: waiting.code }
   Object.assign(data, waiting.data)
 
-  // Invariant: completed = true => no status memberships (task db7c6670). The
-  // listIds branch enforces it through the normalizer, but only when the
-  // request carries listIds. A completion-only update — PUT { completed: true },
-  // which is what the checkbox sends — skipped it and left the task in Ready.
-  if (validatedListIds !== undefined) {
-    data.lists = { set: validatedListIds.map(id => ({ id })) }
-    // A move onto a project mints as a create does (AWTD-1016); `=== null` so an existingTask without the column never re-mints.
-    if (existingTask.identifier === null) Object.assign(data, await mintTaskIdentifierBestEffort(validatedListIds))
-  } else if (requestedCompleted === true) {
-    const detach = statusListIdsToDetachOnCompletion(existingTask.lists)
-    if (detach.length > 0) {
-      data.lists = { disconnect: detach.map(id => ({ id })) }
-    }
-  }
+  // The Pending results rules (services/task-results.ts, ADEV-279): entering the column needs an
+  // experiment or a verification to wait on. A board without the column never reaches this.
+  const results = await (await import('@/services/task-results')).resolveResultsForUpdate({
+    existingTask,
+    data,
+    requestedCompleted,
+    keepAssignee: intent.keepAssignee,
+  })
+  if (!results.ok) return { ok: false, status: results.status, error: results.error, code: results.code }
+  Object.assign(data, results.data)
+
+  // List memberships, and the identifier a move onto a project mints (services/task-list-membership.ts).
+  Object.assign(data, await resolveListMembershipWrite({ validatedListIds, requestedCompleted, existingTask }))
 
   const lists = validatedListIds ?? (existingTask.lists ?? []).map((list: { id: string }) => list.id)
   const accepted = await (await taskBackendFor(listsBeforeAndAfter(existingTask.lists, lists))).updateTask({ actorId }, taskId, data)

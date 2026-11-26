@@ -8,7 +8,7 @@
  * polling looks exactly like an agent that has died.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { mockPrisma } from '@/tests/setup'
 import {
   isAgentExecutionMode,
@@ -139,14 +139,38 @@ describe('isPollingOnlyAgent (reading a real user row)', () => {
       mcpSettings: typeof mcpSettings === 'string' ? mcpSettings : JSON.stringify(mcpSettings),
     })
 
-  it('AWTD-1554 characterization: stored Off is ignored by the polling-only getter', async () => {
-    userWith({ agentModes: { codex: 'off' } })
-    expect(await getAgentExecutionMode('user-1', `codex@${BRAND.agentEmailDomain}`)).toBe('polling')
-    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
-  })
+  describe('AWTD-1563 stored Off for a polling-only mailbox', () => {
+    afterEach(() => vi.unstubAllEnvs())
 
-  // Intended: getAgentExecutionMode('user-1', codex mailbox) returns 'off' for stored { agentModes: { codex: 'off' } }.
-  it.todo('AWTD-1554 enforcement follow-up: polling-only getter honors stored Off')
+    it('flag off: today\'s behaviour, a stored Off is ignored and settings are never read', async () => {
+      vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'false')
+      userWith({ agentModes: { codex: 'off' } })
+      expect(await getAgentExecutionMode('user-1', `codex@${BRAND.agentEmailDomain}`)).toBe('polling')
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
+    })
+
+    it('flag on: the getter honors a stored Off', async () => {
+      vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'true')
+      userWith({ agentModes: { codex: 'off' } })
+      expect(await getAgentExecutionMode('user-1', `codex@${BRAND.agentEmailDomain}`)).toBe('off')
+      // Off suppresses dispatch exactly as polling did.
+      expect(await isPollingOnlyAgent(`codex@${BRAND.agentEmailDomain}`, 'user-1')).toBe(true)
+    })
+
+    it('flag on: still polling with no stored mode, a stored non-Off value, an unknown owner, or a failed read', async () => {
+      vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'true')
+      const codex = `codex@${BRAND.agentEmailDomain}`
+      userWith({})
+      expect(await getAgentExecutionMode('user-1', codex)).toBe('polling')
+      userWith({ agentModes: { codex: 'api' } })
+      expect(await getAgentExecutionMode('user-1', codex)).toBe('polling')
+      mockPrisma.user.findUnique.mockReset()
+      expect(await getAgentExecutionMode(null, codex)).toBe('polling')
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled()
+      mockPrisma.user.findUnique.mockRejectedValue(new Error('db down'))
+      expect(await getAgentExecutionMode('user-1', codex)).toBe('polling')
+    })
+  })
 
   it('keeps the server out of a task whose agent the user set to polling', async () => {
     userWith({ agentModes: { claude: 'polling' }, apiKeys: { claude: { encrypted: 'x', iv: 'y' } } })

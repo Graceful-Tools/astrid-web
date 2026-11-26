@@ -3,8 +3,7 @@
  * astrid-core decides repeating-task rollover on the server (AWTD-1063) — and fails safe. Whatever
  * the core does short of answering (cannot load, throws, answers garbage or an error envelope),
  * nextOccurrenceForTask returns the TypeScript answer, and nothing escapes to the completion. When
- * it does answer, its answer is returned, and a disagreement is logged without ids, dates, pattern
- * values or the zone's name.
+ * it does answer, its answer is returned and the TypeScript is not run (AWTD-1608).
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { nextOccurrenceForTask, setRepeatingCore, type RepeatingCore } from '@/lib/repeating-rollover'
@@ -12,7 +11,7 @@ import { createRepeatingCore, installRepeatingCore, repeatingCoreStatus } from '
 import type { TaskNextOccurrenceInput } from '@/types/repeating'
 
 function silentReporter() {
-  return { disagreement: vi.fn(), failure: vi.fn() }
+  return { failure: vi.fn() }
 }
 
 const DAILY: TaskNextOccurrenceInput = {
@@ -55,7 +54,8 @@ describe('the core decides', () => {
       timeZone: 'America/Los_Angeles',
       isAllDay: false,
     })
-    expect(hook.stats).toMatchObject({ disagreed: 1, agreed: 0, failed: 0 })
+    // No comparison (AWTD-1608): answered, and nothing reported.
+    expect(hook.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 
   it('sends Dates as ISO strings and an absent zone as UTC', () => {
@@ -66,33 +66,19 @@ describe('the core decides', () => {
     expect(request).toMatchObject({ currentDueDate: '2026-03-07T17:00:00.000Z', completion: '2026-03-07T18:00:00.000Z', timeZone: 'UTC' })
   })
 
-  it('counts agreement when the core answers as the TypeScript does, milliseconds or not', () => {
+  it('keeps the milliseconds-free core date as an ISO instant', () => {
     const hook = createRepeatingCore(answering({ nextDueDate: '2026-03-08T16:00:00Z', shouldTerminate: false, newOccurrenceCount: 1 }), silentReporter())
     setRepeatingCore(hook.next)
     expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe(TYPESCRIPT)
-    expect(hook.stats).toMatchObject({ agreed: 1, disagreed: 0 })
   })
 
-  it('reports a disagreement by field and shape, never ids, dates, values or the zone name', () => {
-    const report = silentReporter()
+  it('in shadow mode, does not ask the core: the TypeScript decides', () => {
     const core = answering({ nextDueDate: '2030-01-01T00:00:00Z', shouldTerminate: false, newOccurrenceCount: 1 })
-    setRepeatingCore(createRepeatingCore(core, report).next)
-
-    nextOccurrenceForTask({ ...DAILY, repeating: 'custom', pattern: { type: 'custom', unit: 'weeks', interval: 1, weekdays: ['monday'], endCondition: 'never' } })
-    nextOccurrenceForTask({ ...DAILY, repeating: 'custom', pattern: { type: 'custom', unit: 'weeks', interval: 1, weekdays: ['friday'], endCondition: 'never' } }) // same shape: logged once
-
-    expect(report.disagreement).toHaveBeenCalledTimes(1)
-    const details = report.disagreement.mock.calls[0][0]
-    expect(details).toMatchObject({ rule: 'nextOccurrence', differing: ['nextDueDate'], kind: 'custom:weeks', allDay: false, zoned: true, returned: 'core' })
-    expect(JSON.stringify(details)).not.toMatch(/2026|2030|Los_Angeles|monday|friday/)
-  })
-
-  it('keeps the TypeScript answer in shadow mode, and still compares', () => {
-    const report = silentReporter()
-    const core = answering({ nextDueDate: '2030-01-01T00:00:00Z', shouldTerminate: false, newOccurrenceCount: 1 })
-    setRepeatingCore(createRepeatingCore(core, report, { mode: 'shadow' }).next)
+    const hook = createRepeatingCore(core, silentReporter(), { mode: 'shadow' })
+    setRepeatingCore(hook.next)
     expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe(TYPESCRIPT)
-    expect(report.disagreement).toHaveBeenCalledWith(expect.objectContaining({ returned: 'typescript' }))
+    expect(core).not.toHaveBeenCalled()
+    expect(hook.stats).toEqual({ answered: 0, skipped: 1, failed: 0 })
   })
 })
 
@@ -139,9 +125,6 @@ describe('the TypeScript answer stands whenever the core cannot give one', () =>
 
   it('survives a reporter that throws', () => {
     const report = {
-      disagreement: () => {
-        throw new Error('log down')
-      },
       failure: () => {
         throw new Error('log down')
       },
@@ -156,7 +139,7 @@ describe('the TypeScript answer stands whenever the core cannot give one', () =>
 describe('installRepeatingCore (instrumentation.ts)', () => {
   it('loads nothing with ASTRID_CORE_RULES=off, and says so on /api/health', () => {
     expect(installRepeatingCore('off')).toBe(false)
-    expect(repeatingCoreStatus()).toEqual({ mode: 'off', sampleEvery: 20, loaded: false, revision: null, stats: null })
+    expect(repeatingCoreStatus()).toEqual({ mode: 'off', compare: 'retired', loaded: false, revision: null, stats: null })
     expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe(TYPESCRIPT)
   })
 
@@ -166,7 +149,7 @@ describe('installRepeatingCore (instrumentation.ts)', () => {
     expect(status).toMatchObject({ mode: 'decide', loaded: true })
     expect(status?.revision).toMatch(/^[0-9a-f]{40}$/)
     expect(nextOccurrenceForTask(DAILY).nextDueDate).toBe(TYPESCRIPT)
-    expect(repeatingCoreStatus()?.stats).toMatchObject({ agreed: 1 })
+    expect(repeatingCoreStatus()?.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 
   it('installs in shadow mode when asked', () => {

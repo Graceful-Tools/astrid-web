@@ -22,9 +22,11 @@ import type { V1Connection } from '@/lib/api-contracts/v1-ios-shapes'
 
 const getMock = vi.fn()
 const deleteMock = vi.fn()
+const postMock = vi.fn()
 vi.mock('@/lib/api', () => ({
   apiGet: (...args: unknown[]) => getMock(...args),
   apiDelete: (...args: unknown[]) => deleteMock(...args),
+  apiPost: (...args: unknown[]) => postMock(...args),
 }))
 
 vi.mock('@/lib/i18n/client', () => ({
@@ -52,6 +54,13 @@ vi.mock('@/lib/i18n/client', () => ({
         'settingsPages.connections.review.summaryMany': `${vars?.count} connections look unused`,
         'settingsPages.connections.review.idle': `Not used in ${vars?.days} days`,
         'settingsPages.connections.review.neverUsed': `Never used, created ${vars?.days} days ago`,
+        'settingsPages.connections.rotate.action': 'Rotate',
+        'settingsPages.connections.rotate.confirm': `Rotate ${vars?.name}?`,
+        'settingsPages.connections.rotate.newTokenTitle': 'New token',
+        'settingsPages.connections.rotate.done': 'Done',
+        'settingsPages.connections.tokenScope.unscoped': 'Full access',
+        'settingsPages.connections.tokenScope.recorded': 'Scoped, not enforced yet',
+        'settingsPages.connections.tokenScope.enforced': 'Limited to these scopes',
       })[key] ?? key,
   }),
 }))
@@ -325,5 +334,59 @@ describe('ConnectionsList unused review (AWTD-980)', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm' }))
 
     expect(await screen.findByText('1 connection looks unused')).toBeInTheDocument()
+  })
+
+  describe('AWTD-1567: scoped access tokens', () => {
+    const scoped = (scopeEnforced: boolean) =>
+      row({
+        id: 'tok-2', kind: 'accessToken', name: 'Reporter', scopes: ['tasks:read'], manageIn: 'agents',
+        detail: { permissions: ['read'], scoped: true, scopeEnforced },
+      })
+
+    it('says whether a token is unscoped, scoped, or held to its scopes', async () => {
+      getMock.mockResolvedValue(respond({
+        connections: [
+          row({ id: 'tok-1', kind: 'accessToken', name: 'Copilot', scopes: ['*'], manageIn: 'agents', detail: { permissions: ['read', 'write'], scoped: false, scopeEnforced: false } }),
+          scoped(true),
+        ],
+        meta: {},
+      }))
+      render(<ConnectionsList />)
+      const reporter = (await screen.findByText('Reporter')).closest('[data-connection-id]') as HTMLElement
+      expect(within(reporter).getByText('Limited to these scopes')).toBeInTheDocument()
+      expect(within(reporter).getByText('tasks:read')).toBeInTheDocument()
+      const copilot = screen.getByText('Copilot').closest('[data-connection-id]') as HTMLElement
+      expect(within(copilot).getByText('Full access')).toBeInTheDocument()
+    })
+
+    it('rotates a token after confirmation and shows the new secret once', async () => {
+      getMock.mockResolvedValue(respond({ connections: [scoped(false)], meta: {} }))
+      postMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, id: 'tok-3', replacedId: 'tok-2', token: 'astrid_mcp_new', scopes: ['tasks:read'] }),
+      })
+      const user = userEvent.setup()
+      render(<ConnectionsList />)
+
+      const reporter = (await screen.findByText('Reporter')).closest('[data-connection-id]') as HTMLElement
+      expect(within(reporter).getByText('Scoped, not enforced yet')).toBeInTheDocument()
+      await user.click(within(reporter).getByRole('button', { name: 'Rotate' }))
+      expect(screen.getByText('Rotate Reporter?')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Confirm' }))
+
+      await waitFor(() => expect(postMock).toHaveBeenCalledWith('/api/v1/users/me/access-tokens/tok-2/rotate', {}))
+      expect(await screen.findByText('astrid_mcp_new')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Done' }))
+      await waitFor(() => expect(screen.queryByText('astrid_mcp_new')).not.toBeInTheDocument())
+    })
+
+    it('offers Rotate only on access tokens', async () => {
+      getMock.mockResolvedValue(respond({ connections: FIXTURE, meta: {} }))
+      render(<ConnectionsList />)
+      const claude = (await screen.findByText('Claude Code')).closest('[data-connection-id]') as HTMLElement
+      expect(within(claude).queryByRole('button', { name: 'Rotate' })).not.toBeInTheDocument()
+      const token = screen.getByText('GitHub Copilot cloud agent').closest('[data-connection-id]') as HTMLElement
+      expect(within(token).getByRole('button', { name: 'Rotate' })).toBeInTheDocument()
+    })
   })
 })
