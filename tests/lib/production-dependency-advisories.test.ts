@@ -10,7 +10,7 @@
  * nobody can reproduce locally is how this one stayed red for days.
  *
  * Both packages are transitive but genuinely reachable — `@modelcontextprotocol/sdk`
- * backs the MCP SSE endpoint at `pages/api/mcp/index.ts`, pulling `fast-uri`
+ * backs the hosted MCP endpoint at `pages/api/mcp/index.ts`, pulling `fast-uri`
  * through ajv's `format: uri` validation and `qs` through express — so neither
  * could be waved off with a reachability argument.
  *

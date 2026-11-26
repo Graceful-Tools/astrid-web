@@ -57,12 +57,14 @@ export async function GET(request: NextRequest) {
       // Whether astrid-core decides list permissions in this process (AWTD-1061). The fallback is
       // silent by design — the TypeScript gives the same answers — so this is the one place a
       // deploy can see that the core did not load: { mode: 'decide', loaded: false }.
+      // `compare: 'retired'` (AWTD-1608): the server no longer compares this rule with the
+      // TypeScript, so its stats are { answered, skipped, failed } with no agreed/disagreed.
       coreRules: listPermissionsCoreStatus(),
-      // The same for search-query parsing (AWTD-1062).
+      // The same for search-query parsing (AWTD-1062), also retired.
       coreRulesSearch: searchQueryCoreStatus(),
-      // And for repeating-task rollover on completion (AWTD-1063).
+      // And for repeating-task rollover on completion (AWTD-1063), also retired.
       coreRulesRepeating: repeatingCoreStatus(),
-      // And for the project board's columns and drops (AWTD-1585).
+      // And for the project board (AWTD-1585): stats.columns (retired) and stats.drops (still compared).
       coreRulesBoard: boardCoreStatus(),
       // And for the Waiting lane (Jon, 2026-11-12).
       coreRulesWaiting: waitingCoreStatus(),

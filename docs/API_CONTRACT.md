@@ -102,6 +102,14 @@ existing `empty`-based behavior.
 - `orchestrationPolicy[]`: the named board's effective policy as this agent sees it (ADEV-36); only
   with `listId`.
 
+**A polling-only agent the caller turned Off (AWTD-1563).** Inert unless the
+server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true`. Then, for a
+polling-only mailbox (`codex`) whose stored mode is `off`, the response has
+`mode: "off"`, `empty: true`, an empty `queue` and `attention`,
+`runnable.hasWork: false`, and a `hint` saying the agent is turned Off. Every
+other mailbox, and `codex` without a stored Off, is unchanged. Clients should
+treat `mode: "off"` as "stop polling until the user turns it back on".
+
 **Explicit business runtime bindings (AWTD-1667).** Inert unless the server sets
 `ASTRID_RUNTIME_BINDING_RESOLVER=true`. Even then, a response for a board with no
 binding, or for a request with no `listId`, is unchanged byte for byte. When the
@@ -723,6 +731,35 @@ when the task's lists span several projects. Rows are append-only in `TaskEstima
   estimate" tag (`rough: true`). Cost also writes `Task.costEstimateMicrocents` (source `model`, or `human`)
   and never replaces a human value with a model one.
 
+### GET|POST|DELETE `/api/v1/tasks/{id}/experiment`, POST `…/experiment/refresh`
+A task's experiment links and post-deploy verification windows (ADEV-279, spec:
+`docs/specs/GOALS_GUARDRAILS_SIGNALS.md` → *5. Experiments and verification*, *7. The Pending results lane*).
+Behind the goal-signals gate (404 where the capability is off, 403 `not_granted` without the flag), which is
+read per project from its owner by the settle job. Rows are in `TaskExperiment`. `projectId` is needed only when
+the task's lists span several projects. **Astrid computes no statistics**: an experiment's deltas, intervals,
+significance, verdict and recommendation are its service's, stored as given (clipped), never recomputed.
+- `GET` answers `{ experiments, inResultsColumn }`. A link is `{ id, kind: "experiment" | "verification",
+  connectorId, externalKey, url, state: "pending" | "running" | "concluded" | "stopped" | "unknown", verdict:
+  "improving" | "flat" | "regressing" | "inconclusive" | null, recommendation: { action, reason } | null, metrics,
+  findings, startedAt, decideBy, fetchedAt, stale, lastError }`. `stale` is "no data since `fetchedAt`" (48 h).
+- `POST { kind: "experiment", connectorId, externalKey, url?, decideBy? }` links a task to an experiment on one of
+  the project's `experiment` connectors (404 for any other). `POST { kind: "verification", days | decideBy }`
+  starts a verification window and records the project's fresh goal and guardrail values now (the deploy); at
+  `decideBy` the project's sources are read and compared: a guardrail breached or a goal regressed is `regressing`,
+  otherwise `improving` if anything could be compared, else `inconclusive` (unknown is never a pass). 201
+  `{ experiment }`. At most 10 links per task.
+- `DELETE ?experimentId=` removes one link. `POST …/refresh` reads every open link now and answers the same view
+  plus `lane`: what the lane rules did (`not-in-column`, `stay`, `completed`, `handed-back`, `skipped`).
+- **A link reports on every board.** The moment one concludes, a system comment on the task names the verdict and
+  the numbers. Nothing moves, completes or hands back a task that is not in the **Pending results** column.
+- **In the column** (a board added it; no migration, gate, connector or link ever does): entering needs an open
+  experiment or a verification with `decideBy` ahead, else 422 `RESULTS_NEEDS_CONDITION` (the client's cue to
+  show the picker); entering unassigns the task and remembers the holder. Then `/api/cron/results-settle` (every
+  15 minutes, bounded, stalest link first) or a Refresh asks astrid-core's `resultsSettle`: every link
+  `improving` completes the task with a system comment and a goal measurement naming the task; a regression, an
+  inconclusive result at `decideBy`, or a source silent past `decideBy` hands the task back to the policy's
+  escalation target with a Decision (iterate, roll back, ship anyway). Nothing rolls back automatically.
+
 ### Project connectors: `/api/v1/projects/{id}/connectors`
 A project's bindings to outside services (ADEV-277, spec: `docs/specs/GOALS_GUARDRAILS_SIGNALS.md` →
 *Connectors*). Behind the Goal Signals gate (404 where the capability is off, 403 `not_granted` without
@@ -1053,15 +1090,75 @@ bearer minted from a delegated token would outlive revoking that token. The new 
 - `expiresInDays` — 1–365. If omitted, the token never expires.
 - `agent` — optional. It's an agent mailbox from the consent screen's roster, and comments made
   with the token are authored as that agent rather than as the user.
+- `scopes` — optional (AWTD-1567). OAuth scope names from the same set an OAuth client can hold,
+  for example `["tasks:read", "lists:read"]`. If omitted, the token is **unscoped** and granted
+  `*`, like every token minted before this field existed. If given, the scopes are stored on the
+  token and the token is held to them under `ASTRID_TOKEN_SCOPE_ENFORCEMENT` (see *Access-token
+  scope enforcement* below). `*`, an unknown name or an empty list is a 400 that names the
+  refused entry. Nothing is dropped silently.
 
 **Response:**
 ```json
 { "success": true, "token": "astrid_mcp_…", "permissions": ["read", "write"],
+  "scopes": ["tasks:read", "lists:read"] | null,
   "expiresAt": "ISO 8601 | null", "description": "string | null", "createdAt": "ISO 8601",
   "meta": { "apiVersion": "v1", "authSource": "session" } }
 ```
-Errors: 400 for an invalid body, 403 when MCP access is disabled for the account, 409 when the
-requested agent identity cannot be resolved.
+Errors: 400 for an invalid body or a scope a token cannot hold, 403 when MCP access is disabled
+for the account, 409 when the requested agent identity cannot be resolved.
+
+### POST `/api/v1/users/me/access-tokens/:id/rotate`
+Replace an access token's secret (AWTD-1567). The new token has the old one's `permissions`,
+`scopes` (or none), agent binding and description. A token with an expiry gets the same
+lifetime again, counted from now. The old token is revoked in the same transaction. The plaintext
+appears only in this response. It requires `user:write` and is **session-only**: a token cannot
+rotate itself. Settings → Connections offers it as **Rotate** on every active access token.
+
+**Response:** the mint response plus `"id"` (the new `MCPToken.id`) and `"replacedId"`.
+Errors: 403 for a non-session caller or when MCP access is disabled, 404 when the token is not
+the caller's, is already revoked, or is list-level.
+
+### Access-token scope enforcement (AWTD-1567)
+An access token minted with `scopes` is limited to them once the flag covers its owner:
+
+| `ASTRID_TOKEN_SCOPE_ENFORCEMENT` | Effect |
+|---|---|
+| unset, `off`, anything else | Nobody is enforced (the default). Scoped tokens keep `*`, and their own scopes are the `shadowScopes` the would-deny log measures. |
+| `canary` | Only tokens whose owner's user id is in `ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS` (comma-separated). |
+| `on` | Every token minted with `scopes`. |
+
+**Unscoped tokens are never enforced**, whatever the flag says. That includes every token minted
+before AWTD-1567, because its `scope` column is null. To roll back, set the flag to `off`.
+
+**Canary procedure.** First, mint a scoped token on the canary account. Do this signed in, from
+the browser, with a `POST /api/v1/users/me/access-tokens` that carries `scopes`; the Copilot setup
+card still mints unscoped tokens. Then set `ASTRID_TOKEN_SCOPE_ENFORCEMENT=canary` and
+`ASTRID_TOKEN_SCOPE_ENFORCEMENT_USERS=<that user id>` and redeploy: environment variables are
+read at deploy time. Use the token on `/api/v1` and `/mcp`. Its Connections row should say it is
+limited to its scopes. A call outside them should return the 403 below, and the other accounts'
+tokens should be unchanged. Widen to `on` only after that.
+
+An enforced token is refused wherever a route declares scopes (`withAuth` `scopes`/`anyOfScopes`,
+or `requireScopes`), exactly as an OAuth token with the same scopes would be. The 403 names what
+was missing:
+```json
+{ "error": "Forbidden", "message": "Missing required scopes: tasks:write",
+  "missingScopes": ["tasks:write"], "tokenScopes": ["tasks:read", "lists:read"],
+  "hint": "This access token was minted with explicit scopes…" }
+```
+Limits:
+- A route that declares no scope (`none` or `handler-auth` in
+  `tests/fixtures/route-scope-inventory.json`) accepts any authenticated caller, which is also true
+  of OAuth tokens. Scope enforcement does not add a check to such a route. List and task permissions
+  still apply.
+- **`/mcp`**: each tool call is an `/api/v1` request carrying the same token, so it meets the same
+  gate. The tool result carries the 403 message (`Forbidden: Missing required scopes: …`).
+  Connecting and `tools/list` are not gated by scope.
+- **`/api/mcp/operations`** checks no scopes, so an enforced token gets a 403 there and must use
+  `/api/v1` or `/mcp`.
+- `GET /api/v1/users/me/connections` lists a scoped token with its own `scopes` and
+  `detail.scoped: true`. `detail.scopeEnforced` says whether the flag holds it to them now. An
+  unscoped token shows `["*"]`.
 
 ### AI service ids
 `serviceId` in `PUT|DELETE /api/v1/users/me/ai-credentials` and
@@ -1401,7 +1498,10 @@ All errors follow this format:
 ### Hosted MCP authentication challenges
 
 `/mcp` validates bearer credentials before initialization, tool discovery, or
-dispatch; `/mcp/messages` revalidates them before an SSE message is dispatched.
+dispatch. It speaks Streamable HTTP only: POST a JSON-RPC message and read the
+reply from the response body; an authenticated GET opens the optional listen
+stream, which stays open and sends no events. The legacy SSE transport and its
+`/mcp/messages` URL were retired in AWTD-1569.
 OAuth and legacy MCP bearer tokens remain supported, as do Basic client
 credentials and the existing `X-Astrid-*` headers. Browser sessions cannot
 substitute for an invalid hosted bearer.
@@ -1412,7 +1512,7 @@ Rejected bearer credentials return HTTP 401 with:
 WWW-Authenticate: Bearer resource_metadata="https://www.astrid.cc/.well-known/oauth-protected-resource/mcp", error="invalid_token"
 ```
 
-On `/mcp` and `/mcp/messages` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
+On `/mcp` the metadata URL is the deployment's `NEXTAUTH_URL` origin,
 falling back to the request's Host only when that is unset, so a proxy's `localhost` Host is
 never advertised (ADEV-99); `/api/mcp/operations` uses the request origin. Missing credentials receive the same
 discovery challenge without `error="invalid_token"`. `/api/mcp/operations` also
@@ -1426,8 +1526,6 @@ database. Remote backends must support `GET /api/v1/oauth/validate`: token-only,
 no scope requirement, no cookie fallback, HTTP 204 with an empty body for a valid
 OAuth/legacy bearer, HTTP 401 for rejection, HTTP 500 for backend failure.
 Validation never follows redirects or returns token/account metadata.
-SSE messages must match the retained stream's effective credential and backend;
-the retained options, not an independently selected POST credential, are revalidated.
 
 Hosted backend overrides require public HTTPS without URL credentials, query,
 or fragment. Every outbound validation, token exchange, and API request rejects
@@ -1462,3 +1560,5 @@ X-RateLimit-Reset: 1640000000
 - Added the `muse` AI service id (Meta Model API). `muse@` can now be server-run (AWTD-1053)
 - Added `serverTime` to `GET /api/v1/tasks` and `GET /api/v1/lists`, and keyset paging
   (`?cursor=` → `nextCursor`) to `GET /api/v1/tasks`. Additive (AWTD-1470)
+- `GET /api/v1/agent-queue` can answer `mode: "off"` with no work for a polling-only agent the
+  caller turned Off, when the server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true` (AWTD-1563)

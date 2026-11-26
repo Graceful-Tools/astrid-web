@@ -1161,8 +1161,7 @@
         "note": "把這個 URL 加到助理的 MCP 設定中。它會提示你登入 {appName}——不必複製任何金鑰。",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。"
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "步驟1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在專案中儲存為 .vscode/mcp.json，然後在伺服器上按 Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支援 SSE 傳輸的舊用戶端可以對同一個 URL 發出 GET，並以 POST 將訊息傳送到 /mcp/messages。",
         "claudeNote": "一道指令即可——它會開啟瀏覽器以核准存取，不必複製任何金鑰",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI 同樣一道指令即可連接",
@@ -1731,6 +1729,19 @@
         "loadError": "無法載入此連線的權限",
         "selectAtLeastOne": "請至少選擇一個範圍",
         "selectApp": "請選擇一個應用程式。"
+      },
+      "tokenScope": {
+        "unscoped": "完整存取（未設定範圍）",
+        "recorded": "已設範圍，尚未強制執行",
+        "enforced": "僅限這些範圍"
+      },
+      "rotate": {
+        "action": "輪替",
+        "confirm": "輪替 {name}？新權杖會以相同的存取權限取代它，舊權杖會立即失效。",
+        "newTokenTitle": "新權杖",
+        "newTokenDescription": "請立即複製：它不會再次顯示。請更新所有使用舊權杖的地方。",
+        "done": "完成",
+        "error": "無法輪替"
       }
     },
     "openInNewTab": "在新分頁中開啟",
@@ -2888,7 +2899,8 @@
       "doing": "進行中",
       "waiting": "等待中",
       "done": "已完成",
-      "testing": "測試"
+      "testing": "測試",
+      "results": "等待結果"
     },
     "empty": {
       "inbox": "沒有需要整理的新任務！沒有狀態的任務會出現在這裡。",
@@ -2904,7 +2916,8 @@
       "doing": "工作進行中！",
       "waiting": "暫停，等待時機成熟。",
       "done": "已完成——恭喜！",
-      "testing": "正在部署、處於金絲雀發布或實驗中。"
+      "testing": "正在部署、處於金絲雀發布或實驗中。",
+      "results": "已建置並發布;等待實驗或驗證回報結果。"
     }
   },
   "passkeyErrors": {

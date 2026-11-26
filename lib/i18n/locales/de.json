@@ -1161,8 +1161,7 @@
         "note": "Füge diese URL in den MCP-Einstellungen deines Assistenten hinzu. Er fordert dich auf, dich bei {appName} anzumelden – kein Schlüssel zum Kopieren.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Speichere sie als .vscode/mcp.json in deinem Projekt und klicke dann beim Server auf „Start“",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Ältere Clients, die nur den SSE-Transport beherrschen, können dieselbe URL per GET abrufen und Nachrichten per POST an /mcp/messages senden."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Schritt 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Speichere sie als .vscode/mcp.json in deinem Projekt und klicke dann beim Server auf „Start“",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Ältere Clients, die nur den SSE-Transport beherrschen, können dieselbe URL per GET abrufen und Nachrichten per POST an /mcp/messages senden.",
         "claudeNote": "Ein einziger Befehl – er öffnet den Browser zur Freigabe, keine Schlüssel zum Kopieren",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Dieselbe Verbindung mit einem Befehl für die Copilot-CLI",
@@ -1731,6 +1729,19 @@
         "loadError": "Berechtigungen dieser Verbindung konnten nicht geladen werden",
         "selectAtLeastOne": "Wähle mindestens einen Bereich aus",
         "selectApp": "Wähle eine App aus."
+      },
+      "tokenScope": {
+        "unscoped": "Vollzugriff (keine Bereiche festgelegt)",
+        "recorded": "Mit Bereichen, noch nicht durchgesetzt",
+        "enforced": "Auf diese Bereiche beschränkt"
+      },
+      "rotate": {
+        "action": "Erneuern",
+        "confirm": "{name} erneuern? Ein neues Token mit demselben Zugriff ersetzt es, und das alte funktioniert sofort nicht mehr.",
+        "newTokenTitle": "Neues Token",
+        "newTokenDescription": "Jetzt kopieren: Es wird nicht noch einmal angezeigt. Aktualisiere alles, was das alte Token verwendet hat.",
+        "done": "Fertig",
+        "error": "Erneuern fehlgeschlagen"
       }
     },
     "openInNewTab": "In neuem Tab öffnen",
@@ -2888,7 +2899,8 @@
       "doing": "In Arbeit",
       "waiting": "Wartet",
       "done": "Erledigt",
-      "testing": "Test"
+      "testing": "Test",
+      "results": "Ergebnisse ausstehend"
     },
     "empty": {
       "inbox": "Nichts Neues zu sortieren! Aufgaben ohne Status landen hier.",
@@ -2904,7 +2916,8 @@
       "doing": "Arbeit in vollem Gange!",
       "waiting": "Pausiert, bis die Umstände passen.",
       "done": "Erledigt – Glückwunsch!",
-      "testing": "Wird ausgerollt, im Canary oder in einem Experiment."
+      "testing": "Wird ausgerollt, im Canary oder in einem Experiment.",
+      "results": "Gebaut und veröffentlicht; wartet auf das Ergebnis eines Experiments oder einer Verifizierung."
     }
   },
   "passkeyErrors": {

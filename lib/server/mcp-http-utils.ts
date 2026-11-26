@@ -3,13 +3,11 @@ import { NextRequest } from "next/server"
 import { BRAND, brandOrigin, mcpHostedBaseUrl, nextAuthOrigin } from "@/lib/brand/config"
 import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { sameOrigin } from "@/lib/auth-host"
-import { createHash } from "crypto"
 import type { AstridMCPServerOptions } from "../../mcp/mcp-server-oauth"
 import { fetchMCPBackend, mcpBackendUrl } from "@/lib/security/mcp-backend"
 
 interface AuthExtractionResult {
   options: AstridMCPServerOptions
-  authSignature: string | null
 }
 
 export function mcpAuthChallenge(baseUrl: string, invalidToken = false): string {
@@ -101,10 +99,6 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
   }
 
   return {
-    authSignature: createHash("sha256").update(JSON.stringify([
-      baseUrl,
-      accessToken ? ["token", accessToken] : ["client", clientId, clientSecret],
-    ])).digest("hex"),
     options: {
       hosted: true,
       baseUrl: baseUrl || undefined,
@@ -114,22 +108,6 @@ export function extractAuthContext(req: NextApiRequest): AuthExtractionResult | 
       defaultListId,
     },
   }
-}
-
-export function buildAuthSignature(req: NextApiRequest): string | null {
-  return extractAuthContext(req)?.authSignature ?? null
-}
-
-export async function readRequestBody(req: NextApiRequest): Promise<string> {
-  if (!req.readable) {
-    return ""
-  }
-  return await new Promise((resolve, reject) => {
-    const chunks: Buffer[] = []
-    req.on("data", chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")))
-    req.on("error", reject)
-  })
 }
 
 function headerValue(req: NextApiRequest, header: string): string | undefined {

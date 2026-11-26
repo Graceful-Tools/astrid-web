@@ -143,4 +143,32 @@ describe('POST /api/v1/users/me/access-tokens (AWTD-1312)', () => {
     expect((await POST(post({ permissions: ['read'], agent: 'nobody' }))).status).toBe(400)
     expect(mockTokenCreate).not.toHaveBeenCalled()
   })
+
+  it('AWTD-1567: stores explicit scopes on the token and returns them', async () => {
+    const res = await POST(post({ permissions: ['read'], scopes: ['tasks:read', 'lists:read'], description: 'reporter' }))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.scopes).toEqual(['tasks:read', 'lists:read'])
+    expect(mockTokenCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({ scope: 'tasks:read lists:read' }),
+    })
+  })
+
+  it('AWTD-1567: no scopes means an unscoped token (scope null, scopes null)', async () => {
+    const res = await POST(post(copilotBody))
+    const body = await res.json()
+    expect(body.scopes).toBeNull()
+    expect(mockTokenCreate).toHaveBeenCalledWith({ data: expect.objectContaining({ scope: null }) })
+  })
+
+  it('AWTD-1567: 400 for the wildcard, an unknown scope, or an empty scope list — never silently dropped', async () => {
+    for (const scopes of [['*'], ['tasks:read', 'tasks:everything'], []]) {
+      const res = await POST(post({ permissions: ['read'], scopes }))
+      expect(res.status, JSON.stringify(scopes)).toBe(400)
+    }
+    const refused = await (await POST(post({ permissions: ['read'], scopes: ['tasks:everything'] }))).json()
+    expect(refused.error).toContain('tasks:everything')
+    expect(mockTokenCreate).not.toHaveBeenCalled()
+  })
 })

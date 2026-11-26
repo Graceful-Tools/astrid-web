@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       success: true,
       token: minted.token,
       permissions: minted.permissions,
+      scopes: minted.scopes,
       expiresAt: minted.expiresAt,
       description: minted.description,
       createdAt: minted.createdAt,

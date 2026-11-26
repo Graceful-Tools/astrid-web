@@ -1161,8 +1161,7 @@
         "note": "把这个 URL 添加到助手的 MCP 设置中。它会提示你登录 {appName}——无需复制任何密钥。",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在项目中保存为 .vscode/mcp.json，然后在服务器上点击 Start",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支持 SSE 传输的旧客户端可以 GET 同一 URL，并通过 POST 向 /mcp/messages 发送消息。"
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "步骤1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "在项目中保存为 .vscode/mcp.json，然后在服务器上点击 Start",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "只支持 SSE 传输的旧客户端可以 GET 同一 URL，并通过 POST 向 /mcp/messages 发送消息。",
         "claudeNote": "一条命令即可——它会打开浏览器以批准访问，无需复制任何密钥",
         "copilotTitle": "GitHub Copilot CLI",
         "copilotNote": "Copilot CLI 同样一条命令即可连接",
@@ -1731,6 +1729,19 @@
         "loadError": "无法加载此连接的权限",
         "selectAtLeastOne": "请至少选择一个作用域",
         "selectApp": "请选择一个应用。"
+      },
+      "tokenScope": {
+        "unscoped": "完全访问（未设置范围）",
+        "recorded": "已设范围，尚未强制执行",
+        "enforced": "仅限这些范围"
+      },
+      "rotate": {
+        "action": "轮换",
+        "confirm": "轮换 {name}？新令牌将以相同的访问权限替换它，旧令牌会立即失效。",
+        "newTokenTitle": "新令牌",
+        "newTokenDescription": "请立即复制：它不会再次显示。请更新所有使用旧令牌的地方。",
+        "done": "完成",
+        "error": "无法轮换"
       }
     },
     "openInNewTab": "在新标签页中打开",
@@ -2888,7 +2899,8 @@
       "doing": "进行中",
       "waiting": "等待中",
       "done": "已完成",
-      "testing": "测试"
+      "testing": "测试",
+      "results": "等待结果"
     },
     "empty": {
       "inbox": "没有需要整理的新任务！没有状态的任务会出现在这里。",
@@ -2904,7 +2916,8 @@
       "doing": "工作进行中！",
       "waiting": "暂停，等待时机成熟。",
       "done": "已完成——恭喜！",
-      "testing": "正在部署、处于金丝雀发布或实验中。"
+      "testing": "正在部署、处于金丝雀发布或实验中。",
+      "results": "已构建并发布;等待实验或验证报告结果。"
     }
   },
   "passkeyErrors": {

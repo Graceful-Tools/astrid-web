@@ -50,9 +50,19 @@ const indefiniteSkips = testFiles.flatMap((file) => {
           receiver !== 'describe' &&
           receiver !== 'test.describe' &&
           condition !== undefined &&
-          condition.kind !== ts.SyntaxKind.TrueKeyword
+          condition.kind !== ts.SyntaxKind.TrueKeyword &&
+          // vitest it.skip('title', fn): a string first argument is a title, not a condition
+          !ts.isStringLiteralLike(condition) &&
+          !ts.isTemplateExpression(condition)
 
-        if (!conditionalSkip) {
+        // A todo is a tracked follow-up only when its title names the task that owns it.
+        const trackedTodo =
+          method === 'todo' &&
+          condition !== undefined &&
+          ts.isStringLiteralLike(condition) &&
+          /\b[A-Z]{2,}-\d+\b/.test(condition.text)
+
+        if (!conditionalSkip && !trackedTodo) {
           const position = source.getLineAndCharacterOfPosition(node.getStart(source))
           violations.push(
             `${file}:${position.line + 1}: ${node.getText(source).split('\n')[0]}`

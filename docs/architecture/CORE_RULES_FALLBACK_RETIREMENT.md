@@ -16,6 +16,11 @@ with the core. That comparison is now **sampled**: in decide mode the core answe
 TypeScript runs on 1 decision in `ASTRID_CORE_RULES_SAMPLE` (default 20,
 `lib/core-rules/sampling.ts`) and on every fallback. In shadow mode the core is asked on 1 in N.
 
+**Since AWTD-1608 (2026-11-26)** step A is done for listAccess, searchParse, nextOccurrence and the
+board's columns: the server no longer compares them at all. In decide mode the core answers and
+the TypeScript runs only when the core cannot (`lib/core-rules/core-asker.ts`); in shadow mode
+the core is not asked. Board drops and the Waiting lane are still sampled as above.
+
 ## Reading the evidence
 
 `GET /api/health` returns `coreRules` (permissions), `coreRulesSearch`, `coreRulesRepeating` and
@@ -24,6 +29,7 @@ TypeScript runs on 1 decision in `ASTRID_CORE_RULES_SAMPLE` (default 20,
 | Field | Meaning |
 |---|---|
 | `mode` | `decide` (the core answers), `shadow` (the TypeScript answers, the core is compared) or `off` |
+| `compare` | `retired` for a rule past step A (`coreRules`, `coreRulesSearch`, `coreRulesRepeating`); `coreRulesBoard` shows `{ columns: 'retired', drops: 'sampled' }`. A retired rule's `stats` are `{ answered, skipped, failed }` only: there is no comparison to count. `coreRulesBoard.stats` is split into `columns` and `drops`. |
 | `loaded` | Whether the wasm loaded. `decide` with `loaded: false` means the TypeScript is deciding everything. |
 | `sampleEvery` | N: one decision in this many is compared |
 | `stats.agreed` / `stats.disagreed` | Comparisons that matched or differed. Their sum is the number of comparisons, so the disagreement rate is `disagreed / (agreed + disagreed)` whatever N is. |
@@ -83,13 +89,25 @@ every date below by the same amount.
 
 | Rule | Core rule | TypeScript (server and browser) | Since | Step A, earliest | Step B, also needs | Done |
 |---|---|---|---|---|---|---|
-| List permissions | `listAccess` | `lib/list-permissions.ts` (~760 LOC) | AWTD-1061 | **2026-12-14** | AWTD-1586 | ☐ A ☐ B |
-| Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** | AWTD-1586 (search box) | ☐ A ☐ B |
-| Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☐ A ☐ B |
-| Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy | AWTD-1586 (the board and the menus are client code) | ☐ A ☐ B |
-| Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. `coreRulesBoard` counts columns and drops together, so its `agreed` says nothing about drops. The clock starts once a server caller exists and drops have their own counters. | AWTD-1586 | ☐ A ☐ B |
+| List permissions | `listAccess` | `lib/list-permissions.ts` (~760 LOC) | AWTD-1061 | **2026-12-14** (taken early, see below) | AWTD-1586 | ☑ A (2026-11-26) ☐ B |
+| Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** (taken early) | AWTD-1586 (search box) | ☑ A (2026-11-26) ☐ B |
+| Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** (taken early) | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☑ A (2026-11-26) ☐ B |
+| Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy (taken early) | AWTD-1586 (the board and the menus are client code) | ☑ A (2026-11-26) ☐ B |
+| Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. Drops now have their own counters (`coreRulesBoard.stats.drops`, AWTD-1608). The clock starts once a server caller exists. | AWTD-1586 | ☐ A ☐ B |
 | Decision cards, trade-off grids | `decision`, `tradeoffGrid`, `ratingKey`; a grid is also a `tradeoffGrid` block from `renderMarkdown` | `lib/comment-formats.ts` (~230), browser only | AWTD-1626 (held to the core by `tests/lib/core-rules-decisions-parity.test.ts`) | n/a: no server caller, so there is nothing to sample | AWTD-1586 (every caller is client code). `RATING_STYLE`'s `className` values stay on web | ☐ B |
 | List filters, sort, My Tasks, manual order, snooze | none on the stateless door yet (AWTD2-161) | `lib/date-filter-utils.ts`, `lib/task-sort.ts`, `lib/my-tasks-scope.ts`, `lib/recently-completed-window.ts`, `lib/reminder-snooze.ts` | AWTD-1583 adopted the core's answers in TypeScript | n/a: nothing to compare until the core exposes these rules | AWTD2-161, then AWTD-1586 | ☐ |
+
+**Step A evidence (AWTD-1608, 2026-11-26).** Production Vercel logs keep about 15 days, so the
+read covered 2026-11-11 to 2026-11-26, about 14 days of the sampled build (in production since
+2026-11-12). Across that window: no "disagree", "parse differently", "roll over differently",
+"could not answer", "could not parse", "did not load" or "install failed" line for any rule.
+`/api/health` showed every `coreRules*` block in `decide`, `loaded: true`, `failed: 0`,
+`disagreed: 0`. Each rule was in use: listAccess on every request, 178 `/api/v1/search`
+requests, about 14 repeating rollovers, and 50+ project-route requests a day for the board. No
+daily snapshots were collected. Jon chose to take step A on this ~14-day read rather than wait
+for 30 days (option 1 on AWTD-1608). The TypeScript stays as the server's fail-safe and the
+browser's rule; the fixture parity tests still hold it to the core. Step B for each rule is its
+own "[core-rules] Step B: …" task.
 
 **On 2026-12-14** (the follow-up task "Retire the core-rules TypeScript fallbacks", due that
 day): read 30 days of `core-rules` logs and the daily `/api/health` snapshots. For each rule that meets 1

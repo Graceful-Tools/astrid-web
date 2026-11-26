@@ -119,10 +119,15 @@ describeAtPin.each([
   ['astrid-core answering, as the server runs it', true],
 ] as const)('%s', (_label, installed) => {
   const setup = () => (installed ? withCore() : null)
-  const expectCoreAnswered = (installedCore: ReturnType<typeof setup>, questions: number) => {
+  // Columns are answered without a comparison (AWTD-1608): the core's answer is held to the
+  // fixture by the assertions themselves. Drops are still compared, and must agree.
+  const expectCoreAnswered = (installedCore: ReturnType<typeof setup>, answers: { columns?: number; drops?: number }) => {
     if (!installedCore) return
     expect(installedCore.reports).toEqual([])
-    expect(installedCore.hook.stats).toEqual({ agreed: questions, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 })
+    expect(installedCore.hook.stats).toEqual({
+      columns: { answered: answers.columns ?? 0, skipped: 0, failed: 0 },
+      drops: { agreed: answers.drops ?? 0, disagreed: 0, unsampled: 0, skipped: 0, failed: 0 },
+    })
   }
 
   it.each(configurations)('columns: %s', (_name, configuration) => {
@@ -132,7 +137,7 @@ describeAtPin.each([
     expect(boardColumnsFor({ customStates: configuration.customStates })).toEqual(
       configuration.columns.map((column) => ({ ...column, id: toTaskStatusId(column.id) })),
     )
-    expectCoreAnswered(installedCore, 2)
+    expectCoreAnswered(installedCore, { columns: 2 })
   })
 
   it.each(configurations)("each card's column: %s", (_name, configuration) => {
@@ -152,7 +157,7 @@ describeAtPin.each([
       statusRole: drop.result.statusRole,
       completed: drop.result.completed,
     })
-    expectCoreAnswered(installedCore, 2)
+    expectCoreAnswered(installedCore, { drops: 2 })
   })
 
   it.each(configurations)('new cards: %s', (_name, configuration) => {
@@ -217,7 +222,7 @@ describeAtPin('statuses.json: every board the custom-state editor produces is dr
       const { hook, reports } = withCore()
       expect(getProjectBoardColumns(customStates)).toEqual(typescript)
       expect(reports).toEqual([])
-      expect(hook.stats.agreed).toBe(1)
+      expect(hook.stats.columns).toEqual({ answered: 1, skipped: 0, failed: 0 })
       setBoardCore(null)
     }
   })

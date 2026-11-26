@@ -1161,8 +1161,7 @@
         "note": "Adicione esta URL às configurações MCP do seu assistente. Ele pedirá que você entre no {appName} — nenhuma chave para copiar.",
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Salve como .vscode/mcp.json no seu projeto e depois clique em Start no servidor",
-        "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Clientes antigos que só falam o transporte SSE podem fazer GET na mesma URL e enviar mensagens via POST para /mcp/messages."
+        "claudeTitle": "Claude Desktop / Claude Code"
       },
       "step1": {
         "badge": "Passo 1",
@@ -1511,7 +1510,6 @@
         "vscodeTitle": "VS Code / GitHub Copilot",
         "vscodeNote": "Salve como .vscode/mcp.json no seu projeto e depois clique em Start no servidor",
         "claudeTitle": "Claude Desktop / Claude Code",
-        "legacyNote": "Clientes antigos que só falam o transporte SSE podem fazer GET na mesma URL e enviar mensagens via POST para /mcp/messages.",
         "claudeNote": "Um único comando — ele abre o navegador para aprovar o acesso, sem chaves para copiar",
         "copilotTitle": "CLI do GitHub Copilot",
         "copilotNote": "A mesma conexão com um comando para a CLI do Copilot",
@@ -1731,6 +1729,19 @@
         "loadError": "Não foi possível carregar as permissões desta conexão",
         "selectAtLeastOne": "Selecione pelo menos um escopo",
         "selectApp": "Selecione um aplicativo."
+      },
+      "tokenScope": {
+        "unscoped": "Acesso total (sem escopos definidos)",
+        "recorded": "Com escopos, ainda não aplicados",
+        "enforced": "Limitado a estes escopos"
+      },
+      "rotate": {
+        "action": "Rotacionar",
+        "confirm": "Rotacionar {name}? Um novo token o substitui com o mesmo acesso, e o antigo para de funcionar imediatamente.",
+        "newTokenTitle": "Novo token",
+        "newTokenDescription": "Copie agora: ele não será mostrado de novo. Atualize tudo o que usava o token antigo.",
+        "done": "Concluído",
+        "error": "Não foi possível rotacionar"
       }
     },
     "openInNewTab": "Abrir em nova aba",
@@ -2888,7 +2899,8 @@
       "doing": "Fazendo",
       "waiting": "Aguardando",
       "done": "Concluído",
-      "testing": "Testes"
+      "testing": "Testes",
+      "results": "Resultados pendentes"
     },
     "empty": {
       "inbox": "Nada novo para organizar! Tarefas sem status ficam aqui.",
@@ -2904,7 +2916,8 @@
       "doing": "Trabalho em andamento!",
       "waiting": "Em pausa até que as circunstâncias sejam as certas.",
       "done": "Concluído — parabéns!",
-      "testing": "Em implantação, em canary ou em um experimento."
+      "testing": "Em implantação, em canary ou em um experimento.",
+      "results": "Construído e lançado; aguardando o relatório de um experimento ou de uma verificação."
     }
   },
   "passkeyErrors": {

@@ -4,8 +4,8 @@
 Code or Codex directly, and where that overhead is. Nothing here claims parity until it is
 measured.
 
-**Status:** the harness exists and is tested. **First results are pending a preview token** (see
-*Running it*). This document is updated with each run.
+**Status:** the harness exists and is tested. First results (2026-11-26, scenarios a–c) are in
+[AGENT_INTEGRATION_RESULTS.md](./AGENT_INTEGRATION_RESULTS.md). Scenario d is still unmeasured.
 
 ## What is measured
 
@@ -25,7 +25,7 @@ same convention as `scripts/measure-api-latency.ts`.
 | | Scenario | What it exercises | Automated |
 |---|---|---|---|
 | a | **Hosted MCP** | `POST /mcp` JSON-RPC: `initialize`, `tools/list`, `get_agent_queue`, `get_task`, `get_task_comments`, and `add_comment` with `--write` | yes |
-| b | **Local stdio MCP** | `mcp/astrid-mcp-launch.js` pointed at the target (`ASTRID_API_BASE_URL`): `get_agent_queue`, `get_task` | yes, when a client-credentials pair for the target is set |
+| b | **Local stdio MCP** | `mcp/astrid-mcp-launch.js` pointed at the target (`ASTRID_API_BASE_URL`): `get_agent_queue`, `get_task`, `get_task_comments` | yes, when a client-credentials pair for the target is set (needs `npm run build:mcp:oauth`) |
 | c | **REST (SDK / gate)** | `GET /api/v1/agent-queue`, the call a scheduled gate and the SDK channel make | yes |
 | d | **Direct harness, no Astrid** | the same pinned task run straight in Claude Code / Codex | manual protocol below |
 
@@ -48,20 +48,34 @@ own `astrid_preview` database, docs/AGENT_FLEET.md) or a local dev server, and a
 board.
 
 ```bash
-# credentials for the TARGET, in the environment only (never printed):
-#   ASTRID_BENCH_TOKEN                       access token on the target (REST + hosted MCP)
-#   ASTRID_BENCH_CLIENT_ID / _CLIENT_SECRET   optional, enables the stdio scenario
-npm run bench:agents -- --origin https://<preview>.vercel.app --agent claude \
-  --list <throwaway board id> --task <task on it> --samples 20 [--write] [--json]
+# credentials, from the environment only (never printed). By default nothing extra is needed:
+# the harness exchanges the script client ASTRID_OAUTH_CLIENT_ID / _SECRET for a
+# client-credentials token ON THE TARGET, which a preview's database knows. Optional overrides:
+#   ASTRID_BENCH_TOKEN                       a ready access token on the target
+#   ASTRID_BENCH_CLIENT_ID / _CLIENT_SECRET   a client pair that exists only on the target
+npm run bench:agents -- --origin https://<branch>.astrid.cc --agent claude \
+  --scratch-board --samples 30 [--write] [--json]
+# or, against a board you already made on the target:
+#   --list <throwaway board id> --task <task on it>
 ```
 
-`--write` posts one comment per sample to `--task`, so use a task on the throwaway board only.
+`--scratch-board` creates a new private board and one task on the target and benchmarks against
+them. `--write` posts one comment per sample to the task, so use a throwaway task only.
+
+The stdio launcher reloads the local env file with `override: true`, so it ignores what the
+harness passes when the file disagrees. The harness skips the stdio scenario rather than let
+that happen: when the file sets `ASTRID_API_BASE_URL` to another origin, or a BENCH pair would
+be replaced by the script pair.
+
+MCP tool errors arrive as HTTP 200 with `isError`. The harness fails the run on one instead of
+timing an error message as if it were an answer.
 
 ## Results
 
 | Run | Target | Conditions | Result |
 |---|---|---|---|
-| — | — | — | pending: needs an access token (and optionally a client pair) on a preview |
+| 1, 2026-11-26 | preview of 7fd15d27 | Apple M5, Node 26.5, N=30 × 3 passes, throwaway board | [AGENT_INTEGRATION_RESULTS.md](./AGENT_INTEGRATION_RESULTS.md#run-1-2026-11-26-preview-three-passes): hosted MCP tool calls p50 ≈ 280–310 ms, about 110–150 ms slower than stdio; `add_comment` p50 592 ms |
 
 Each run records: date, target, Node version, machine and network, N, and the results table the
-harness prints. Baselines the MCP fast-path task (AWTD-1553) compares against go here first.
+harness prints. Baselines the MCP fast-path task (AWTD-1553) compares against are in the results
+file.
