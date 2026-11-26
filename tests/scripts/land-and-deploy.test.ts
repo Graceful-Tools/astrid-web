@@ -213,6 +213,33 @@ describe('ADEV-42: workflow changes wait for a human', () => {
   })
 })
 
+describe('ADEV-325: a fixall session that read the diff lands a held workflow PR', () => {
+  // #1006 (ADEV-292) sat green for 16 hours behind the ADEV-42 hold: nothing in fixall came
+  // back to it. The unattended bot keeps the hold; a session that reviewed the named PR lifts it.
+  const workflowPr = pr({ number: 1006, files: [{ path: 'vitest.config.ts' }, { path: '.github/workflows/unit-tests.yml' }] })
+
+  it('ADEV-325: lands a named, reviewed PR that changes a workflow', () => {
+    expect(landablePullRequests([workflowPr], { only: [1006], reviewed: true }).land.map(p => p.number)).toEqual([1006])
+  })
+
+  it('ADEV-325: --reviewed without --pr lifts nothing (an unattended tick reviews no diff)', () => {
+    const decision = landablePullRequests([workflowPr], { reviewed: true })
+    expect(decision.land).toHaveLength(0)
+    expect(decision.skipped[0].why).toMatch(/human/)
+  })
+
+  it('ADEV-325: files nobody could see are still held, reviewed or not', () => {
+    expect(landablePullRequests([pr({ number: 7, files: undefined })], { only: [7], reviewed: true }).land).toHaveLength(0)
+    const files = Array.from({ length: 100 }, (_, i) => ({ path: `lib/f${i}.ts` }))
+    expect(landablePullRequests([pr({ number: 7, files })], { only: [7], reviewed: true }).land).toHaveLength(0)
+  })
+
+  it('ADEV-325: a reviewed PR still needs green checks', () => {
+    const red = pr({ number: 1006, files: workflowPr.files, checks: [{ name: 'Build & Test PR', bucket: 'fail' }] })
+    expect(landablePullRequests([red], { only: [1006], reviewed: true }).land).toHaveLength(0)
+  })
+})
+
 describe('naming the PRs to land', () => {
   it('lands exactly the ones named, and says why the others were skipped', () => {
     // From a real mis-land on 2026-10-13: `--max-land 1`, intending to land
