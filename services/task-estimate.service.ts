@@ -31,6 +31,7 @@ import {
 } from '@/lib/goal-signal-services'
 import { EstimatorError, pollEstimate, requestEstimate, type EstimatorReply, type EstimatorRequest } from '@/lib/estimator-client'
 import { runBuiltinEstimator } from '@/lib/ai/builtin-estimator'
+import { agentMayOnList } from '@/services/orchestration-policy.service'
 import type { TradeoffReason } from '@/lib/core-rules/tradeoff-core'
 import { evaluateEstimateRow } from '@/services/tradeoff-evaluation.service'
 import { actOnGoalSignal } from '@/services/goal-action.service'
@@ -39,7 +40,7 @@ const log = createLogger('task-estimate')
 
 export type EstimateResult<T> =
   | { ok: true; value: T }
-  | { ok: false; status: 400 | 404 | 409 | 422 | 502; error: string; reason?: string }
+  | { ok: false; status: 400 | 403 | 404 | 409 | 422 | 502; error: string; reason?: string }
 
 export interface EstimateView extends EstimateBody {
   id: string
@@ -272,7 +273,7 @@ async function finishWithResult(
 export async function requestTaskEstimate(
   taskId: string,
   requestedById: string,
-  input: { estimator?: string; projectId?: string } = {},
+  input: { estimator?: string; projectId?: string; agentMailbox?: string | null } = {},
 ): Promise<EstimateResult<RequestOutcome>> {
   const task = await loadTask(taskId)
   if (!task) return { ok: false, status: 404, error: 'Task not found' }
@@ -284,6 +285,20 @@ export async function requestTaskEstimate(
   const base = { projectId: ctx.projectId, inputsDigest: ctx.inputsDigest, scope: ctx.scope, taskId, costSource: task.costEstimateSource }
 
   if (chosen.value.kind === 'builtin') {
+    // The built-in estimator spends the requester's own key, so an agent needs `spend` (ADEV-283).
+    if (input.agentMailbox) {
+      for (const list of task.lists) {
+        const may = await agentMayOnList(list.id, input.agentMailbox, 'spend')
+        if (may.decision !== 'allowed') {
+          return {
+            ok: false,
+            status: 403,
+            error: "The built-in estimator spends the requester's own model key, and this board's policy does not let an agent spend alone. Ask an estimator service, or ask a person in a Decision.",
+            reason: 'spend_not_allowed',
+          }
+        }
+      }
+    }
     const result = await runBuiltinEstimator(requestedById, ctx.listProvider, ctx.request)
     if (!result.ok) {
       return { ok: false, status: result.reason === 'no_api_key' ? 409 : 502, error: result.message, reason: result.reason }
