@@ -5,12 +5,19 @@
  * docs/benchmarks/AGENT_INTEGRATION.md.
  *
  *   npx tsx scripts/benchmarks/agent-integration.ts --origin <preview or http://localhost:3000> \
- *     --agent claude --list <throwaway board id> [--task <task id>] [--samples 20] [--write] [--json]
+ *     --agent claude (--list <throwaway board id> --task <task id> | --scratch-board) \
+ *     [--samples 20] [--write] [--json]
  *
  * Credentials come from the environment, never the command line, and are never printed:
- *   ASTRID_BENCH_TOKEN                          an access token valid on --origin (REST + hosted MCP)
- *   ASTRID_BENCH_CLIENT_ID / _CLIENT_SECRET     optional: a client-credentials pair on --origin,
- *                                               for the local stdio MCP scenario
+ *   ASTRID_BENCH_TOKEN                          optional: an access token valid on --origin
+ *   ASTRID_BENCH_CLIENT_ID / _CLIENT_SECRET     optional: a client-credentials pair on --origin
+ *   ASTRID_OAUTH_CLIENT_ID / _CLIENT_SECRET     the script client, used when no BENCH pair is set
+ * Without ASTRID_BENCH_TOKEN the harness exchanges the pair for a client-credentials token on
+ * --origin itself (a preview's database knows the script client). The pair also drives the local
+ * stdio MCP scenario.
+ *
+ * `--scratch-board` creates a new private board and one task on --origin and benchmarks against
+ * them, so a run never needs (or touches) a real board.
  *
  * Refuses production (scripts/lib/agent-benchmark.ts). `--write` adds add_comment, which writes
  * one comment per sample to --task: use a task on a throwaway board only.
@@ -19,7 +26,16 @@
 import { spawn } from 'node:child_process'
 import { join } from 'node:path'
 import { loadScriptEnv } from '../lib/load-env'
-import { benchmarkTargetProblem, resultsTable, summarize, type Summary } from '../lib/agent-benchmark'
+import { scriptClient } from '../lib/script-client'
+import {
+  benchCredentials,
+  benchmarkTargetProblem,
+  resultsTable,
+  rpcProblem,
+  stdioScenarioProblem,
+  summarize,
+  type Summary,
+} from '../lib/agent-benchmark'
 
 loadScriptEnv()
 
@@ -28,13 +44,14 @@ function arg(name: string): string | undefined {
   return i >= 0 ? process.argv[i + 1] : undefined
 }
 
-const origin = arg('origin') ?? ''
+const origin = (arg('origin') ?? '').replace(/\/$/, '')
 const agent = arg('agent') ?? 'claude'
-const listId = arg('list')
-const taskId = arg('task')
+let listId = arg('list')
+let taskId = arg('task')
 const samples = Number(arg('samples') ?? 20)
 const write = process.argv.includes('--write')
 const asJson = process.argv.includes('--json')
+const scratchBoard = process.argv.includes('--scratch-board')
 
 type Sample = { ms: number; bytes: number }
 type Row = { scenario: string; call: string; summary: Summary }
@@ -58,8 +75,52 @@ async function ok(response: Response): Promise<string> {
   return text
 }
 
+/** An MCP answer that is really an error must fail the run, not be timed as an answer. */
+function rpcOk(method: string, body: string): string {
+  const problem = rpcProblem(body)
+  if (problem) throw new Error(`${method}: ${problem}`)
+  return body
+}
+
 function queueArgs() {
   return { agent, ...(listId ? { listId, includeUnassigned: true } : {}) }
+}
+
+/** A client-credentials token exchanged on --origin, unless ASTRID_BENCH_TOKEN is given. */
+async function accessToken(): Promise<string> {
+  const creds = benchCredentials(process.env)
+  if (creds.token) return creds.token
+  if (!creds.clientId || !creds.clientSecret) {
+    throw new Error('Set ASTRID_BENCH_TOKEN, or a client pair (ASTRID_BENCH_CLIENT_* or ASTRID_OAUTH_CLIENT_*) known to --origin')
+  }
+  console.error(`Exchanging ${creds.pairSource} for a client-credentials token on ${origin}`)
+  return scriptClient({ clientId: creds.clientId, clientSecret: creds.clientSecret, origin }).accessToken()
+}
+
+/** A fresh private board and one task on --origin, so no real board is read or written. */
+async function createScratchBoard(token: string): Promise<{ listId: string; taskId: string }> {
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+  const stamp = new Date().toISOString()
+  const list = JSON.parse(
+    await ok(
+      await fetch(`${origin}/api/v1/lists`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: `AWTD-1551 benchmark (throwaway) ${stamp}`, privacy: 'PRIVATE' }),
+      }),
+    ),
+  )
+  const newListId = (list.list ?? list).id as string
+  const task = JSON.parse(
+    await ok(
+      await fetch(`${origin}/api/v1/tasks`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ title: 'Benchmark target task (AWTD-1551)', description: 'Throwaway: the benchmark reads and comments here.', listIds: [newListId] }),
+      }),
+    ),
+  )
+  return { listId: newListId, taskId: (task.task ?? task).id as string }
 }
 
 /** REST: the call a scheduled gate makes. */
@@ -75,16 +136,19 @@ async function restScenario(token: string): Promise<Row[]> {
 async function hostedMcpScenario(token: string): Promise<Row[]> {
   let id = 0
   const rpc = (method: string, params: unknown) => async () =>
-    ok(
-      await fetch(`${origin}/mcp`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          Accept: 'application/json, text/event-stream',
-        },
-        body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }),
-      }),
+    rpcOk(
+      method,
+      await ok(
+        await fetch(`${origin}/mcp`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/json, text/event-stream',
+          },
+          body: JSON.stringify({ jsonrpc: '2.0', id: ++id, method, params }),
+        }),
+      ),
     )
   const tool = (name: string, args: unknown) => rpc('tools/call', { name, arguments: args })
   const rows: Row[] = [
@@ -142,17 +206,21 @@ async function stdioMcpScenario(clientId: string, clientSecret: string): Promise
       const timer = setTimeout(() => reject(new Error(`stdio ${method} timed out`)), 30_000)
       waiting.set(n, (line) => {
         clearTimeout(timer)
-        resolve(line)
+        try {
+          resolve(rpcOk(`stdio ${method}`, line))
+        } catch (error) {
+          reject(error)
+        }
       })
       child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: n, method, params })}\n`)
     })
+  const tool = (name: string, args: unknown) => rpc('tools/call', { name, arguments: args })
   try {
     await rpc('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'astrid-bench', version: '1' } })()
-    const rows: Row[] = [
-      { scenario: 'stdio MCP', call: 'get_agent_queue', summary: await repeat(rpc('tools/call', { name: 'get_agent_queue', arguments: queueArgs() })) },
-    ]
+    const rows: Row[] = [{ scenario: 'stdio MCP', call: 'get_agent_queue', summary: await repeat(tool('get_agent_queue', queueArgs())) }]
     if (taskId) {
-      rows.push({ scenario: 'stdio MCP', call: 'get_task', summary: await repeat(rpc('tools/call', { name: 'get_task', arguments: { taskId } })) })
+      rows.push({ scenario: 'stdio MCP', call: 'get_task', summary: await repeat(tool('get_task', { taskId })) })
+      rows.push({ scenario: 'stdio MCP', call: 'get_task_comments', summary: await repeat(tool('get_task_comments', { taskId })) })
     }
     return rows
   } finally {
@@ -166,18 +234,27 @@ async function main() {
     console.error(`Refusing: ${problem}`)
     process.exit(1)
   }
-  const token = process.env.ASTRID_BENCH_TOKEN
-  if (!token) {
-    console.error('ASTRID_BENCH_TOKEN is required: an access token valid on --origin (never production)')
-    process.exit(1)
+  const token = await accessToken()
+  if (scratchBoard) {
+    ;({ listId, taskId } = await createScratchBoard(token))
+    console.error(`Scratch board ${listId}, task ${taskId}`)
   }
   const rows: Row[] = [...(await restScenario(token)), ...(await hostedMcpScenario(token))]
-  const clientId = process.env.ASTRID_BENCH_CLIENT_ID
-  const clientSecret = process.env.ASTRID_BENCH_CLIENT_SECRET
-  if (clientId && clientSecret) rows.push(...(await stdioMcpScenario(clientId, clientSecret)))
-  else console.error('stdio MCP skipped: set ASTRID_BENCH_CLIENT_ID and ASTRID_BENCH_CLIENT_SECRET to include it')
+  const creds = benchCredentials(process.env)
+  const stdioProblem = stdioScenarioProblem(process.env, origin, creds)
+  if (stdioProblem) console.error(`stdio MCP skipped: ${stdioProblem}`)
+  else rows.push(...(await stdioMcpScenario(creds.clientId!, creds.clientSecret!)))
 
-  const meta = { origin, agent, listId: listId ?? null, samples, node: process.version, at: new Date().toISOString() }
+  const meta = {
+    origin,
+    agent,
+    listId: listId ?? null,
+    taskId: taskId ?? null,
+    samples,
+    auth: creds.token ? 'ASTRID_BENCH_TOKEN' : `client_credentials (${creds.pairSource})`,
+    node: process.version,
+    at: new Date().toISOString(),
+  }
   if (asJson) console.log(JSON.stringify({ meta, rows }, null, 2))
   else console.log(`${JSON.stringify(meta)}\n\n${resultsTable(rows)}`)
 }

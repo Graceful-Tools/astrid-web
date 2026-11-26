@@ -1598,6 +1598,11 @@
             "description": "Deploying, in canary, or in an experiment.",
             "name": "Testing",
             "role": "testing"
+          },
+          {
+            "description": "Built and released; waiting for an experiment or a verification to report.",
+            "name": "Pending results",
+            "role": "results"
           }
         ]
       },
@@ -1615,6 +1620,11 @@
             "description": "Deploying, in canary, or in an experiment.",
             "name": "Testing",
             "role": "testing"
+          },
+          {
+            "description": "Built and released; waiting for an experiment or a verification to report.",
+            "name": "Pending results",
+            "role": "results"
           }
         ]
       },
@@ -1639,7 +1649,13 @@
     {
       "answer": {
         "ok": true,
-        "value": []
+        "value": [
+          {
+            "description": "Built and released; waiting for an experiment or a verification to report.",
+            "name": "Pending results",
+            "role": "results"
+          }
+        ]
       },
       "name": "presets/a-board-that-added-testing",
       "request": {
@@ -1658,7 +1674,60 @@
     {
       "answer": {
         "ok": true,
+        "value": [
+          {
+            "description": "Deploying, in canary, or in an experiment.",
+            "name": "Testing",
+            "role": "testing"
+          }
+        ]
+      },
+      "name": "presets/a-board-that-added-pending-results",
+      "request": {
+        "customStates": [
+          {
+            "name": "Pending results",
+            "order": 0,
+            "role": "results"
+          }
+        ],
+        "kind": "boardPresets"
+      },
+      "rule": "R7"
+    },
+    {
+      "answer": {
+        "ok": true,
         "value": []
+      },
+      "name": "presets/a-board-with-both-presets",
+      "request": {
+        "customStates": [
+          {
+            "name": "Testing",
+            "order": 0,
+            "role": "testing"
+          },
+          {
+            "name": "Pending results",
+            "order": 1,
+            "role": "results"
+          }
+        ],
+        "kind": "boardPresets"
+      },
+      "rule": "R7"
+    },
+    {
+      "answer": {
+        "ok": true,
+        "value": [
+          {
+            "description": "Built and released; waiting for an experiment or a verification to report.",
+            "name": "Pending results",
+            "role": "results"
+          }
+        ]
       },
       "name": "presets/a-board-with-its-own-column-named-testing",
       "request": {

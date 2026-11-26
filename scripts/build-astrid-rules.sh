@@ -30,6 +30,8 @@
 #   fixtures/sidebar-projects.json (core-owned, D70; tests/lib/sidebar-projects-contract-adev-14.test.ts)
 #                             (exists in astrid-core from 886817e7; a rebuild at an older pin fails here)
 #   fixtures/orchestration.json  (core-owned, D71; orchestration policy, AWTD-1693; in core from f2cd4e5c)
+#   fixtures/results.json     (core-owned, D74; the Pending results lane, ADEV-274; in core from 855d086)
+#   fixtures/tradeoff.json    (core-owned, D72/D73/D75; trade-off policy, ADEV-273; in core from 7bc3e219)
 #   fixtures/decisions.json   (tests/lib/core-rules-decisions-parity.test.ts, AWTD-1626)
 #   brand/schema.json         the brand profile schema (tests/brands/core-brand-schema-awtd-1589.test.ts)
 #
@@ -77,7 +79,7 @@ cp -R "$out/node" "$pkg/node"
 cp -R "$out/web" "$pkg/web"
 # The glue is CommonJS; say so, so a "type": "module" anywhere above it cannot change how it loads.
 printf '{ "type": "commonjs" }\n' >"$pkg/node/package.json"
-for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders waiting decisions sidebar-projects orchestration; do
+for fixture in permissions search smart repeating markdown board statuses filters my-tasks manual-order reminders waiting decisions sidebar-projects orchestration results tradeoff; do
   cp "$tree/contracts/fixtures/$fixture.json" "$pkg/fixtures/$fixture.json"
 done
 # The brand profile schema at that revision: tests/brands/core-brand-schema-awtd-1589.test.ts

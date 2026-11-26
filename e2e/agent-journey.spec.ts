@@ -15,7 +15,12 @@ import { detail, freshList, postJson, row, seedTask } from './utils/v1-seed'
 const MAILBOX = 'claude'
 
 type Agent = { id: string; email: string; name: string | null }
-type TaskState = { assigneeId: string | null; statusRole: string | null; creatorId: string }
+type TaskState = {
+  assigneeId: string | null
+  statusRole: string | null
+  creatorId: string
+  assignee?: { name: string | null; email: string } | null
+}
 
 async function agentUser(request: APIRequestContext): Promise<Agent> {
   const response = await request.get('/api/v1/users/me/available-agents')
@@ -57,7 +62,11 @@ test.describe('Agents in the UI (ADEV-297)', () => {
     await page.getByPlaceholder('Search users or enter email...').fill(MAILBOX)
     await page.getByText(agent.name ?? agent.email, { exact: false }).first().click()
     await expect.poll(async () => (await taskState(request, task.id)).assigneeId).toBe(agent.id)
-    await expect(assignee).toContainText(agent.name ?? agent.email)
+    // The panel shows the agent's User row, whose name depends on what created that row (ADEV-308:
+    // "claude agent" from the connecting harness, "Claude" from the registry), so read it from the task.
+    const shown = (await taskState(request, task.id)).assignee
+    const agentLabel = shown?.name || shown?.email || agent.email
+    await expect(assignee).toContainText(agentLabel, { ignoreCase: true })
 
     // Not Ready yet, so the agent's queue does not hold it. Ready, and it does.
     expect(await queueIds(request, list.id)).not.toContain(task.id)
@@ -81,8 +90,8 @@ test.describe('Agents in the UI (ADEV-297)', () => {
     await gotoWithRetry(page, `/lists/${list.id}?task=${task.id}`)
     const panel = detail(page)
     await expect(panel).toContainText('Which environment should this target?')
-    await expect(panel).toContainText(agent.name ?? agent.email)
-    await expect(panel.getByTestId('task-detail-assignee')).not.toContainText(agent.name ?? agent.email)
+    await expect(panel).toContainText(agentLabel, { ignoreCase: true })
+    await expect(panel.getByTestId('task-detail-assignee')).not.toContainText(agentLabel, { ignoreCase: true })
     const after = await taskState(request, task.id)
     expect(after.assigneeId).toBe(person)
     expect(after.statusRole).toBeNull()

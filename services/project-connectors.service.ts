@@ -97,7 +97,15 @@ function registryCredential(key: string): string | null {
 export function metricTargetFor(
   row: Pick<ConnectorRow, 'serviceKey' | 'endpointUrl' | 'credentialEnc' | 'kind'>,
 ): { target: MetricSourceTarget; error: null } | { target: null; error: string } {
-  if (row.kind !== 'metric') return { target: null, error: 'This connector is not a metric source' }
+  return sourceTargetFor(row, 'metric')
+}
+
+/** The same, for a connector of any kind: the experiment source reads its coordinates the same way (ADEV-279). */
+export function sourceTargetFor(
+  row: Pick<ConnectorRow, 'serviceKey' | 'endpointUrl' | 'credentialEnc' | 'kind'>,
+  kind: SignalServiceKind,
+): { target: MetricSourceTarget; error: null } | { target: null; error: string } {
+  if (row.kind !== kind) return { target: null, error: `This connector is not a ${kind} source` }
   if (row.serviceKey === CUSTOM_SERVICE_KEY) {
     if (!explicitlyEnabled(process.env.ASTRID_SIGNALS_ALLOW_CUSTOM_ENDPOINTS)) {
       return { target: null, error: 'Custom endpoints are not enabled in this deployment' }
@@ -105,7 +113,7 @@ export function metricTargetFor(
     if (!row.endpointUrl) return { target: null, error: 'The connector has no endpoint' }
     return { target: { baseUrl: row.endpointUrl, credential: decryptField(row.credentialEnc), userSuppliedUrl: true }, error: null }
   }
-  const service = registryService(row.serviceKey, 'metric')
+  const service = registryService(row.serviceKey, kind)
   if (!service) return { target: null, error: 'This service is no longer defined by the environment' }
   return { target: { baseUrl: service.baseUrl, credential: registryCredential(row.serviceKey), userSuppliedUrl: false }, error: null }
 }
@@ -255,7 +263,7 @@ export function connectorFailureText(error: string): string {
 /** Record how a call went on the connector row. `retryNotBefore` is honoured by the poll job. */
 export async function recordConnectorOutcome(
   connectorId: string,
-  result: MetricQueryResult,
+  result: { ok: true } | { ok: false; error: string; retryAfterSeconds?: number },
   now: Date,
 ): Promise<void> {
   if (result.ok) {

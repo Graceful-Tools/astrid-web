@@ -12,6 +12,8 @@ import { Prisma } from '@prisma/client'
 import { DEFAULT_LIST_COLOR } from '@/lib/brand/colors'
 import { prisma } from '@/lib/prisma'
 import { boardPresets } from '@/lib/waiting-rules'
+import { offerableBoardPresets } from '@/lib/board-presets'
+import { canUseGoalSignals } from '@/lib/goal-signals'
 import { addCustomState, addPresetState, renameCustomState, renameBuiltinState, reorderCustomState, removeCustomState, type ReorderDirection } from '@/lib/project-custom-states'
 import { isDefaultStatusRole, type StatusState } from '@/lib/task-status'
 
@@ -385,10 +387,12 @@ export async function addUserPresetStatus(
   projectId: string,
 ): Promise<AddUserStatusResult> {
   if (!projectId) return { error: 'invalid', message: 'A status must belong to a board' }
-  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { customStates: true } })
+  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { customStates: true, ownerId: true } })
   if (!project) return { error: 'invalid', message: 'Board not found' }
-  // Which presets the board may still add is astrid-core's answer (R7).
-  const write = addPresetState(project.customStates, role, boardPresets(project.customStates))
+  // Which presets the board may still add is astrid-core's answer (R7), narrowed by the goal-signals
+  // gate for the board's project: Pending results is offered only while it is on (ADEV-279).
+  const goalSignalsOn = await canUseGoalSignals(project.ownerId)
+  const write = addPresetState(project.customStates, role, offerableBoardPresets(boardPresets(project.customStates), goalSignalsOn))
   if ('error' in write) return { error: write.error === 'duplicate' ? 'duplicate' : 'invalid', message: write.message }
   await prisma.project.update({
     where: { id: projectId },
