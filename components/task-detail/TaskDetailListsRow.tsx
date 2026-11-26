@@ -31,6 +31,7 @@ import { TaskDetailGoalsRow } from "./TaskDetailGoalsRow"
 import { Globe, Users, X, Check, Hash, List as ListIcon, Tag, Milestone, CalendarRange } from "lucide-react"
 import { useTranslations } from "@/lib/i18n/client"
 import { TaskDetailEstimateRow } from "./TaskDetailEstimateRow"
+import { TaskDetailExperimentRow } from "./TaskDetailExperimentRow"
 import type { Task, TaskList } from "@/types/task"
 
 interface TaskDetailListsRowProps {
@@ -229,6 +230,8 @@ export function TaskDetailListsRow({
     <TaskDetailGoalsRow task={task} readOnly={readOnly} />
     {/* Estimate button and card (ADEV-280); nothing outside Project Mode. */}
     <TaskDetailEstimateRow task={task} readOnly={readOnly} />
+    {/* Experiment links and verification results (ADEV-282); nothing without goal signals. */}
+    <TaskDetailExperimentRow task={task} readOnly={readOnly} />
     </>
   )
 }
