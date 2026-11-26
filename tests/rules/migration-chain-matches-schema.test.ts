@@ -26,7 +26,7 @@
  * reconciling migration cannot be dropped or half-reverted (the "three" above
  * are five here). The real check —
  * `prisma migrate diff --exit-code` against a migrated Postgres — lives in
- * tests/integration/postgres-risk.test.ts and runs in CI, where it catches the
+ * tests/integration/postgres/postgres-risk.test.ts and runs in CI, where it catches the
  * next drift whatever it turns out to be.
  */
 
