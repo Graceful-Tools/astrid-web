@@ -416,53 +416,12 @@ Usage flow:
 
 4. **Every teammate repeats steps 1–3** with their own OAuth client, so tokens stay scoped to their Astrid data.
 
-#### Option B – Self-host the HTTP/SSE server
+#### Option B – Self-hosting
 
-Prefer to run the transport yourself (custom domain, private VPC, staging, etc.)? Use the bundled binary.
-
-> This standalone binary still speaks only the legacy SSE transport (a GET
-> stream plus a POST URL). It is separate from the hosted `/mcp` endpoint,
-> which retired SSE in AWTD-1569; point it only at clients that still support SSE.
-
-1. **Build the binaries** (only required once per checkout):
-   ```bash
-   npm run build:mcp:oauth
-   ```
-   Outputs:
-   - `mcp/astrid-mcp-oauth-http` – executable wrapper
-   - `dist/mcp/mcp-server-oauth-http.js` – compiled HTTP/SSE entry point
-
-2. **Run or deploy the server** with your Astrid OAuth credentials:
-   ```bash
-   ASTRID_OAUTH_CLIENT_ID=astrid_client_xxx \
-   ASTRID_OAUTH_CLIENT_SECRET=super_secret \
-   ASTRID_OAUTH_LIST_ID=a623f322-4c3c-49b5-8a94-d2d9f00c82ba \
-   ASTRID_MCP_HTTP_AUTH_TOKEN=astrid_shared_secret \
-   PORT=8787 \
-   ./mcp/astrid-mcp-oauth-http
-   ```
-
-   Key environment variables:
-
-   | Variable | Required | Default | Description |
-   | --- | --- | --- | --- |
-   | `ASTRID_OAUTH_CLIENT_ID` | ✅ | – | Astrid OAuth client ID |
-   | `ASTRID_OAUTH_CLIENT_SECRET` | ✅ | – | Astrid OAuth client secret |
-   | `ASTRID_OAUTH_LIST_ID` | ⚠️ Recommended | – | Default list UUID for MCP calls |
-   | `ASTRID_API_BASE_URL` | No | `https://astrid.cc` | Point to local Astrid when testing |
-   | `ASTRID_MCP_HTTP_AUTH_TOKEN` | ✅ for shared deployments | – | Token every remote caller must supply in `Authorization: Bearer <token>` |
-   | `ASTRID_MCP_HTTP_PORT` / `PORT` | No | `8787` | HTTP listen port |
-   | `ASTRID_MCP_SSE_PATH` | No | `/mcp` | GET path for SSE stream |
-   | `ASTRID_MCP_POST_PATH` | No | `/mcp/messages` | POST endpoint for JSON-RPC payloads |
-   | `ASTRID_MCP_ENABLE_DNS_PROTECTION` | No | `false` | Enable Host/Origin allowlists |
-   | `ASTRID_MCP_ALLOWED_HOSTS` | No | – | Comma-separated Host header allowlist |
-   | `ASTRID_MCP_ALLOWED_ORIGINS` | No | – | Comma-separated Origin allowlist |
-
-3. **Point OpenAI (or any MCP client) at your server URL** with the same JSON block shown above—just swap `server_url` + `authorization` to match your deployment.
-
-4. **Share carefully**: anyone who knows your hosted URL *and* the auth token can issue Astrid API calls. Rotate the token or regenerate the OAuth client to revoke access instantly.
-
-5. **Health check**: `GET /healthz` returns `{ "status": "ok" }` so you can plug it into uptime monitors.
+There is no standalone HTTP binary. The legacy SSE one was retired (ADEV-303), so the
+repo has one remote transport: Streamable HTTP at `/mcp`, served by the Next.js app
+(`pages/api/mcp/index.ts`). A self-hosted deployment of the app serves it too. The
+stdio server (`mcp/astrid-mcp-oauth`) remains for local clients.
 
 ## Available MCP Tools
 

@@ -69,13 +69,17 @@ export function isPredeployReportTask(task: PredeployTaskLike): boolean {
   return description.includes(LEGACY_DESCRIPTION_MARKER) && title.startsWith(LEGACY_TITLE_PREFIX)
 }
 
+/** Title text of a report filed because no check could start (a machine fault). */
+const LAUNCH_FAILURE_MARKER = 'could not start any check'
+
 /**
- * The tasks a new failure may be added to as a comment.
+ * The task a new failure is added to as a comment (ADEV-299).
  *
- * Both conditions matter and they fail differently: the marker says "this is
- * one of mine", and matching the failing check says "this is about the same
- * problem". Without the second, every failure would pile onto the first report
- * ever filed; without the first, it lands on a stranger's task.
+ * The marker says "this is one of mine". A code failure then joins ANY open
+ * report that is not a machine-fault report: keying on the first failed check's
+ * name split one flaky run into several tasks, and 43 "Predeploy Failed" tasks
+ * piled up. A launch failure is about one machine, so it matches only a report
+ * of the same kind and host (the summary names the host).
  */
 export function selectReportTaskFor<T extends PredeployTaskLike>(
   tasks: T[],
@@ -83,15 +87,61 @@ export function selectReportTaskFor<T extends PredeployTaskLike>(
 ): T | null {
   const summary = errorSummary.trim().toLowerCase()
   if (!summary) return null
+  const isLaunch = summary.includes(LAUNCH_FAILURE_MARKER)
 
   return (
-    tasks.find(
-      task =>
-        !task.completed &&
-        isPredeployReportTask(task) &&
-        (task.title ?? '').toLowerCase().includes(summary),
-    ) ?? null
+    tasks.find(task => {
+      if (task.completed || !isPredeployReportTask(task)) return false
+      const title = (task.title ?? '').toLowerCase()
+      return isLaunch ? title.includes(summary) : !title.includes(LAUNCH_FAILURE_MARKER)
+    }) ?? null
   )
+}
+
+export interface TaskPage<T> {
+  tasks: T[]
+  /** Whether the server has rows after this page. */
+  hasMore: boolean
+}
+
+/**
+ * Walk the open tasks page by page until a matching report is found. One
+ * unpaged read returns 100 rows; once the board holds more open tasks than that
+ * an older report falls off the page and a duplicate is filed. A failed page
+ * read (`null`) ends the walk with no match.
+ */
+export async function findReportTask<T extends PredeployTaskLike>(
+  fetchPage: (offset: number) => Promise<TaskPage<T> | null>,
+  errorSummary: string,
+  maxPages = 50,
+): Promise<T | null> {
+  let offset = 0
+  for (let page = 0; page < maxPages; page++) {
+    const result = await fetchPage(offset)
+    if (!result) return null
+    const hit = selectReportTaskFor(result.tasks, errorSummary)
+    if (hit) return hit
+    if (!result.hasMore || result.tasks.length === 0) return null
+    offset += result.tasks.length
+  }
+  return null
+}
+
+/** Every open report task across all pages, for closing when the gate is green. */
+export async function findAllReportTasks<T extends PredeployTaskLike>(
+  fetchPage: (offset: number) => Promise<TaskPage<T> | null>,
+  maxPages = 50,
+): Promise<T[]> {
+  const found: T[] = []
+  let offset = 0
+  for (let page = 0; page < maxPages; page++) {
+    const result = await fetchPage(offset)
+    if (!result) break
+    found.push(...result.tasks.filter(t => !t.completed && isPredeployReportTask(t)))
+    if (!result.hasMore || result.tasks.length === 0) break
+    offset += result.tasks.length
+  }
+  return found
 }
 
 /**
