@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextResponse } from 'next/server'
+import { RolloverUnavailableError } from '@/lib/repeating-rollover'
 import { withAuth, resetShadowSampler, SHADOW_SAMPLE_WINDOW_MS } from '@/lib/api-auth-wrapper'
 import {
   UnauthorizedError,
@@ -208,6 +209,16 @@ describe('withAuth', () => {
     const route = withAuth({}, handler)
     const res = await route(fakeReq(), {})
     expect(res.status).toBe(500)
+    errSpy.mockRestore()
+  })
+
+  it('ADEV-306: a rollover the core cannot answer is a retryable 503, not a 500', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const handler = vi.fn().mockRejectedValue(new RolloverUnavailableError('astrid-core did not answer'))
+    const res = await withAuth({}, handler)(fakeReq(), {})
+    expect(res.status).toBe(503)
+    expect(res.headers.get('Retry-After')).toBe('5')
+    expect(await res.json()).toMatchObject({ retryable: true })
     errSpy.mockRestore()
   })
 

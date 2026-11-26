@@ -1,14 +1,12 @@
-// Custom repeating task patterns, and the rollover arithmetic for every repeating task.
+// Custom repeating task patterns, and the calculator's pieces for the older fixture sections.
 //
-// THE ARITHMETIC IS ASTRID-CORE'S (AWTD-1063). On the Node server, lib/repeating-rollover.ts asks
-// astrid-core's `nextOccurrence` rule. That is the code the iOS and Mac apps run, and its answer
-// is returned. This file is the same rule in TypeScript, for two jobs:
-//   - the server's fail-safe answer when the core cannot give one, and
-//   - the canonical source the shared fixture is generated from
-//     (scripts/contract-fixtures/drivers/repeating.mjs).
-// tests/lib/core-rules-repeating-parity.test.ts holds the two to the same answers over every case.
-// Change the rule here, regenerate the fixture, port it in astrid-core, then rebuild
-// packages/astrid-rules. The parity test fails until all three agree.
+// THE WHOLE ROLLOVER IS ASTRID-CORE'S (AWTD-1063, ADEV-306). On the Node server,
+// lib/repeating-rollover.ts asks astrid-core's `nextOccurrence` rule, the code the iOS and Mac apps
+// run, and refuses the completion when the core cannot answer. The TypeScript `calculateTaskNextOccurrence`
+// is gone, and the fixture's `completions` and `zonedProgressions` are generated from the vendored
+// core (scripts/contract-fixtures/drivers/repeating.mjs). The pieces below that remain
+// (calculateNextOccurrence and friends) only generate the fixture's older `simple`/`custom`
+// sections and have no production caller.
 //
 // CALENDAR ARITHMETIC HAPPENS IN A ZONE (astrid-core docs/CONTRACTS.md D1, D3 and D4, resolved
 // toward iOS on 2026-10-03). Every step (a day, a month, "the third Tuesday", "until the 15th") is
@@ -454,8 +452,6 @@ function simpleEnds(next: number, newOccurrenceCount: number, end: ReadPattern |
   }
 }
 
-const SIMPLE: ReadonlySet<unknown> = new Set(['daily', 'weekly', 'monthly', 'yearly'])
-
 /** Is `zone` usable here, read as UTC when absent. Throws for a zone this runtime does not know. */
 function zoneOrUtc(zone: string | null | undefined): string {
   if (zone === null || zone === undefined) return 'UTC'
@@ -494,41 +490,6 @@ export interface TaskNextOccurrence {
   nextDueDate: string | null
   shouldTerminate: boolean
   newOccurrenceCount: number
-}
-
-/**
- * Where a repeating task goes next, read off its own fields: astrid-core's `nextOccurrence`,
- * answer for answer. A pattern the series cannot continue from ends it.
- */
-export function calculateTaskNextOccurrence(input: TaskNextOccurrenceInput): TaskNextOccurrence {
-  const zone = zoneOrUtc(input.timeZone)
-  const calendar = input.isAllDay ? 'UTC' : zone
-  const due = instantOf(input.currentDueDate)
-  const completedAt = instantOf(input.completion)
-  if (completedAt === null) throw new RangeError('completion is not a date')
-  const repeatFrom: RepeatFrom = input.repeatFrom === 'DUE_DATE' ? 'DUE_DATE' : 'COMPLETION_DATE'
-  // An all-day task repeating from its completion anchors on the calendar day the person completed
-  // it on, stored the way all-day dates are (UTC midnight). Ticking one off at 9pm in California
-  // is 5am UTC the next day, and anchoring on that instant would move the series a day late.
-  const completion = input.isAllDay && repeatFrom === 'COMPLETION_DATE' ? dateOf(local(completedAt, zone)) : completedAt
-  const count = integer(input.occurrenceCount) ?? 0
-  const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString())
-
-  if (input.repeating === 'custom' && input.pattern) {
-    const { next, newOccurrenceCount } = customNext(readPattern(input.pattern), due, completion, repeatFrom, count, calendar)
-    return { nextDueDate: iso(next), shouldTerminate: next === null, newOccurrenceCount }
-  }
-
-  const newOccurrenceCount = count + 1
-  if (!SIMPLE.has(input.repeating)) {
-    // Not a simple pattern (custom with nothing stored, or never): the anchor, unchanged, as the core answers.
-    // The server never asks this: lib/repeating-task-handler.ts rolls only patterns it can step.
-    return { nextDueDate: iso(anchorDate(due, completion, repeatFrom, calendar)), shouldTerminate: false, newOccurrenceCount }
-  }
-  const next = simpleNext(input.repeating as SimpleRepeating, due, completion, repeatFrom, calendar)
-  const end = input.pattern ? readPattern(input.pattern) : null
-  const ends = simpleEnds(next, newOccurrenceCount, end, calendar)
-  return { nextDueDate: ends ? null : iso(next), shouldTerminate: ends, newOccurrenceCount }
 }
 
 // ── The calculator's pieces, by their old names ─────────────────────────────────────────────────

@@ -1,17 +1,15 @@
 /**
- * Repeating-task rollover decided by astrid-core — web phase 4 (AWTD-1063).
+ * Repeating-task rollover decided by astrid-core — web phase 4 (AWTD-1063), step B (ADEV-306).
  *
  * On the Node runtime, every server-side completion of a repeating task (lib/repeating-task-handler.ts,
  * reached from PUT /api/v1/tasks/:id and every other update path through services/task.service.ts)
- * is put to astrid-core's `nextOccurrence` rule, and the core's answer is written. The TypeScript
- * (types/repeating.ts) is the fail-safe: its answer is returned whenever the core cannot give one
- * (not loaded, threw, sent an error envelope, or answered something that is not an answer). The
- * server comparison was retired (AWTD-1608, step A of
- * docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md), so a rollover the core answers runs no
- * TypeScript; the repeating fixture parity test still holds the two together.
+ * is put to astrid-core's `nextOccurrence` rule, and the core's answer is written. There is no
+ * TypeScript copy any more: when the core cannot answer (not loaded, threw, sent an error envelope,
+ * or answered something that is not an answer), the completion is refused with a retryable error
+ * (lib/repeating-rollover.ts), never a guessed date.
  *
- * The same `ASTRID_CORE_RULES` setting chooses the mode for every rule: unset decides with the
- * core, `shadow` keeps the TypeScript deciding without asking the core, `off` loads nothing.
+ * `ASTRID_CORE_RULES=off` loads nothing, so rollovers are refused. `shadow` has no TypeScript left
+ * to keep deciding, so for this rule it behaves as `decide`.
  */
 import { createLogger } from '@/lib/logger'
 import { isTaskNextOccurrence, setRepeatingCore } from '@/lib/repeating-rollover'
@@ -28,16 +26,17 @@ function readNext(value: unknown): TaskNextOccurrence {
 }
 
 /**
- * A {@link setRepeatingCore} hook backed by `runJson` (astrid-core `rules::run_json`). In `decide`
- * mode it returns the core's answer, or `undefined` for the TypeScript fallback; in `shadow` mode
- * always `undefined`. A core that THROWS is switched off for the rest of the process.
+ * A {@link setRepeatingCore} hook backed by `runJson` (astrid-core `rules::run_json`). It returns the
+ * core's answer, or `undefined` when the core cannot give one (the rollover is then refused). A
+ * core that THROWS is switched off for the rest of the process.
  */
 export function createRepeatingCore(
   runJson: (request: string) => string,
   report: FailureReporter,
-  { revision = 'unknown', mode = 'decide' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
+  { revision = 'unknown' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
 ) {
-  const core = createCoreAsker('nextOccurrence', runJson, report, { revision, mode })
+  // No TypeScript is left to decide in shadow mode, so the core is always asked.
+  const core = createCoreAsker('nextOccurrence', runJson, report, { revision, mode: 'decide' })
 
   function next(input: TaskNextOccurrenceInput): TaskNextOccurrence | undefined {
     const completion = input.completion instanceof Date ? input.completion.toISOString() : input.completion
@@ -86,13 +85,14 @@ export function installRepeatingCore(setting: string | undefined = process.env.A
   try {
     const core = loadCoreRules()
     if (!core) {
-      log.error({ mode }, 'packages/astrid-rules did not load; repeating rollover is decided by the TypeScript')
+      setRepeatingCore(null)
+      log.error({ mode }, 'packages/astrid-rules did not load; repeating rollovers are refused')
       return false
     }
     const hook = createRepeatingCore(
       core.runJson,
       {
-        failure: (details) => log.error(details, 'repeating: astrid-core could not answer; the TypeScript answer was used'),
+        failure: (details) => log.error(details, 'repeating: astrid-core could not answer; the rollover was refused'),
       },
       { revision: core.revision, mode },
     )
@@ -103,7 +103,7 @@ export function installRepeatingCore(setting: string | undefined = process.env.A
   } catch (error) {
     setRepeatingCore(null)
     try {
-      log.error({ err: error, mode }, 'repeating: astrid-core install failed; the TypeScript decides')
+      log.error({ err: error, mode }, 'repeating: astrid-core install failed; rollovers are refused')
     } catch {
       // Never fatal.
     }

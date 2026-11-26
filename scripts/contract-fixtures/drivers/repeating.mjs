@@ -13,6 +13,7 @@
 //
 // Usage: node scripts/contract-fixtures/drivers/repeating.mjs <path-to-astrid-web>
 
+import { createRequire } from 'node:module'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -198,7 +199,36 @@ const customProgressions = progressionCases.map(([name, pattern, start, repeatFr
 // The zoned cases are where web followed iOS on 2026-10-03 (astrid-core docs/CONTRACTS.md D1, D3,
 // D4): a timed task steps on the person's calendar, an all-day one on UTC's. TZ=UTC still pins
 // the machine, and the answers no longer depend on it — the zone is in the request.
-const { calculateTaskNextOccurrence } = repeating
+//
+// ADEV-306: the whole rule has no TypeScript copy any more, so these answers are astrid-core's own,
+// from the vendored build (packages/astrid-rules/node) at the pinned revision. A change to the rule
+// is made in astrid-core, re-pinned with `npm run build:astrid-rules`, and this fixture regenerated.
+const { runJson } = createRequire(join(webRoot, 'packages/astrid-rules/node/package.json'))('./astrid_rules_wasm.js')
+const calculateTaskNextOccurrence = (input) => {
+  const toIso = (value) => (value instanceof Date ? value.toISOString() : value)
+  const reply = JSON.parse(
+    runJson(
+      JSON.stringify({
+        kind: 'nextOccurrence',
+        repeating: input.repeating,
+        pattern: input.pattern ?? null,
+        currentDueDate: toIso(input.currentDueDate) ?? null,
+        completion: toIso(input.completion),
+        repeatFrom: input.repeatFrom ?? null,
+        occurrenceCount: input.occurrenceCount ?? 0,
+        timeZone: input.timeZone ?? 'UTC',
+        isAllDay: input.isAllDay ?? false,
+      }),
+    ),
+  )
+  if (!reply.ok) throw new Error(`astrid-core refused nextOccurrence: ${JSON.stringify(reply.error)}`)
+  const { nextDueDate, shouldTerminate, newOccurrenceCount } = reply.value
+  return {
+    nextDueDate: nextDueDate === null ? null : new Date(nextDueDate).toISOString(),
+    shouldTerminate,
+    newOccurrenceCount,
+  }
+}
 const LA = 'America/Los_Angeles'
 const PARIS = 'Europe/Paris'
 const TOKYO = 'Asia/Tokyo'

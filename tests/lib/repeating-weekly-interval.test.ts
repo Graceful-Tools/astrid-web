@@ -9,7 +9,8 @@
  * interval of 1 that is exactly the old answer, so every existing weekly series is unchanged.
  */
 import { describe, expect, it } from 'vitest'
-import { calculateTaskNextOccurrence, type Weekday } from '@/types/repeating'
+import { nextOccurrenceForTask as calculateTaskNextOccurrence } from '@/lib/repeating-rollover'
+import type { Weekday } from '@/types/repeating'
 
 const LA = 'America/Los_Angeles'
 
