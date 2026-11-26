@@ -26,15 +26,14 @@ import {
 import { AIAgentConfigSchema, parseUserAIConfig } from '@/lib/ai/user-config-schemas'
 import { awaitsAgentReply } from '@/lib/ready-queue-scope'
 import { PAGE_LIMIT, selectAgentQueueTasks } from '@/lib/agent-queue-due-first'
-import { pollableMailboxes } from '@/lib/ai/agent-execution-mode'
+import { isModeLockedToPolling, pollableMailboxes } from '@/lib/ai/agent-execution-mode'
 import { RuntimeBindingDeniedError, resolveAgentRuntime } from '@/lib/ai/runtime-binding-resolver'
-import { runtimeBindingResolverEnabled } from '@/lib/env'
+import { agentExecutionModeHonorOffEnabled, runtimeBindingResolverEnabled } from '@/lib/env'
 import { pilotQueueScope } from '@/lib/runtime-binding/task-runtime'
-import { observeAgentExecutionMode } from '@/lib/ai/agent-execution-mode-shadow'
 import { collectListInstructions, LIST_INSTRUCTIONS_MAX_CHARS, type AgentListInstructions } from '@/lib/agent-queue-list-instructions'
 import { listPolicyForAgent, type AgentListPolicyView } from '@/services/orchestration-policy.service'
 import { collectProjectGoals, type AgentProjectGoals } from '@/lib/agent-queue-project-goals'
-import { emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
+import { agentOffHint, emptyQueueHint, nothingAssignedHint } from '@/lib/agent-queue-hints'
 import { pendingAgentAnswer, pendingAgentHandback, type AgentResumeContext } from '@/lib/agent-handback'
 import { buildInboxIdeas, type AgentInbox } from '@/lib/inbox-ideas'
 
@@ -389,7 +388,6 @@ export async function buildAgentQueue({
   const hiddenBoundBoards = await pilotQueueScope({ runtime, userId, agentEmail: email, runtimePrincipal })
   if (runtime.kind === 'denied') throw new RuntimeBindingDeniedError(runtime)
   const mode = runtime.mode
-  if (runtime.kind === 'legacy') observeAgentExecutionMode({ userId, mailbox, mode })
   // Identity only. The plan's credential and payer references stay server-side.
   const runtimeBinding =
     runtime.kind === 'bound' ? { id: runtime.plan.bindingId, revision: runtime.plan.revision } : undefined
@@ -405,6 +403,25 @@ export async function buildAgentQueue({
   // typo, so the endpoint cannot be used to learn which custom agents exist.
   if (isCustom && !callerMayPollCustomAgent(agentUser, userId)) {
     throw new UnknownAgentError(`Unknown agent "${requested}"`)
+  }
+
+  // A polling-only mailbox the caller turned Off gets no work (AWTD-1563). Its
+  // harness may still be scheduled, and Off means nothing should pick tasks up.
+  // Behind the flag, and only for those mailboxes: everything else is unchanged.
+  if (mode === 'off' && agentExecutionModeHonorOffEnabled() && isModeLockedToPolling(mailbox)) {
+    return {
+      agent: { mailbox, email, id: agentUser?.id ?? null, name: agentUser?.name },
+      mode,
+      empty: true,
+      queue: [],
+      listInstructions: [],
+      held: { notDueCount: 0, notReadyCount: 0, scheduled: [] },
+      truncated: false,
+      attention: { tasks: [], messages: [], truncated: false, skipped: [] },
+      hint: agentOffHint(mailbox),
+      runnable: { version: 1, hasWork: false, reasons: [], incomplete: false },
+      ...(runtimeBinding ? { runtimeBinding } : {}),
+    }
   }
 
   // An agent identity that does not exist yet is an empty queue, not an error:

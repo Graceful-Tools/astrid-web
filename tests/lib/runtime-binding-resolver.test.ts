@@ -172,7 +172,7 @@ const DENIALS: Array<{ label: string; row: RuntimeBindingRecord | null; reason: 
 
 beforeEach(() => {
   vi.unstubAllEnvs()
-  vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_SHADOW', 'false')
+  vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'false')
   mockPrisma.runtimeBinding.findUnique.mockReset().mockResolvedValue(null)
   mockPrisma.taskList.findFirst.mockReset().mockResolvedValue(null)
   clearPrismaCalls()
@@ -287,7 +287,7 @@ describe('AWTD-1667 queue wire shape is unchanged for null bindings and flag off
             expect(rest).toEqual(unsetCalls)
             clearPrismaCalls()
             vi.unstubAllEnvs()
-            vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_SHADOW', 'false')
+            vi.stubEnv('ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', 'false')
             mockPrisma.taskList.findFirst.mockReset().mockResolvedValue(null)
           }
         }

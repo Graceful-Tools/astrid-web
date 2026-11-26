@@ -156,7 +156,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'INTERNAL_API_SECRET', scope: 'optional', description: 'Shared secret for the /api/internal/* routes (legacy-usage census, model preferences), matched against the X-Internal-Secret header. Unset leaves those routes unreachable.' },
 
   // ── AI agents ─────────────────────────────────────────────────────────────
-  { name: 'ASTRID_AGENT_EXECUTION_MODE_SHADOW', scope: 'optional', description: 'Set to "true" to sample 1% of polling-only queues for a stored-Off mismatch. Observation only; one extra primary-key settings read per sampled request, deferred after the response with a 250ms observation timeout. Default off (AWTD-1554).', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
+  { name: 'ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF', scope: 'optional', description: 'Set to "true" to honor a stored Off for polling-only mailboxes (codex): getAgentExecutionMode() returns off and the agent queue gives that mailbox no work (AWTD-1563). Off: such a mailbox is always polling and its settings are never read. Default off; rollback is unsetting it.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   { name: 'ASTRID_RUNTIME_BINDING_RESOLVER', scope: 'optional', description: 'Set to "true" to let a board with an explicit business runtime binding resolve through that binding (AWTD-1667, docs/architecture/BUSINESS_RUNTIME_BINDING_RFC.md §5). A binding that cannot be used is then a visible denial, never a personal fallback. Off: TaskList.runtimeBindingId is never read or queried and every board resolves exactly as before. Default off; rollback is unsetting it.', validate: v => ['true', 'false'].includes(v) ? null : 'Must be true or false' },
   { name: 'RUNTIME_BINDING_AUDIT_OPERATIONAL_DAYS', scope: 'optional', description: 'Days to keep detailed operational runtime-binding audit events (resolution denials, transport attempts, lease renewals) before /api/cron/binding-audit deletes them (AWTD-1670). Default and minimum 90 (Jon, 2026-11-14); a shorter or malformed value is ignored, so this can only extend retention.', validate: retentionDaysProblem },
   { name: 'RUNTIME_BINDING_AUDIT_LIFECYCLE_DAYS', scope: 'optional', description: 'Days to keep runtime-binding lifecycle audit records (consent, approval, revocation, run attribution, exports) after the binding is revoked (AWTD-1670). Records of a binding that is not revoked are never deleted. Default and minimum 90 (Jon, 2026-11-14); set longer if deployment policy or legal review requires it. A shorter or malformed value is ignored.', validate: retentionDaysProblem },
@@ -418,9 +418,9 @@ export function requiredVars(): EnvVar[] {
   return ENV_VARS.filter((v) => v.scope === 'required')
 }
 
-/** Observation only; anything except an explicit opt-in leaves it disabled. */
-export function agentExecutionModeShadowEnabled(): boolean {
-  return process.env.ASTRID_AGENT_EXECUTION_MODE_SHADOW === 'true'
+/** Stored Off for polling-only mailboxes (AWTD-1563). Anything except an explicit opt-in keeps them always polling. */
+export function agentExecutionModeHonorOffEnabled(): boolean {
+  return process.env.ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF === 'true'
 }
 
 /** Explicit business runtime bindings (AWTD-1667). Anything except an explicit opt-in leaves them unread. */

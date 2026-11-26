@@ -102,6 +102,14 @@ existing `empty`-based behavior.
 - `orchestrationPolicy[]`: the named board's effective policy as this agent sees it (ADEV-36); only
   with `listId`.
 
+**A polling-only agent the caller turned Off (AWTD-1563).** Inert unless the
+server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true`. Then, for a
+polling-only mailbox (`codex`) whose stored mode is `off`, the response has
+`mode: "off"`, `empty: true`, an empty `queue` and `attention`,
+`runnable.hasWork: false`, and a `hint` saying the agent is turned Off. Every
+other mailbox, and `codex` without a stored Off, is unchanged. Clients should
+treat `mode: "off"` as "stop polling until the user turns it back on".
+
 **Explicit business runtime bindings (AWTD-1667).** Inert unless the server sets
 `ASTRID_RUNTIME_BINDING_RESOLVER=true`. Even then, a response for a board with no
 binding, or for a request with no `listId`, is unchanged byte for byte. When the
@@ -1463,3 +1471,5 @@ X-RateLimit-Reset: 1640000000
 - Added the `muse` AI service id (Meta Model API). `muse@` can now be server-run (AWTD-1053)
 - Added `serverTime` to `GET /api/v1/tasks` and `GET /api/v1/lists`, and keyset paging
   (`?cursor=` → `nextCursor`) to `GET /api/v1/tasks`. Additive (AWTD-1470)
+- `GET /api/v1/agent-queue` can answer `mode: "off"` with no work for a polling-only agent the
+  caller turned Off, when the server sets `ASTRID_AGENT_EXECUTION_MODE_HONOR_OFF=true` (AWTD-1563)
