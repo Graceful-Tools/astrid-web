@@ -13,6 +13,7 @@ export const AUTHENTICATED_UI_SPECS = [
   'task-journeys',
   'decision-cards',
   'repeating-task',
+  'agent-journey',
   'list-sharing',
   'reminder-snooze',
   'offline-round-trip',
