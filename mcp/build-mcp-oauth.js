@@ -40,22 +40,6 @@ const artifacts = [
       }, null, 2));
     },
   },
-  {
-    input: 'mcp-server-oauth-http.ts',
-    output: 'mcp-server-oauth-http.js',
-    executable: 'astrid-mcp-oauth-http',
-    description: 'HTTP/SSE transport (remote MCP for OpenAI/Responses API)',
-    postBuildLog: () => {
-      const remoteServerPath = compiledPathFor('mcp-server-oauth-http.js');
-      console.log('\n🌐 To start the HTTP/SSE MCP server:');
-      console.log('   ASTRID_OAUTH_CLIENT_ID=xxx \\');
-      console.log('   ASTRID_OAUTH_CLIENT_SECRET=yyy \\');
-      console.log('   ASTRID_OAUTH_LIST_ID=list_uuid \\');
-      console.log('   ASTRID_MCP_HTTP_AUTH_TOKEN=supersecret \\');
-      console.log(`   node "${remoteServerPath}"`);
-      console.log('\n   ➜ The SSE endpoint will be available at http://localhost:8787/mcp (POST: /mcp/messages)');
-    },
-  },
 ];
 
 try {
