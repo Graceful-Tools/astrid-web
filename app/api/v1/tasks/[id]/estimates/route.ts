@@ -17,6 +17,7 @@ import { withAuth } from '@/lib/api-auth-wrapper'
 import { requireTaskAccess, requireTaskReadAccess } from '@/lib/api-auth-middleware'
 import { goalSignalsGate } from '@/lib/goal-signals'
 import { resolveTaskIdOrIdentifier } from '@/lib/task-identifier'
+import { agentMailboxFromEmail } from '@/lib/brand/agent-emails'
 import { isAgentCaller } from '@/lib/api/orchestration-policy-response'
 import {
   getTaskEstimates,
@@ -91,7 +92,14 @@ export const POST = withAuth<RouteContext>(
     }
 
     const estimator = typeof body.estimator === 'string' && body.estimator.trim() ? body.estimator.trim() : undefined
-    const result = await requestTaskEstimate(taskId, auth.userId, { estimator, projectId })
+    const result = await requestTaskEstimate(taskId, auth.userId, {
+      estimator,
+      projectId,
+      // An agent asking the built-in estimator needs `spend` (ADEV-283); an unknown mailbox fails closed.
+      agentMailbox: isAgentCaller(auth)
+        ? agentMailboxFromEmail(auth.agentUser?.email ?? auth.user?.email) ?? 'unknown-agent'
+        : undefined,
+    })
     if (!result.ok) return failed(result)
     if (result.value.state === 'pending') {
       return NextResponse.json(
