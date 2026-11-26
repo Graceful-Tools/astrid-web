@@ -420,12 +420,8 @@ export async function buildAgentQueue({
   // the row is created the first time someone assigns work to it. `identityOnly` (AWTD-1553): same shape, with the id.
   if (!agentUser?.isAIAgent || identityOnly) {
     // An identity nobody has used yet has nothing to answer either.
-    const { hint, ...empty } = emptyAgentQueue(
-      { mailbox, email, id: agentUser?.isAIAgent ? agentUser.id : null },
-      mode,
-      nothingAssignedHint(mailbox),
-      runtimeBinding,
-    )
+    const id = agentUser?.isAIAgent ? agentUser.id : null
+    const { hint, ...empty } = emptyAgentQueue({ mailbox, email, id }, mode, nothingAssignedHint(mailbox), runtimeBinding)
     return identityOnly ? empty : { ...empty, hint }
   }
 
