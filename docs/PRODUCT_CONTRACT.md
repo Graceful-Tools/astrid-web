@@ -31,9 +31,9 @@ How the shared components **look** (colours, sizes, motion, themes) is
 
 ## 1. Permission matrix (the canonical rules)
 
-Web's single source of truth is `lib/list-permissions.ts`
-(`getUserRoleInList` → `owner | admin | member | viewer | null`, then the
-`canUser*` helpers). iOS must implement the **same** decisions. Never re-derive
+The canonical rule is astrid-core's `listAccess` (ADEV-304); web asks it through
+`lib/list-permissions.ts` (`getUserRoleInList` → `owner | admin | member | viewer | null`,
+then the `canUser*` helpers). iOS must implement the **same** decisions. Never re-derive
 these inline per call site (that's how Web drifted — see the reuse doc).
 
 Role resolution (`getUserRoleInList`): **owner** (list owner, by `ownerId`, the
@@ -101,8 +101,8 @@ Public-list nuances (encoded in the helpers — mirror exactly):
 3. On `collaborative` public lists, a task is editable only by its **creator**
    (plus owner/admin).
 
-Changing any cell here is a cross-platform change: update `list-permissions.ts`,
-this table, and the iOS implementation together.
+Changing any cell here is a cross-platform change: change astrid-core's `listAccess`
+(and its generated `permissions.json`), this table, and re-vendor `packages/astrid-rules`.
 
 ---
 

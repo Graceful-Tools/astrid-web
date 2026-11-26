@@ -4,7 +4,8 @@
  * searchParse, nextOccurrence and the board's columns. In decide mode, with the vendored core
  * installed the way instrumentation.ts installs it, the core answers and the TypeScript rule is
  * NOT run, not even on a process's first decision (which the AWTD-1591 sampler always compared).
- * The TypeScript still runs, and its answer is returned, whenever the core cannot answer.
+ * The TypeScript still runs, and its answer is returned, whenever the core cannot answer, except
+ * for listAccess, whose TypeScript rule was deleted in step B (ADEV-304): there it is a refusal.
  *
  * Board drops (`boardMove`) are not retired and are not tested here.
  */
@@ -18,6 +19,7 @@ import { parseSearchQuery, setSearchQueryCore } from '@/lib/search-query-parser'
 import { nextOccurrenceForTask, setRepeatingCore } from '@/lib/repeating-rollover'
 import { boardColumnsThroughCore, setBoardCore, type CoreBoardColumn } from '@/lib/board-core-hook'
 import { calculateTaskNextOccurrence, type TaskNextOccurrenceInput } from '@/types/repeating'
+import { installTestListPermissionsCore } from '@/tests/helpers/list-permissions-core'
 
 // Spy on the TypeScript rollover where lib/repeating-rollover.ts calls it.
 vi.mock('@/types/repeating', async (importOriginal) => {
@@ -45,7 +47,7 @@ const DAILY: TaskNextOccurrenceInput = {
 }
 
 afterEach(() => {
-  setListPermissionsCore(null)
+  installTestListPermissionsCore()
   setSearchQueryCore(null)
   setRepeatingCore(null)
   setBoardCore(null)
@@ -88,11 +90,11 @@ describe('AWTD-1608: in decide mode with the core loaded, the TypeScript rule is
 })
 
 describe('AWTD-1608: when the core cannot answer, the TypeScript rule IS run', () => {
-  it('listAccess', () => {
+  it('listAccess: step B (ADEV-304) deleted its TypeScript rule, so the check is refused', () => {
     const decider = createListPermissionsCore(failing, quiet)
     setListPermissionsCore(decider.decide)
     expect(decider.decide({ decision: 'canManage', user: { id: 'me' }, list: OWNED_LIST })).toBeUndefined()
-    expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(true)
+    expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(false)
     expect(decider.stats.failed).toBe(2)
   })
 

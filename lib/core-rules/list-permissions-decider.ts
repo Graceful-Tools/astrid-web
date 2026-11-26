@@ -40,8 +40,8 @@ function projectOf(project: ListLike['project']) {
 /** The `listAccess` request for one question, or why the core is not asked. */
 export function coreRequestFor(question: ListDecisionQuestion): { request: object } | { skip: string } {
   const { user, list } = question
-  // No signed-in id: the TypeScript's own guards decide (and the core's "nobody" is no access,
-  // which is not always what the TypeScript answers for a malformed user — so it is not asked).
+  // No signed-in id, or no list: there is nobody to grant anything to, so the core is not asked
+  // and lib/list-permissions.ts refuses (ADEV-304). Counted as `skipped`.
   if (!user || !isString(user.id) || !user.id || !list) return { skip: 'no-user-or-list' }
 
   const admins = refs(list.admins)
@@ -87,7 +87,7 @@ export interface CoreStats {
   unsampled: number
   /** Not put to the core (outside its domain). */
   skipped: number
-  /** The core could not answer; the TypeScript answer was returned. */
+  /** The core could not answer; the check was refused (ADEV-304). */
   failed: number
 }
 
@@ -106,9 +106,9 @@ const ROLES: ReadonlySet<unknown> = new Set(['owner', 'admin', 'member', 'viewer
 
 /**
  * A {@link setListPermissionsCore} decider backed by `runJson` (astrid-core `rules::run_json`).
- * In `decide` mode it returns the core's answer, and the TypeScript is not run: the server
- * comparison was retired (AWTD-1608), so the TypeScript is only the fallback, reached when this
- * returns `undefined`. In `shadow` mode the core is not asked and the TypeScript decides.
+ * In `decide` mode it returns the core's answer. `undefined` (the core could not answer, or the
+ * question has no user or list) is refused by lib/list-permissions.ts: since ADEV-304 there is no
+ * TypeScript rule behind it. List permissions are always installed in `decide` mode.
  */
 export function createListPermissionsCore(
   runJson: (request: string) => string,

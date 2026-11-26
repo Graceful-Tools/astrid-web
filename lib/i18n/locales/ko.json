@@ -3314,5 +3314,9 @@
       "listOwner": "목록 소유자",
       "taskCreator": "작업을 만든 사람"
     }
+  },
+  "permissions": {
+    "unavailable": "편집할 수 없습니다: 이 브라우저에서 {appName}의 권한 규칙을 불러오지 못했습니다.",
+    "reload": "새로고침"
   }
 }

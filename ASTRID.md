@@ -99,7 +99,6 @@ the fixture is regenerated in the same PR:
 |---|---|
 | `shortcuts.json` | `hooks/useKeyboardShortcuts.ts` |
 | `repeating.json` | `types/repeating.ts` |
-| `permissions.json` | `lib/list-permissions.ts` |
 | `board.json` | `lib/project-status.ts` |
 | `statuses.json` | `lib/project-custom-states.ts`, `lib/task-status.ts` |
 | `editing.json` | `lib/editing-session.ts` |
@@ -603,11 +602,15 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   `lib/list-member-utils.ts`. **Never inline** `list.ownerId === user.id` or
   `list.admins.some(...)` — call `canUserManageList` / `canUserEditTasks` /
   `isListAdminOrOwner`, or reuse a `canEdit*` value already in scope.
-  On the Node server those functions are decided by astrid-core (WebAssembly in
-  `packages/astrid-rules`, installed from `instrumentation.ts`; AWTD-1061); the
-  TypeScript is what the browser runs and the server's fail-safe fallback. A rule
-  change goes TypeScript → astrid-core fixture and port → `scripts/build-astrid-rules.sh`;
-  `tests/lib/core-rules-permissions-parity.test.ts` fails until they agree.
+  Those functions are decided by astrid-core's `listAccess` and **nothing else**
+  (ADEV-304): on the Node server WebAssembly in `packages/astrid-rules`, installed
+  from `instrumentation.ts`, which fails the boot without it; in the browser its
+  browser build, which the app shell waits for. There is no TypeScript rule: a
+  check the core can't answer is refused. A rule change starts in astrid-core
+  (canonical per astrid-core's CONTRACTS.md §5; it generates `permissions.json`), then
+  `scripts/build-astrid-rules.sh`; `tests/lib/core-rules-permissions-parity.test.ts`
+  replays the fixture through these functions. Tests get the core from the shared
+  vitest setup (`tests/helpers/list-permissions-core.ts`).
   The same holds for **search queries** (AWTD-1062): `parseSearchQuery`
   (`lib/search-query-parser.ts`) is parsed by the core's `searchParse` on the
   server, TypeScript as fallback, pinned by `core-rules-search-parity.test.ts`.
@@ -624,8 +627,10 @@ Distilled from recurring friction across sessions. These apply to **every** AI a
   iOS. There is no server-side markdown render; if one is needed, ask the core, never the
   no-DOM fallback (escaped text only).
   In the browser the same `listAccess` answers the UI's affordances once core's browser build
-  has loaded (flag `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER`, ADEV-90): `lib/core-rules/browser.ts`
-  installs the decider from `list-permissions-decider.ts`, TypeScript as fallback.
+  has loaded (flag `NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER`, on unless `off` since ADEV-304):
+  `lib/core-rules/browser.ts` installs the decider from `list-permissions-decider.ts`, and
+  `components/authenticated-app.tsx` shows its skeleton until `useListPermissionsState()` is
+  `ready` (read-only with a notice if `unavailable`). Never draw affordances while it is pending.
   The quick-add parser `parseTaskInput` runs only in the browser, so it stays
   TypeScript; `core-rules-smart-parity.test.ts` pins it to the core's
   `smartParse` (what iOS and the Mac run).

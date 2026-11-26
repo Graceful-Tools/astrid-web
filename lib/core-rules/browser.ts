@@ -9,16 +9,23 @@
  * the .wasm as a hashed asset of that lazy chunk.
  *
  * Until it has loaded, if it fails to load, or while the flag is off, `browserCoreRules()` is
- * null and every caller keeps its TypeScript rule. A rule is asked only when the build lists it in
- * `kinds()`, so a build that dropped a rule is a fallback, never a refusal on screen.
+ * null and the callers that still have a TypeScript rule keep it. A rule is asked only when the
+ * build lists it in `kinds()`.
  *
- * The flag is NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER, "on" to load; anything else, unset
- * included, leaves the browser exactly as it was. Like every NEXT_PUBLIC_ value it is read
- * literally so Next can inline it (lib/env.ts).
+ * LIST PERMISSIONS HAVE NO TYPESCRIPT RULE (ADEV-304). Until the door has installed `listAccess`
+ * every permission check is refused, so the door's permission state is published
+ * ({@link browserListPermissionsState}: pending → ready, or unavailable) and the app shell
+ * (components/authenticated-app.tsx, through hooks/useBrowserCoreRules.ts) shows its loading
+ * skeleton while it is pending, starting the load at mount rather than at idle. Unavailable (flag
+ * off, the module failed, or a build without `listAccess`) draws the app read-only with a notice.
+ *
+ * The flag is NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER (./browser-flag.ts). Since ADEV-304 the door
+ * loads unless it is "off", because the browser needs it for permissions.
  */
 
 import { setBoardCore } from '@/lib/board-core-hook'
 import { setListPermissionsCore } from '@/lib/list-permissions'
+import { browserCoreRulesFlagOn } from './browser-flag'
 
 export interface BrowserCoreRules {
   /** astrid-core `rules::run_json`: one JSON request in, one `{ ok, value?, error? }` out. */
@@ -33,7 +40,37 @@ interface Glue {
   kinds(): string[]
 }
 
-export const BROWSER_CORE_RULES_ON = process.env.NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER === 'on'
+export const BROWSER_CORE_RULES_ON = browserCoreRulesFlagOn()
+
+/**
+ * Whether the browser can answer list-permission questions (ADEV-304): `pending` until the door
+ * has loaded, `ready` once it installed `listAccess`, `unavailable` when it never will (flag off,
+ * the module failed to load, or the build does not answer `listAccess`). While it is not `ready`
+ * every permission check is refused, so nothing should draw affordances from it while `pending`.
+ */
+export type ListPermissionsState = 'pending' | 'ready' | 'unavailable'
+
+let permissionsState: ListPermissionsState = 'pending'
+const permissionsListeners = new Set<() => void>()
+
+function setPermissionsState(next: ListPermissionsState): void {
+  if (permissionsState === next) return
+  permissionsState = next
+  for (const listener of permissionsListeners) listener()
+}
+
+/** The browser's list-permissions state; see {@link ListPermissionsState}. */
+export function browserListPermissionsState(): ListPermissionsState {
+  return permissionsState
+}
+
+/** Subscribe to {@link browserListPermissionsState} changes (useSyncExternalStore's shape). */
+export function subscribeBrowserListPermissions(listener: () => void): () => void {
+  permissionsListeners.add(listener)
+  return () => {
+    permissionsListeners.delete(listener)
+  }
+}
 
 const importGlue = () => import('../../packages/astrid-rules/web/astrid_rules_wasm.js') as Promise<Glue>
 
@@ -64,13 +101,17 @@ export function browserCoreRules(): BrowserCoreRules | null {
 
 /**
  * Load the door once. Resolves null when the flag is off or the module fails to load or
- * instantiate; never rejects, because every caller has a TypeScript rule to fall back to.
+ * instantiate; never rejects. List permissions then stay refused, and their state says
+ * `unavailable` so the page can say so.
  */
 export function loadBrowserCoreRules(
   options: { enabled?: boolean; load?: () => Promise<Glue> } = {},
 ): Promise<BrowserCoreRules | null> {
   const { enabled = BROWSER_CORE_RULES_ON, load = importGlue } = options
-  if (!enabled) return Promise.resolve(null)
+  if (!enabled) {
+    setPermissionsState('unavailable')
+    return Promise.resolve(null)
+  }
   if (!loading) {
     loading = load()
       .then(async (glue) => {
@@ -82,13 +123,13 @@ export function loadBrowserCoreRules(
         ])
         const kinds = new Set(glue.kinds())
         loaded = { runJson: (request) => glue.runJson(request), answers: (kind) => kinds.has(kind) }
-        // Permission affordances ask core listAccess too (ADEV-90). Lazy, like the door itself,
-        // and never a reason for the load to fail: the TypeScript decides without it.
+        // Permission affordances ask core listAccess (ADEV-90), and nothing else answers them
+        // (ADEV-304). Lazy, like the door itself. Not a reason for the door's other rules to fail.
         try {
           const { installBrowserListPermissions } = await import('./browser-list-permissions')
-          installBrowserListPermissions(loaded)
+          setPermissionsState(installBrowserListPermissions(loaded) ? 'ready' : 'unavailable')
         } catch {
-          // keep the TypeScript rules
+          setPermissionsState('unavailable')
         }
         // The board's columns too (ADEV-307): same lazy load, same fallback.
         try {
@@ -99,7 +140,10 @@ export function loadBrowserCoreRules(
         }
         return loaded
       })
-      .catch(() => null)
+      .catch(() => {
+        setPermissionsState('unavailable')
+        return null
+      })
   }
   return loading
 }
@@ -126,6 +170,8 @@ export function resetBrowserCoreRulesForTests(
 ): void {
   loaded = door
   loading = null
+  permissionsState = 'pending'
+  permissionsListeners.clear()
   rowsCore = adapters.rows ?? null
   smartParseCore = adapters.smartParse ?? null
   setListPermissionsCore(null)

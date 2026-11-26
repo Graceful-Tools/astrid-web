@@ -5,6 +5,8 @@ import { TaskManager } from "@/components/TaskManager"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { offlineDB } from "@/lib/offline-db"
+import { useListPermissionsState } from "@/hooks/useBrowserCoreRules"
+import { ListPermissionsUnavailableNotice } from "@/components/list-permissions-unavailable-notice"
 
 interface AuthenticatedAppProps {
   initialSelectedListId?: string
@@ -23,6 +25,10 @@ export function AuthenticatedApp({
 }: AuthenticatedAppProps = {}) {
   const { data: session, status } = useSession()
   const router = useRouter()
+  // astrid-core answers every list-permission question, in the browser too (ADEV-304). Its door
+  // starts loading now, alongside the session, and the shell waits for it: drawn earlier, every
+  // edit, share and delete affordance would be a refusal that only means "not loaded yet".
+  const permissions = useListPermissionsState()
 
   // Clear cached server data on page load to force a fresh fetch. Not while
   // offline: the cache is all the app has then (AWTD-1417).
@@ -48,7 +54,7 @@ export function AuthenticatedApp({
     }
   }, [status, router])
 
-  if (status === "loading" || !session) {
+  if (status === "loading" || !session || permissions === "pending") {
     // App shell skeleton — matches real layout so transition is smooth
     return (
       <div className="min-h-screen theme-bg-primary flex">
@@ -74,12 +80,15 @@ export function AuthenticatedApp({
 
   // Removed excessive logging - only log on mount, not every render
   return (
-    <TaskManager
-      initialSelectedListId={initialSelectedListId}
-      initialSelectedTaskId={initialSelectedTaskId}
-      initialSettingsPage={initialSettingsPage}
-      listMetadata={listMetadata}
-      taskMetadata={taskMetadata}
-    />
+    <>
+      {permissions === "unavailable" && <ListPermissionsUnavailableNotice />}
+      <TaskManager
+        initialSelectedListId={initialSelectedListId}
+        initialSelectedTaskId={initialSelectedTaskId}
+        initialSettingsPage={initialSettingsPage}
+        listMetadata={listMetadata}
+        taskMetadata={taskMetadata}
+      />
+    </>
   )
 }

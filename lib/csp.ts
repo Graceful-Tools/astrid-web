@@ -16,6 +16,8 @@
  * hosts below are there for older browsers only.
  */
 
+import { browserCoreRulesFlagOn } from './core-rules/browser-flag'
+
 const SCRIPT_HOSTS = [
   'https://va.vercel-scripts.com',
   'https://vercel.live',
@@ -57,13 +59,13 @@ const FRAME_HOSTS = [
  *   upgrade-insecure-requests breaks Safari on localhost.
  * @param allowWasm add `'wasm-unsafe-eval'`, which lets the page compile
  *   WebAssembly and nothing else (JS eval stays blocked). Only astrid-core's
- *   browser build needs it (AWTD-1586), so it follows that build's flag and the
- *   policy is unchanged while the flag is off.
+ *   browser build needs it (AWTD-1586), so it follows that build's flag, which
+ *   is on unless set to "off" since ADEV-304 (lib/core-rules/browser-flag.ts).
  */
 export function buildContentSecurityPolicy(
   nonce: string,
   isProduction: boolean,
-  allowWasm: boolean = process.env.NEXT_PUBLIC_ASTRID_CORE_RULES_BROWSER === 'on',
+  allowWasm: boolean = browserCoreRulesFlagOn(),
 ): string {
   const directives = [
     `default-src 'self'`,

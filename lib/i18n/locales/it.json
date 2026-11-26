@@ -3314,5 +3314,9 @@
       "listOwner": "Il proprietario della lista",
       "taskCreator": "Chi ha creato l'attività"
     }
+  },
+  "permissions": {
+    "unavailable": "La modifica non è disponibile: questo browser non è riuscito a caricare le regole dei permessi di {appName}.",
+    "reload": "Ricarica"
   }
 }

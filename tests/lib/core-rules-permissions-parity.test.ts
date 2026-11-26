@@ -1,16 +1,16 @@
 // @vitest-environment node
 /**
- * Parity proof for lib/list-permissions.ts decided by astrid-core (AWTD-1061).
+ * lib/list-permissions.ts decided by astrid-core (AWTD-1061), against the permissions contract.
  *
- * Every case in the permissions contract fixture — generated from this repo's own
- * list-permissions.ts, vendored at the pinned core revision, and since AWTD-1061 including the
- * project roles, the status-list cascade and the legacy admins/members arrays — goes through the
- * web's PUBLIC functions twice: once with the TypeScript deciding (the browser, and the server's
- * fallback), once with the vendored WebAssembly core installed as the server installs it. Both
- * must give the fixture's answers, and the core must have answered every question itself.
+ * Every case in the permissions fixture (vendored at the pinned core revision; including the
+ * project roles, the status-list cascade and the legacy admins/members arrays) goes through the
+ * web's PUBLIC functions with the vendored WebAssembly core installed as the server installs it,
+ * and must give the fixture's answers, every one answered by the core itself.
  *
- * When this fails after a rule change, the browser and the server disagree: change
- * list-permissions.ts, regenerate astrid-core's fixture, port it, and rebuild packages/astrid-rules.
+ * Since ADEV-304 (step B) the core is the only rule and canonical for it: the fixture is generated
+ * in astrid-core (`cargo xtask gen-core-contracts`) and copied by scripts/build-astrid-rules.sh. A
+ * behaviour change starts there. When this fails, web is sending the core something it reads
+ * differently, or the pin moved without this repo noticing.
  */
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -27,6 +27,7 @@ import {
 } from '@/lib/list-permissions'
 import { coreRequestFor, createListPermissionsCore } from '@/lib/core-rules/list-permissions-core'
 import { loadCoreRulesFrom } from '@/lib/core-rules/wasm'
+import { installTestListPermissionsCore } from '@/tests/helpers/list-permissions-core'
 
 const PACKAGE_DIR = path.join(process.cwd(), 'packages', 'astrid-rules')
 
@@ -79,7 +80,7 @@ const DECISIONS_PER_CASE = 9
 
 const cases = fixture.cases.map((c) => [c.name, c] as const)
 
-afterEach(() => setListPermissionsCore(null))
+afterEach(() => installTestListPermissionsCore())
 
 describe('the permissions fixture at the pinned core revision', () => {
   it('loads the vendored build at a pinned revision', () => {
@@ -97,8 +98,8 @@ describe('the permissions fixture at the pinned core revision', () => {
   })
 
   it('records that project owners and admins outrank a plain list membership (2026-10-04)', () => {
-    // At a core revision from before the decision these cases say "member", and the TypeScript
-    // run above fails on them: the pin and the rules must move together.
+    // At a core revision from before the decision these cases say "member": the pin and the
+    // fixture must move together.
     const outranked = fixture.cases.filter(
       (c) =>
         c.list.listMembers?.some((m) => m.userId === fixture.userId && m.role?.toLowerCase() !== 'admin') &&
@@ -118,12 +119,6 @@ describe('the permissions fixture at the pinned core revision', () => {
       })
       expect(built).not.toHaveProperty('skip')
     }
-  })
-})
-
-describe('the TypeScript rules alone (the browser, and the server fallback)', () => {
-  it.each(cases)('%s', (_name, { list, expected }) => {
-    expect(answersFor(list)).toEqual(expected)
   })
 })
 

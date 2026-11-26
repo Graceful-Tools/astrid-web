@@ -4,6 +4,11 @@ import type { Session } from 'next-auth'
 import 'fake-indexeddb/auto'
 import rawEnMessages from '@/lib/i18n/locales/en.json'
 import { applyBrandToMessages } from '@/lib/brand/i18n-values'
+import { installTestListPermissionsCore } from './helpers/list-permissions-core'
+
+// astrid-core decides list permissions, and since ADEV-304 nothing else does: without a decider
+// every permission check is refused. Install the vendored core the way instrumentation.ts does.
+installTestListPermissionsCore()
 
 // Mirror lib/i18n/request.ts: copy stores `{appName}` and the brand is substituted at
 // load time, so tests asserting on rendered copy see the same strings the app renders.
