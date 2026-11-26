@@ -15,7 +15,7 @@ import { MainContent } from "./TaskManager/MainContent/MainContent"
 import { useSelectedProjectId } from "@/hooks/use-selected-project"
 import { useSidebarProjectActions } from "@/hooks/task-manager/useSidebarProjectActions"
 import { LoadingScreen } from "./loading-screen"
-import { computeTaskPaneLeftOffset } from "./TaskManager/task-pane-position"
+import { taskPaneLeftOffsetFromMainRect } from "./TaskManager/task-pane-position"
 import { Input } from "@/components/ui/input"
 import { useKeyboardShortcuts, type KeyboardShortcutHandlers } from "@/hooks/useKeyboardShortcuts"
 import { AddTaskInput } from "./add-task-input"
@@ -549,16 +549,18 @@ const TaskManagerView = memo(function TaskManagerView({
   // Refs are now passed as props from parent component
   // (removed local ref creation to use refs from useTaskManagerLayout)
 
-  // Calculate task pane position based on layout type and component widths
+  // Calculate task pane position based on layout type and component widths.
+  // Measured from the main column alone: whatever is to its left (sidebar, the
+  // collapsed rail, nothing) is its rect's left edge. The rail never attached
+  // sidebarRef, so requiring that ref left the pane at left: 0 (ADEV-288).
   React.useEffect(() => {
     const calculatePosition = () => {
-      if (sidebarRef.current && taskManagerRef.current && (selectedTaskId || settingsSubPage) && !is1Column) {
-        const sidebarRect = sidebarRef.current.getBoundingClientRect()
+      if (taskManagerRef.current && (selectedTaskId || settingsSubPage) && !is1Column) {
         const taskManagerRect = taskManagerRef.current.getBoundingClientRect()
 
         // Layout-aware positioning (pure math in task-pane-position). The window
         // width keeps the panel on screen when messages is hidden (AWTD-1205).
-        const leftOffset = computeTaskPaneLeftOffset(sidebarRect.width, taskManagerRect.width,
+        const leftOffset = taskPaneLeftOffsetFromMainRect(taskManagerRect,
           { is2Column, is3Column, showHamburgerMenu }, window.innerWidth)
 
         // Update the task pane position
@@ -568,11 +570,16 @@ const TaskManagerView = memo(function TaskManagerView({
 
     calculatePosition()
     window.addEventListener('resize', calculatePosition)
+    // Collapsing or opening the sidebar moves and resizes the main column
+    // without resizing the window, so watch the column itself (ADEV-288).
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(calculatePosition)
+    if (observer && taskManagerRef.current) observer.observe(taskManagerRef.current)
 
     return () => {
       window.removeEventListener('resize', calculatePosition)
+      observer?.disconnect()
     }
-  }, [selectedTaskId, settingsSubPage, is1Column, is2Column, is3Column, showHamburgerMenu, setTaskPanePosition, sidebarRef, taskManagerRef])
+  }, [selectedTaskId, settingsSubPage, is1Column, is2Column, is3Column, showHamburgerMenu, isBoardMode, isSettingsActive, setTaskPanePosition, taskManagerRef])
 
   // Keyboard shortcuts setup
   const keyboardShortcutHandlers: KeyboardShortcutHandlers = {

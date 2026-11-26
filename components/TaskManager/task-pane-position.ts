@@ -66,3 +66,17 @@ export function computeTaskPaneLeftOffset(
   // the left edge, where at least the panel is reachable.
   return Math.max(0, Math.min(ideal, maxLeft))
 }
+
+/**
+ * The offset from the main column's own rect — ADEV-288. `mainRect.left` is
+ * whatever sits to the column's left: the open sidebar, the collapsed rail, or
+ * nothing. Measuring the sidebar instead missed the rail, which has no ref, and
+ * the pane opened at `left: 0` over the list.
+ */
+export function taskPaneLeftOffsetFromMainRect(
+  mainRect: { left: number; width: number },
+  layout: TaskPaneLayout,
+  viewportWidth?: number,
+): number {
+  return computeTaskPaneLeftOffset(Math.max(0, mainRect.left), mainRect.width, layout, viewportWidth)
+}
