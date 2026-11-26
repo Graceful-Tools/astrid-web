@@ -44,9 +44,14 @@ describe('taskPaneLeftOffsetFromMainRect (ADEV-288)', () => {
   })
 })
 
-describe('TaskManagerView measuring effect (ADEV-288)', () => {
-  const src = readFileSync(join(process.cwd(), 'components/TaskManagerView.tsx'), 'utf8')
-  const effect = src.slice(src.indexOf('const calculatePosition = () =>'), src.indexOf('// Keyboard shortcuts setup'))
+describe('the measuring hook (ADEV-288)', () => {
+  const effect = readFileSync(join(process.cwd(), 'hooks/task-manager/useTaskPanePositionMeasure.ts'), 'utf8')
+  const view = readFileSync(join(process.cwd(), 'components/TaskManagerView.tsx'), 'utf8')
+
+  it('is what TaskManagerView uses', () => {
+    expect(view).toContain('useTaskPanePositionMeasure({')
+    expect(view).not.toContain('sidebarRef.current')
+  })
 
   it('does not need the sidebar ref, which the collapsed rail never attaches', () => {
     expect(effect).not.toContain('sidebarRef.current')
