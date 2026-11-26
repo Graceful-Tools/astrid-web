@@ -23,9 +23,10 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { readdirSync, statSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, relative, matchesGlob } from 'node:path'
 import { ESLint } from 'eslint'
+import { repoFiles } from '../helpers/repo-files'
 import { VENDOR_SDK_BOUNDARIES } from '../../scripts/lib/vendor-sdk-boundaries.mjs'
 
 const ROOT = process.cwd()
@@ -34,20 +35,8 @@ const ROOT = process.cwd()
 const SCANNED = ['app', 'lib', 'components', 'hooks', 'services', 'mcp', 'scripts', 'packages']
 const ROOT_FILES = ['middleware.ts', 'instrumentation.ts']
 
-function sourceFiles(dir: string, out: string[] = []): string[] {
-  let entries: string[]
-  try {
-    entries = readdirSync(dir)
-  } catch {
-    return out
-  }
-  for (const entry of entries) {
-    if (entry === 'node_modules' || entry === 'dist' || entry.startsWith('.')) continue
-    const full = join(dir, entry)
-    if (statSync(full).isDirectory()) sourceFiles(full, out)
-    else if (/\.(tsx?|mjs|cjs|js)$/.test(entry)) out.push(full)
-  }
-  return out
+function sourceFiles(dir: string): string[] {
+  return repoFiles(dir, /\.(tsx?|mjs|cjs|js)$/)
 }
 
 /** `@vercel/blob` → a regex for it and its subpaths; `@azure/*` → the scope. */
