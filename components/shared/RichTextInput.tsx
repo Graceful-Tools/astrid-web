@@ -489,6 +489,8 @@ export const RichTextInput = React.memo(function RichTextInput({
               onClick={onSend}
               disabled={!canSend}
               className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-brand text-brand-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-hover transition-colors"
+              title={t("actions.send")}
+              aria-label={t("actions.send")}
             >
               <Send className="w-4 h-4" />
             </button>

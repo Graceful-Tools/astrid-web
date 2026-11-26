@@ -3314,5 +3314,9 @@
       "listOwner": "リストのオーナー",
       "taskCreator": "タスクの作成者"
     }
+  },
+  "permissions": {
+    "unavailable": "編集できません: このブラウザで {appName} の権限ルールを読み込めませんでした。",
+    "reload": "再読み込み"
   }
 }

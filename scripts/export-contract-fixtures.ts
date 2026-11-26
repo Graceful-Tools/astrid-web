@@ -127,7 +127,6 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   'repeating.json': () => runDriver('repeating.mjs', 'repeating'),
   // Permission rules branch and have precedence between them. See the driver for which branches
   // are deliberately left out — the ones no client's data can reach.
-  'permissions.json': () => runDriver('permissions.mjs', 'permissions'),
   // Which column a card is in, and what a move writes — the column id is a role rather than a list
   // id, which web itself got wrong twice.
   'board.json': () => runDriver('board.mjs', 'board'),
@@ -195,8 +194,11 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
  *   sidebar-projects.json — the sidebar's Projects section, D70 (lib/sidebar-projects.ts;
  *     tests/lib/sidebar-projects-contract-adev-14.test.ts). Copied from core 886817e7, ahead of
  *     REVISION, without moving the pin (ADEV-14); the next re-vendor brings it in with the rest.
+ *   permissions.json — list permissions, astrid-core `listAccess` (ADEV-304, step B: web has no
+ *     TypeScript rule left to run; tests/lib/core-rules-permissions-parity.test.ts replays it
+ *     through lib/list-permissions.ts with the core installed).
  */
-const CORE_OWNED = ['waiting.json', 'sidebar-projects.json'] as const
+const CORE_OWNED = ['waiting.json', 'sidebar-projects.json', 'permissions.json'] as const
 const vendoredDir = join(webRoot, 'packages', 'astrid-rules', 'fixtures')
 
 let failed = false

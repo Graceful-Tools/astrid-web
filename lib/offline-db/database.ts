@@ -212,6 +212,25 @@ class OfflineDatabase extends Dexie {
     }
   }
 
+  private loadRefresh: Promise<void> | null = null
+
+  /**
+   * The page-load cache clear, once per page (ADEV-322). The app shell starts it and every sync
+   * cursor read awaits it: a cursor read before the clear finishes outlives the cleared cache, so
+   * the delta it asks for comes back without the rows the cache no longer holds. Whether that read
+   * won the race depended on how soon TaskManager mounted. Not while offline: the cache is all
+   * the app has then (AWTD-1417).
+   */
+  clearOnPageLoad(): Promise<void> {
+    if (!this.loadRefresh) {
+      this.loadRefresh =
+        typeof navigator !== 'undefined' && !navigator.onLine
+          ? Promise.resolve()
+          : this.forceRefresh().catch(() => undefined)
+    }
+    return this.loadRefresh
+  }
+
   /**
    * Get database size information
    */

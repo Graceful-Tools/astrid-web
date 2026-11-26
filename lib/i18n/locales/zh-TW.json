@@ -3314,5 +3314,9 @@
       "listOwner": "清單擁有者",
       "taskCreator": "任務建立者"
     }
+  },
+  "permissions": {
+    "unavailable": "無法編輯：此瀏覽器無法載入 {appName} 的權限規則。",
+    "reload": "重新載入"
   }
 }

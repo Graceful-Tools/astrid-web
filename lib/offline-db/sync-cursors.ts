@@ -9,6 +9,7 @@ export class OfflineSyncCursorOperations {
    * Get cursor for entity type
    */
   static async getCursor(entity: SyncCursor['entity']): Promise<SyncCursor | undefined> {
+    await offlineDB.clearOnPageLoad()
     return await offlineDB.syncCursors.get(entity)
   }
 
@@ -27,6 +28,7 @@ export class OfflineSyncCursorOperations {
    * Get all cursors
    */
   static async getAllCursors(): Promise<SyncCursor[]> {
+    await offlineDB.clearOnPageLoad()
     return await offlineDB.syncCursors.toArray()
   }
 

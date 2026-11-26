@@ -18,6 +18,7 @@ import { parseSearchQuery, setSearchQueryCore } from '@/lib/search-query-parser'
 import { nextOccurrenceForTask, RolloverUnavailableError, setRepeatingCore } from '@/lib/repeating-rollover'
 import { boardColumnsThroughCore, setBoardCore, type CoreBoardColumn } from '@/lib/board-core-hook'
 import type { TaskNextOccurrenceInput } from '@/types/repeating'
+import { installTestListPermissionsCore } from '@/tests/helpers/list-permissions-core'
 
 /** An installed hook, called the way the hook layer once called it: with the TypeScript as a getter. */
 type Loose = (...args: unknown[]) => unknown
@@ -39,7 +40,7 @@ const DAILY: TaskNextOccurrenceInput = {
 }
 
 afterEach(() => {
-  setListPermissionsCore(null)
+  installTestListPermissionsCore()
   setSearchQueryCore(null)
   setRepeatingCore(null)
   setBoardCore(null)
@@ -84,12 +85,9 @@ describe('AWTD-1608: when the core cannot answer, the TypeScript rule IS run', (
     const decider = createListPermissionsCore(failing, quiet)
     setListPermissionsCore(decider.decide)
     expect(decider.decide({ decision: 'canManage', user: { id: 'me' }, list: OWNED_LIST })).toBeUndefined()
-    // Since ADEV-304 (step B, server half) the server refuses instead; the browser keeps the TypeScript.
+    // No TypeScript rule behind it any more (ADEV-304, ADEV-322): the check is refused.
     expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(false)
-    vi.stubGlobal('window', {})
-    expect(canUserManageList({ id: 'me' }, OWNED_LIST)).toBe(true)
-    vi.unstubAllGlobals()
-    expect(decider.stats.failed).toBe(3)
+    expect(decider.stats.failed).toBe(2)
   })
 
   it('searchParse', () => {

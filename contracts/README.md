@@ -21,7 +21,6 @@ the move, apart from the `$comment` line naming the script.
 |---|---|---|
 | `shortcuts.json` | `hooks/useKeyboardShortcuts.ts` — the `KEYBOARD_SHORTCUTS` table plus the `if (selectedTask)` guard read from the dispatch switch | `astrid_core::keyboard` |
 | `repeating.json` | `types/repeating.ts` — **executed**, not parsed: every case is run through the calculator and the results recorded | `astrid_core::repeating` |
-| `permissions.json` | `lib/list-permissions.ts` — **executed**: a case matrix recording all eight predicates per case | `astrid_core::permissions` |
 | `board.json` | `lib/project-status.ts` — **executed**: which column each card is in, what every move writes, and what a new card carries | `astrid_core::board` |
 | `statuses.json` | `lib/project-custom-states.ts` — **executed**: add, rename, reorder and remove, recording the role each add mints, every refusal and the array stored afterwards | `astrid_core::board` (the writers) |
 | `editing.json` | `lib/editing-session.ts` — **executed**: scripted begin/end/cancel/commitAll sequences ([PRODUCT_CONTRACT.md](../docs/PRODUCT_CONTRACT.md) §6) | `astrid_core::editing` |

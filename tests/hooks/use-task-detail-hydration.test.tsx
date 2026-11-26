@@ -54,7 +54,7 @@ beforeEach(() => {
 
 function mount(selectedTaskId: string, setTasks = vi.fn()) {
   return renderHook(
-    ({ id }: { id: string }) => useTaskDetailHydration({ selectedTaskId: id, setTasks }),
+    ({ id }: { id: string }) => useTaskDetailHydration({ selectedTaskId: id, selectedTaskLoaded: true, setTasks }),
     { initialProps: { id: selectedTaskId } }
   )
 }
@@ -134,6 +134,25 @@ describe('useTaskDetailHydration (AWTD-1242)', () => {
     const written = setTask.mock.calls[0][0] as Task
     expect(written.secureFiles).toHaveLength(1)
     expect(written.description).toBe('cached earlier')
+  })
+
+  it('ADEV-322: waits for the task to be in the list, then reads it', async () => {
+    // A task opened by link is selected before the list has loaded. The merge never inserts a row,
+    // so a read that returned first was applied to nothing, remembered as handled, and the pane
+    // kept the bare list row: Comments (0) for a task with comments.
+    fetchTaskDetail.mockResolvedValue(hydrated)
+    const setTasks = vi.fn()
+    const view = renderHook(
+      ({ loaded }: { loaded: boolean }) =>
+        useTaskDetailHydration({ selectedTaskId: 't1', selectedTaskLoaded: loaded, setTasks }),
+      { initialProps: { loaded: false } },
+    )
+
+    expect(fetchTaskDetail).not.toHaveBeenCalled()
+    view.rerender({ loaded: true })
+
+    await waitFor(() => expect(setTasks).toHaveBeenCalledTimes(1))
+    expect(fetchTaskDetail).toHaveBeenCalledTimes(1)
   })
 
   it('still updates rendered state when the cache read throws', async () => {

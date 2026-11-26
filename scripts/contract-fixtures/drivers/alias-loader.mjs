@@ -1,7 +1,7 @@
 // Lets a driver import astrid-web modules that use the `@/…` path alias.
 //
 // `types/repeating.ts` imports nothing, so the repeating driver could load it directly. Almost
-// everything else canonical — list-permissions, date-comparison, task-sort, the parser — imports
+// everything else canonical — date-comparison, task-sort, the parser — imports
 // `@/lib/...`, which Node cannot resolve on its own because the alias lives in astrid-web's
 // tsconfig.
 //

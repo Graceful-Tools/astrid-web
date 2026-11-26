@@ -15,7 +15,6 @@ import { useListChatChannel } from "@/hooks/use-list-chat-channel"
 import { userCanRequestListChatChannel } from "@/lib/chat-channel-eligibility"
 import type { TaskList, User } from "@/types/task"
 import { getProjectIdForBoard } from "@/lib/project-status"
-import { useBrowserCoreRules } from "@/hooks/useBrowserCoreRules"
 
 interface TaskManagerProps {
   initialSelectedListId?: string
@@ -70,7 +69,6 @@ export function TaskManager({
 
   // Business logic and data management
   usePreloadTaskDetail()
-  useBrowserCoreRules()
   const controller = useTaskManagerController({
     initialSelectedListId,
     initialSelectedTaskId,

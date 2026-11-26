@@ -3314,5 +3314,9 @@
       "listOwner": "O dono da lista",
       "taskCreator": "Quem criou a tarefa"
     }
+  },
+  "permissions": {
+    "unavailable": "A edição não está disponível: este navegador não conseguiu carregar as regras de permissão do {appName}.",
+    "reload": "Recarregar"
   }
 }

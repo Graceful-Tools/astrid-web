@@ -18,7 +18,6 @@ import {
   browserCoreRules,
   loadBrowserCoreRules,
   resetBrowserCoreRulesForTests,
-  scheduleBrowserCoreRules,
 } from '@/lib/core-rules/browser'
 import { parseTaskInput } from '@/lib/task-manager-utils'
 import { isSystemListId } from '@/lib/list-permissions'
@@ -136,7 +135,6 @@ describe('AWTD-1586: the loader', () => {
     const load = vi.fn()
     expect(await loadBrowserCoreRules({ enabled: false, load })).toBeNull()
     expect(load).not.toHaveBeenCalled()
-    expect(scheduleBrowserCoreRules(false)).toBeTypeOf('function')
   })
 
   it('resolves null, never rejects, when the module fails to load', async () => {

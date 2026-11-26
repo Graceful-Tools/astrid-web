@@ -1,8 +1,9 @@
 /**
  * AWTD-1031: the cross-platform contract fixtures are exported by THIS repo.
  *
- * The JSON astrid-core's Rust tests compile in — shortcuts, repeating, permissions, board,
- * statuses, editing, search, smart, task identifiers — is generated from astrid-web's sources.
+ * The JSON astrid-core's Rust tests compile in — shortcuts, repeating, board, statuses, editing,
+ * search, smart, task identifiers — is generated from astrid-web's sources. (permissions.json
+ * moved to astrid-core with ADEV-304: the core generates it, web vendors it.)
  * The generator used to live in the consumer (astrid-core `contracts/export-from-web.mjs`), so a
  * change here that moved a shared rule only surfaced as a red build in another repo, after the
  * fact. Owning the export here means `--check` fails in the PR that made the change.
@@ -27,7 +28,6 @@ const fixturesDir = join(repoRoot, 'contracts', 'fixtures')
 const FIXTURES = [
   'shortcuts.json',
   'repeating.json',
-  'permissions.json',
   'board.json',
   'statuses.json',
   'editing.json',

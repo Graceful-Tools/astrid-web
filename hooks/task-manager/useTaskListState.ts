@@ -119,7 +119,11 @@ export function useTaskListState({
   // occurrences the single-task route does. Opening a task reads it once and
   // folds the full shape into this state (AWTD-1242). Here rather than in the
   // controller because this hook is what owns `tasks`.
-  useTaskDetailHydration({ selectedTaskId, setTasks })
+  const selectedTaskLoaded = useMemo(
+    () => !!selectedTaskId && tasks.some(task => task.id === selectedTaskId),
+    [selectedTaskId, tasks],
+  )
+  useTaskDetailHydration({ selectedTaskId, selectedTaskLoaded, setTasks })
 
   // Current user ID
   const currentUserId = useMemo(() => effectiveSession?.user?.id || null, [effectiveSession?.user?.id])

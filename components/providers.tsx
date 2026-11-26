@@ -6,7 +6,6 @@ import { ThemeProvider } from "@/contexts/theme-context"
 import { BRAND } from "@/lib/brand/config"
 import { SettingsProvider } from "@/contexts/settings-context"
 // SSEProvider removed - now using centralized SSE Manager
-import { PWARegistration } from "@/components/pwa-registration"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
 // Stays eager so it hears an `offline` that fires before any deferred chunk arrives; it
 // loads the offline queue itself, on demand (AWTD-1604).
@@ -32,6 +31,9 @@ const CodingWorkflowListener = dynamic(() => import("@/components/coding-workflo
 // - The toast viewport: empty until something calls toast(). A toast raised before it loads
 //   is not lost: hooks/use-toast.ts keeps it in its module store, which useToast() starts from.
 const Toaster = dynamic(() => import("@/components/ui/toaster").then(m => m.Toaster), { ssr: false })
+// - Service-worker registration: draws nothing and only acts in an effect (ADEV-304 freed the
+//   first-load bytes the permissions gate needed this way).
+const PWARegistration = dynamic(() => import("@/components/pwa-registration").then(m => m.PWARegistration), { ssr: false })
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (

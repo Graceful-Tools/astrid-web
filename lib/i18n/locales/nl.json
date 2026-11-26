@@ -3314,5 +3314,9 @@
       "listOwner": "De eigenaar van de lijst",
       "taskCreator": "Wie de taak heeft gemaakt"
     }
+  },
+  "permissions": {
+    "unavailable": "Bewerken is niet beschikbaar: deze browser kon de machtigingsregels van {appName} niet laden.",
+    "reload": "Opnieuw laden"
   }
 }
