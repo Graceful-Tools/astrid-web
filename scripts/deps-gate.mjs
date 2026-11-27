@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 /**
- * ADEV-339: the Socket gate for npm packages (scripts/lib/socket-package-gate.mjs).
+ * ADEV-339: the Socket gate (scripts/lib/socket-package-gate.mjs). `check` covers npm, Rust
+ * (Cargo.lock), Gradle version catalogs and NuGet (.csproj), in this repo or any repo it is run
+ * from (the other app repos call .github/workflows/socket-gate-reusable.yml); `add` is npm's.
  *
  *   npm run deps:add -- <name>[@version] [...] [--save-dev]
  *     Resolve into package.json and package-lock.json only (nothing downloaded to node_modules,
@@ -8,7 +10,9 @@
  *     ones included, and run `npm ci` only if all pass. A refusal restores both files.
  *
  *   npm run deps:check -- [--base <git ref>]
- *     The same gate over the difference between <ref>'s lockfiles and the working tree's.
+ *     The same gate over the difference between <ref>'s package files and the working tree's:
+ *     package-lock.json, Cargo.lock, libs.versions.toml and *.csproj, wherever they are tracked.
+ *     From another repo: node ../astrid-web/scripts/deps-gate.mjs check (run in that repo).
  *     The PR check (security-gates.yml) runs this before `npm ci`. Default base: origin/main.
  *
  * Exit codes: 0 pass, 1 refused, 3 could not ask or trust the answer (also a refusal).
@@ -16,8 +20,9 @@
  */
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { parseEnv } from 'node:util'
-import { addedPackages, checkPackages, formatReport, lockfilePackages, specProblem } from './lib/socket-package-gate.mjs'
+import { GATED_FILES, addedPackages, checkPackages, formatReport, packageKey, packagesForFile, specProblem } from './lib/socket-package-gate.mjs'
 
 const EXIT_REFUSED = 1
 const EXIT_UNKNOWN = 3
@@ -26,24 +31,26 @@ function git(args, options = {}) {
   return execFileSync('git', args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, ...options })
 }
 
-function lockAt(ref, path) {
+function packagesAt(ref, path) {
+  let text
   try {
-    return lockfilePackages(JSON.parse(git(['show', `${ref}:${path}`], { stdio: ['ignore', 'pipe', 'ignore'] })))
+    text = git(['show', `${ref}:${path}`], { stdio: ['ignore', 'pipe', 'ignore'] })
   } catch {
-    return new Map() // the lockfile is new at this ref: everything in it is an addition
+    return new Map() // the file is new at this ref: everything in it is an addition
   }
+  return packagesForFile(path, text)
 }
 
-function lockOnDisk(path) {
-  return existsSync(path) ? lockfilePackages(JSON.parse(readFileSync(path, 'utf8'))) : new Map()
+function packagesOnDisk(path) {
+  return existsSync(path) ? packagesForFile(path, readFileSync(path, 'utf8')) : new Map()
 }
 
-/** Every package version the working tree's lockfiles add over `base`. */
+/** Every package version the working tree's package files add over `base`. */
 function additionsSince(base) {
-  const lockfiles = git(['ls-files', 'package-lock.json', '**/package-lock.json']).split('\n').filter(Boolean)
+  const files = git(['ls-files', ...GATED_FILES]).split('\n').filter(Boolean)
   const added = new Map()
-  for (const path of lockfiles) {
-    for (const pkg of addedPackages(lockAt(base, path), lockOnDisk(path))) added.set(`${pkg.name}@${pkg.version}`, pkg)
+  for (const path of files) {
+    for (const pkg of addedPackages(packagesAt(base, path), packagesOnDisk(path))) added.set(packageKey(pkg), pkg)
   }
   return [...added.values()]
 }
@@ -53,7 +60,11 @@ function additionsSince(base) {
  * Only these two names are read from the file, so nothing else in it reaches `npm ci`.
  */
 function socketCredentials() {
-  const local = ['.env', '.env.local'].filter((file) => existsSync(file)).map((file) => parseEnv(readFileSync(file, 'utf8')))
+  // The current repo's env files, then astrid-web's (this script's repo), so a Mac session in a
+  // sibling repo (`node ../astrid-web/scripts/deps-gate.mjs check`) finds the token too.
+  const here = ['.env', '.env.local']
+  const web = here.map((file) => fileURLToPath(new URL(`../${file}`, import.meta.url)))
+  const local = [...new Set([...web, ...here])].filter((file) => existsSync(file)).map((file) => parseEnv(readFileSync(file, 'utf8')))
   const read = (name) => process.env[name] || local.map((values) => values[name]).filter(Boolean).pop()
   return { token: read('SOCKET_API_TOKEN'), org: read('SOCKET_ORG_SLUG') }
 }
