@@ -43,7 +43,9 @@
  */
 
 import { execFileSync } from 'child_process'
-import { appendFileSync } from 'fs'
+import { appendFileSync, mkdtempSync, rmSync } from 'fs'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { isAwaitingDeployLane, parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { resolveAgentAuthorId } from './lib/agent-author'
 import { agentEmail, agentMailboxFromEmail } from '@/lib/brand/agent-emails'
@@ -86,6 +88,7 @@ import {
   tasksProductionServes,
   taskIdsInBranch,
   automaticDeployHold,
+  gatePlan,
   waitingOnChecks,
   type AwaitingDeployTask,
   type DeployRunOutcome,
@@ -156,10 +159,10 @@ function run(command: string, args: string[], timeoutMs = 120_000): string {
 }
 
 /** Run a command for its exit status only. */
-function succeeds(command: string, args: string[], timeoutMs = 600_000): boolean {
+function succeeds(command: string, args: string[], timeoutMs = 600_000, cwd = options.repo): boolean {
   try {
     execFileSync(command, args, {
-      cwd: options.repo,
+      cwd,
       encoding: 'utf8',
       timeout: timeoutMs,
       maxBuffer: 64 * 1024 * 1024,
@@ -805,8 +808,18 @@ async function main() {
   const needsGate = hasSomethingToShip && !heldByMigration
   let predeployGreen = true
   if (needsGate && options.gate && !options.dryRun) {
-    log('  running predeploy on the merged main…')
-    predeployGreen = succeeds('npm', ['run', 'predeploy'], 1_800_000)
+    // ADEV-341: gate the merged sha in a throwaway worktree, never the cwd's HEAD.
+    const plan = gatePlan({ repo: options.repo, sha, worktree: mkdtempSync(join(tmpdir(), 'land-gate-')) })
+    log(`  running predeploy on the merged main (${sha.slice(0, 8)}) in ${plan.gate.cwd}…`)
+    try {
+      rmSync(plan.gate.cwd, { recursive: true, force: true }) // git wants to create the directory
+      predeployGreen =
+        plan.setup.every(step => succeeds(step.command, step.args, 1_800_000, step.cwd)) &&
+        succeeds(plan.gate.command, plan.gate.args, 1_800_000, plan.gate.cwd)
+    } finally {
+      succeeds(plan.cleanup.command, plan.cleanup.args, 120_000, plan.cleanup.cwd)
+      rmSync(plan.gate.cwd, { recursive: true, force: true })
+    }
     log(`  predeploy ${predeployGreen ? 'green' : 'RED'}`)
   } else if (needsGate) {
     log("  gate: the workflow's own quality-gates job (skip_tests=false)")
