@@ -117,8 +117,12 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   refuses non-polling mode, restores bounded wake history, and records outcomes
   even when the harness fails. Cache state has an artifact fallback retained for
   30 days; after retention expires the next run explicitly starts fresh memory.
-  A 75-minute harness timeout leaves time for WIP preservation, claim release and
-  artifact upload within the 90-minute job. Force-cancelled/host-lost runs may
+  A 100-minute harness timeout leaves time for WIP preservation, claim release and
+  artifact upload within the 115-minute job (ADEV-338; the prompt tells the agent to push and
+  comment by minute 80). A worker reads CI logs with `npm run ci:logs -- --pr <n>`, which uses
+  the job's own token; `gh run` stays off the allowlist. A task titled `[mac]` is skipped by the
+  cloud claim. A Claude usage-limit answer in the token probe makes the worker claim nothing
+  and stay green; a refused token files the renewal task due now with a reminder. Force-cancelled/host-lost runs may
   still need the next tick's stale-Doing recovery.
 - **astrid-core tasks on an ephemeral runner** (AWTD-1682). Core work belongs to the web
   board (FIXALL_WORKFLOW.md → *astrid-core is worked by web and iOS*), so `agent-run.yml`

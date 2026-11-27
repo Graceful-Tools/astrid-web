@@ -30,6 +30,16 @@ export function isCoreCandidate(task: ClaimCandidate): boolean {
 }
 
 /**
+ * ADEV-338: a task that needs a Mac (astrid-ios sources, a device, a preview token) is titled
+ * `[mac]` or `[needs-mac]`, the way a core task is titled `[core]`. A cloud runner has none of
+ * those, so it passes the task over instead of claiming it, ending PARTIAL in two minutes and
+ * counting a release against the task.
+ */
+export function isNeedsMacCandidate(task: ClaimCandidate): boolean {
+  return /^\s*\[(?:needs-)?mac\]/i.test(task.title ?? '')
+}
+
+/**
  * ADEV-75: the task agent-run's "Take this worker's task" step already claimed for this
  * worker (slots 2..N), or undefined. A session that re-walks the queue finds that task in
  * Doing, answers NO_READY_TASK, reports SKIPPED, and the release hands the task back.

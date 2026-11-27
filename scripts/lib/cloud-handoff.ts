@@ -85,3 +85,22 @@ export function cloudHandoffEligible(input: {
   return parseBlockedConditions(comments).awaitingDeploy === headSha &&
     parseBlockedConditions(comments.filter(comment => comment.authorId === task.assignee?.id)).awaitingDeploy === headSha
 }
+
+/**
+ * Which of a branch's PRs is the handoff (ADEV-338). `gh pr list --head <branch> --state all`
+ * lists a closed PR from an earlier attempt as readily as the open one, and the runner took
+ * the first: ADEV-306's agent updated its open PR at the recorded sha, an older closed one
+ * sorted first, and the check failed the run (exit 3). The open, main-targeted PR at the
+ * recorded sha wins; then any open PR on the branch; then the first, so a branch with only a
+ * stale PR is still refused.
+ */
+export function pickHandoffPr<T extends { state: string; baseRefName: string; headRefOid: string }>(
+  prs: readonly T[],
+  awaitingSha: string | null | undefined,
+): T | undefined {
+  return (
+    prs.find(pr => pr.state === 'OPEN' && pr.baseRefName === 'main' && pr.headRefOid === awaitingSha) ??
+    prs.find(pr => pr.state === 'OPEN') ??
+    prs[0]
+  )
+}
