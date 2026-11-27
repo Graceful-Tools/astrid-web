@@ -1,4 +1,5 @@
 import { installTestListPermissionsCore } from './helpers/list-permissions-core'
+import './support/install-search-core'
 
 /**
  * Slim setup for the `node` vitest project (ADEV-295).

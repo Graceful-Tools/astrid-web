@@ -1,15 +1,14 @@
 /**
- * lib/search-query-parser.ts parsed by astrid-core — web phase 3 (AWTD-1062).
+ * lib/search-query-parser.ts parsed by astrid-core — web phase 3 (AWTD-1062), step B (ADEV-313).
  *
  * On the Node runtime, every `parseSearchQuery` call (GET /api/v1/search is the caller) is put to
- * astrid-core's `searchParse` rule, and the core's parse is returned. The TypeScript parse is the
- * fail-safe: it is returned whenever the core cannot give one (not loaded, threw, sent an error
- * envelope, or answered something that is not a parse). The server comparison was retired
- * (AWTD-1608, step A of docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md), so a query the core
- * parses runs no TypeScript; the search fixture parity test still holds the two together.
+ * astrid-core's `searchParse` rule, and the core's parse is returned. There is no TypeScript
+ * parser any more: when the core cannot give a parse (not loaded, threw, sent an error envelope, or
+ * answered something that is not a parse) the search is refused with a retryable 503
+ * (SearchUnavailableError), never a guessed parse.
  *
- * The same `ASTRID_CORE_RULES` setting chooses the mode for every rule: unset decides with the
- * core, `shadow` keeps the TypeScript deciding without asking the core, `off` loads nothing.
+ * `ASTRID_CORE_RULES=off` loads nothing, so searches are refused. `shadow` has no TypeScript left
+ * to keep deciding, so for this rule it behaves as `decide`.
  */
 import { createLogger } from '@/lib/logger'
 import { isEmptySearch, isParsedSearchQuery, setSearchQueryCore, type ParsedSearchQuery } from '@/lib/search-query-parser'
@@ -39,16 +38,17 @@ function readParse(value: unknown): ParsedSearchQuery {
 }
 
 /**
- * A {@link setSearchQueryCore} parser backed by `runJson` (astrid-core `rules::run_json`). In
- * `decide` mode it returns the core's parse, or `undefined` for the TypeScript fallback; in
- * `shadow` mode always `undefined`. A core that THROWS is switched off for the rest of the process.
+ * A {@link setSearchQueryCore} parser backed by `runJson` (astrid-core `rules::run_json`). It
+ * returns the core's parse, or `undefined` when the core cannot give one (the search is then
+ * refused). A core that THROWS is switched off for the rest of the process.
  */
 export function createSearchQueryCore(
   runJson: (request: string) => string,
   report: FailureReporter,
-  { revision = 'unknown', mode = 'decide' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
+  { revision = 'unknown' }: { revision?: string; mode?: Exclude<CoreRulesMode, 'off'> } = {},
 ) {
-  const core = createCoreAsker('searchParse', runJson, report, { revision, mode })
+  // No TypeScript is left to decide in shadow mode, so the core is always asked.
+  const core = createCoreAsker('searchParse', runJson, report, { revision, mode: 'decide' })
 
   function parse(query: string): ParsedSearchQuery | undefined {
     if (typeof query !== 'string') return core.skip()
@@ -68,8 +68,9 @@ export function searchQueryCoreStatus(): RetiredRuleStatus | null {
 }
 
 /**
- * Load the vendored core and install it as the parser behind lib/search-query-parser.ts. Called
- * from instrumentation.ts on the Node runtime. Returns whether the core is installed; never throws.
+ * Load the vendored core and install it as the only parser behind lib/search-query-parser.ts.
+ * Called from instrumentation.ts on the Node runtime. Returns whether the core is installed; never
+ * throws.
  */
 export function installSearchQueryCore(setting: string | undefined = process.env.ASTRID_CORE_RULES): boolean {
   const mode = coreRulesModeFrom(setting)
@@ -83,13 +84,14 @@ export function installSearchQueryCore(setting: string | undefined = process.env
   try {
     const core = loadCoreRules()
     if (!core) {
-      log.error({ mode }, 'packages/astrid-rules did not load; search queries are parsed by the TypeScript')
+      setSearchQueryCore(null)
+      log.error({ mode }, 'packages/astrid-rules did not load; searches are refused')
       return false
     }
     const parser = createSearchQueryCore(
       core.runJson,
       {
-        failure: (details) => log.error(details, 'search query: astrid-core could not parse; the TypeScript parse was used'),
+        failure: (details) => log.error(details, 'search query: astrid-core could not parse; the search was refused'),
       },
       { revision: core.revision, mode },
     )
@@ -100,7 +102,7 @@ export function installSearchQueryCore(setting: string | undefined = process.env
   } catch (error) {
     setSearchQueryCore(null)
     try {
-      log.error({ err: error, mode }, 'search query: astrid-core install failed; the TypeScript parses')
+      log.error({ err: error, mode }, 'search query: astrid-core install failed; searches are refused')
     } catch {
       // Never fatal.
     }

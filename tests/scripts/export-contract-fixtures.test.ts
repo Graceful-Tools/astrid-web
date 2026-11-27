@@ -31,7 +31,6 @@ const FIXTURES = [
   'board.json',
   'statuses.json',
   'editing.json',
-  'search.json',
   'smart.json',
   'task-identifiers.json',
   'wire-shapes.json',

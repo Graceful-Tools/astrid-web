@@ -1,12 +1,18 @@
 // @vitest-environment node
 /**
- * astrid-core parses search queries on the server (AWTD-1062) — and fails safe. Whatever the core
- * does short of answering (cannot load, throws, answers garbage or an error envelope),
- * parseSearchQuery returns the TypeScript parse, and nothing escapes to GET /api/v1/search. When
- * it does answer, its parse is returned and the TypeScript is not run (AWTD-1608).
+ * astrid-core parses search queries on the server (AWTD-1062) and nothing else does (ADEV-313).
+ * Whatever the core does short of answering (cannot load, throws, answers garbage or an error
+ * envelope), parseSearchQuery throws SearchUnavailableError, which GET /api/v1/search turns into a
+ * retryable 503. When it does answer, its parse is returned.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { parseSearchQuery, setSearchQueryCore, type ParsedSearchQuery } from '@/lib/search-query-parser'
+import {
+  parseSearchQuery,
+  SearchUnavailableError,
+  setSearchQueryCore,
+  type ParsedSearchQuery,
+} from '@/lib/search-query-parser'
+import { installTestSearchCore } from '@/tests/support/install-search-core'
 import {
   createSearchQueryCore,
   installSearchQueryCore,
@@ -33,7 +39,7 @@ const EMPTY: ParsedSearchQuery = {
 const answering = (value: Record<string, unknown>) => vi.fn(() => JSON.stringify({ ok: true, value }))
 
 afterEach(() => {
-  setSearchQueryCore(null)
+  installTestSearchCore()
   vi.doUnmock('@/lib/core-rules/wasm')
   vi.resetModules()
 })
@@ -53,17 +59,16 @@ describe('the core parses', () => {
     expect(report.failure).not.toHaveBeenCalled()
   })
 
-  it('in shadow mode, does not ask the core: the TypeScript parses', () => {
+  it('in shadow mode, still asks the core: no TypeScript is left to decide (ADEV-313)', () => {
     const core = answering({ ...EMPTY, text: 'from-core', isEmpty: false })
     const parser = createSearchQueryCore(core, silentReporter(), { mode: 'shadow' })
     setSearchQueryCore(parser.parse)
-    expect(parseSearchQuery('rollover').text).toBe('rollover')
-    expect(core).not.toHaveBeenCalled()
-    expect(parser.stats).toEqual({ answered: 0, skipped: 1, failed: 0 })
+    expect(parseSearchQuery('rollover').text).toBe('from-core')
+    expect(parser.stats).toEqual({ answered: 1, skipped: 0, failed: 0 })
   })
 })
 
-describe('the TypeScript answer stands whenever the core cannot give one', () => {
+describe('the search is refused whenever the core cannot give a parse (ADEV-313)', () => {
   const cases: Array<[string, (request: string) => string]> = [
     ['an error envelope', () => JSON.stringify({ ok: false, error: { kind: 'badRequest' } })],
     ['not JSON', () => 'nonsense'],
@@ -77,7 +82,7 @@ describe('the TypeScript answer stands whenever the core cannot give one', () =>
     const report = silentReporter()
     const parser = createSearchQueryCore(runJson, report)
     setSearchQueryCore(parser.parse)
-    expect(parseSearchQuery('assignee:me rollover')).toEqual({ ...EMPTY, assignee: 'me', text: 'rollover' })
+    expect(() => parseSearchQuery('assignee:me rollover')).toThrow(SearchUnavailableError)
     expect(parser.stats.failed).toBe(1)
     expect(report.failure).toHaveBeenCalledTimes(1)
   })
@@ -88,8 +93,8 @@ describe('the TypeScript answer stands whenever the core cannot give one', () =>
     })
     const parser = createSearchQueryCore(runJson, silentReporter())
     setSearchQueryCore(parser.parse)
-    expect(parseSearchQuery('a').text).toBe('a')
-    expect(parseSearchQuery('b').text).toBe('b')
+    expect(() => parseSearchQuery('a')).toThrow(SearchUnavailableError)
+    expect(() => parseSearchQuery('b')).toThrow(SearchUnavailableError)
     expect(runJson).toHaveBeenCalledTimes(1)
     expect(parser.stats.failed).toBe(2)
   })
@@ -98,9 +103,14 @@ describe('the TypeScript answer stands whenever the core cannot give one', () =>
     setSearchQueryCore(() => {
       throw new Error('boom')
     })
-    expect(parseSearchQuery('due:today').due).toBe('today')
+    expect(() => parseSearchQuery('due:today')).toThrow(SearchUnavailableError)
     setSearchQueryCore(() => ({ nonsense: true }) as unknown as ParsedSearchQuery)
-    expect(parseSearchQuery('due:today').due).toBe('today')
+    expect(() => parseSearchQuery('due:today')).toThrow(SearchUnavailableError)
+  })
+
+  it('is refused when no core is installed', () => {
+    setSearchQueryCore(null)
+    expect(() => parseSearchQuery('due:today')).toThrow(SearchUnavailableError)
   })
 })
 
@@ -117,7 +127,7 @@ describe('installSearchQueryCore', () => {
     expect(searchQueryCoreStatus()).toMatchObject({ mode: 'off', loaded: false })
   })
 
-  it('leaves the TypeScript parsing when the build does not load', async () => {
+  it('leaves searches refused when the build does not load', async () => {
     vi.resetModules()
     vi.doMock('@/lib/core-rules/wasm', () => ({ loadCoreRules: () => null }))
     const fresh = await import('@/lib/core-rules/search-query-core')

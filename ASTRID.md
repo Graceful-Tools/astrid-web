@@ -102,7 +102,6 @@ the fixture is regenerated in the same PR:
 | `board.json` | `lib/project-status.ts` |
 | `statuses.json` | `lib/project-custom-states.ts`, `lib/task-status.ts` |
 | `editing.json` | `lib/editing-session.ts` |
-| `search.json` | `lib/search-query-parser.ts` |
 | `smart.json` | `lib/task-manager-utils.ts` (`parseTaskInput`), `lib/i18n/nlp-keywords.ts` |
 | `task-identifiers.json` | `tests/fixtures/task-identifiers.json` |
 | `manual-order.json` | `lib/list-manual-order.ts`, `lib/task-sort.ts` |

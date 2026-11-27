@@ -136,9 +136,6 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
   // "What happens to my edit when I click elsewhere" (docs/PRODUCT_CONTRACT.md §6): four
   // transitions and their interactions, run through scripted sequences.
   'editing.json': () => runDriver('editing.mjs', 'editing'),
-  // The search box's grammar — aliases, quoting, the identifier shape, the unknown-key fallback
-  // (task 5df85b9f).
-  'search.json': () => runDriver('search.mjs', 'search'),
   // The quick-add box's natural language, in twelve languages, under a pinned clock, with the
   // keyword tables beside the answers so a client reads the same words.
   'smart.json': () => runDriver('smart.mjs', 'smart'),
@@ -197,8 +194,11 @@ const EXPORTS: Record<string, () => Record<string, unknown>> = {
  *   permissions.json — list permissions, astrid-core `listAccess` (ADEV-304, step B: web has no
  *     TypeScript rule left to run; tests/lib/core-rules-permissions-parity.test.ts replays it
  *     through lib/list-permissions.ts with the core installed).
+ *   search.json — the search box's grammar, astrid-core `searchParse` (ADEV-305 core half, ADEV-313
+ *     step B: web has no TypeScript parser left; tests/lib/core-rules-search-parity.test.ts replays
+ *     it through parseSearchQuery with the core installed).
  */
-const CORE_OWNED = ['waiting.json', 'sidebar-projects.json', 'permissions.json'] as const
+const CORE_OWNED = ['waiting.json', 'sidebar-projects.json', 'permissions.json', 'search.json'] as const
 const vendoredDir = join(webRoot, 'packages', 'astrid-rules', 'fixtures')
 
 let failed = false
