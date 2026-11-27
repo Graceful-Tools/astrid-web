@@ -511,7 +511,7 @@ targeted pass as the final gate.
 The manually dispatched `predeploy.yml` workflow defaults to `predeploy:full` and runs
 on GitHub-hosted `ubuntu-26.04` (the Mac's `astrid-web` runner was retired, AWTD-1363).
 
-### Adding or upgrading npm packages: the Socket gate (ADEV-339)
+### Adding or upgrading packages, on every platform: the Socket gate (ADEV-339)
 
 No package version is installed unless [Socket](https://socket.dev) has analyzed it and reports
 no blocking risk (Jon, 2026-11-27). Use the gate, not `npm install <package>`:
@@ -519,20 +519,33 @@ no blocking risk (Jon, 2026-11-27). Use the gate, not `npm install <package>`:
 | Command | What it does |
 |---------|--------------|
 | `npm run deps:add -- <name>@<version> [--save-dev]` | Resolves into `package.json` and the lockfile only, asks Socket about every package version that would be new (transitive ones included), and runs `npm ci` only if all pass. A refusal restores both files. Registry names only: no git, URL, alias or path specs |
-| `npm run deps:check -- [--base <ref>]` | The same gate over the lockfile diff against `<ref>` (default `origin/main`). The `socket-package-gate` job in `security-gates.yml` runs it on every PR, before anything is installed, so Dependabot and hand-made changes are covered too |
+| `npm run deps:check -- [--base <ref>]` | The same gate over the diff of every package file against `<ref>` (default `origin/main`): `package-lock.json`, `Cargo.lock`, Gradle `libs.versions.toml` and NuGet `*.csproj`. The `socket-package-gate` job in `security-gates.yml` runs it on every PR, before anything is installed, so Dependabot and hand-made changes are covered too |
+| `node ../astrid-web/scripts/deps-gate.mjs check` | The same check from a sibling repo (astrid-core, astrid-ios, astrid-android, astrid-windows), run in that repo after `cargo add`, a version-catalog edit or a `PackageReference` change. It finds the token in astrid-web's `.env.local` |
+
+**Every app repo runs it.** astrid-core, astrid-ios, astrid-android and astrid-windows each have a
+`socket-package-gate.yml` that calls `.github/workflows/socket-gate-reusable.yml` here with
+`secrets: inherit`, so the gate is one piece of code. Coverage per ecosystem: npm and Rust read
+lockfiles, so transitive versions are checked; Gradle reads the version catalog and NuGet reads
+`PackageReference`s, so only declared versions are (neither repo commits a lockfile yet). Our own
+crates pinned by git (`github.com/Graceful-Tools/...`) are skipped; anyone else's git crate is
+refused. A version Socket sees for the first time is refused as "not analyzed yet" while Socket
+scans it; re-run the check a few minutes later.
 
 **What is refused** (`scripts/lib/socket-package-gate.mjs`): known or AI-detected malware and
 possible typosquats, always; any alert the Socket security policy marks `error`; any `critical`
 alert; any `high` supply-chain alert; a version that does not come from the npm registry; and
-any version Socket has not finished analyzing or does not know. To tighten the rule, change the
+any version Socket has not finished analyzing or does not know. Checked live on 2026-11-27
+against npm, crates.io, Maven Central and NuGet. To tighten the rule, change the
 security policy in the Socket dashboard: an alert set to `error` there blocks here.
 
 **It fails closed.** No token, a failed request, a quota 429 or an answer missing the canary
 package all exit 3, which is a refusal. It needs `SOCKET_API_TOKEN` (scope `packages:list`) and
-`SOCKET_ORG_SLUG`: in `.env.local` for local use, and as GitHub secrets in three places —
-repository Actions secrets, Dependabot secrets (Dependabot's PRs cannot read Actions secrets),
-and the `agent` environment. Each run with new packages is one request of 100 quota units;
-Socket's free plan allows 500 an hour.
+`SOCKET_ORG_SLUG`: in astrid-web's `.env.local` for local use, and as **Graceful-Tools
+organisation secrets**, both Actions and Dependabot (Dependabot's PRs cannot read Actions
+secrets). Organisation secrets reach every repo and astrid-web's `agent` environment, so there is
+one copy to renew. Each run with new packages is one request of 100 quota units; Socket's free
+plan allows 500 an hour, about five runs, shared by all five repos. A 429 is a refusal: re-run
+after the hour.
 
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.

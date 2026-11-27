@@ -1,0 +1,56 @@
+name: Socket package gate (reusable)
+
+# ADEV-339: the one Socket gate every app repo runs on its pull requests. astrid-core,
+# astrid-ios, astrid-android and astrid-windows call this with `secrets: inherit`, so the
+# organisation secrets SOCKET_API_TOKEN / SOCKET_ORG_SLUG reach it and the gate's code lives in
+# one place (scripts/deps-gate.mjs, scripts/lib/socket-package-gate.mjs). It reads npm, Rust,
+# Gradle version catalog and NuGet files and fails closed: no token, no answer, or a version
+# Socket has not analyzed is a refusal.
+#
+# Layout: the gate (with astrid-web's .nvmrc, the one Node version, AWTD-1382) at the workspace
+# root, and the calling repository in `repo/`, where the check runs.
+
+on:
+  workflow_call:
+    secrets:
+      SOCKET_API_TOKEN:
+        required: false
+      SOCKET_ORG_SLUG:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  socket-package-gate:
+    name: socket-package-gate
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the gate (astrid-web)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Graceful-Tools/astrid-web
+          ref: main
+          sparse-checkout: |
+            .nvmrc
+            scripts/deps-gate.mjs
+            scripts/lib/socket-package-gate.mjs
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+      - name: Check out the calling repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: repo
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Check new package versions with Socket
+        working-directory: repo
+        env:
+          SOCKET_API_TOKEN: ${{ secrets.SOCKET_API_TOKEN }}
+          SOCKET_ORG_SLUG: ${{ secrets.SOCKET_ORG_SLUG }}
+          BASE_REF: ${{ github.base_ref || 'main' }}
+        run: node ../scripts/deps-gate.mjs check --base "origin/${BASE_REF}"

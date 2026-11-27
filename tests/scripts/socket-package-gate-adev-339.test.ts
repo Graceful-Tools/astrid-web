@@ -147,3 +147,117 @@ describe('asking Socket fails closed', () => {
     await expect(checkPackages(packages, options(respond('')))).rejects.toThrow(/canary/)
   })
 })
+
+// ADEV-339, cross-platform: every repo's package manager goes through the same gate.
+import { cargoLockPackages, csprojPackages, versionCatalogPackages, packagesForFile } from '@/scripts/lib/socket-package-gate.mjs'
+
+describe('cross-platform: Rust, Gradle and NuGet package versions', () => {
+  const CARGO_LOCK = `version = 4
+
+[[package]]
+name = "astrid-android-contracts"
+version = "0.1.0"
+
+[[package]]
+name = "serde"
+version = "1.0.215"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "abc"
+
+[[package]]
+name = "itoa"
+version = "1.0.11"
+source = "sparse+https://index.crates.io/"
+
+[[package]]
+name = "astrid-core"
+version = "0.1.0"
+source = "git+https://github.com/Graceful-Tools/astrid-core.git?rev=ccfe7f7#ccfe7f784a16"
+
+[[package]]
+name = "sketchy"
+version = "0.2.0"
+source = "git+https://github.com/someone/sketchy.git#deadbeef"
+`
+
+  it('reads crates.io packages from Cargo.lock, skips the workspace and our own git crates, and flags other git sources', () => {
+    const found = [...cargoLockPackages(CARGO_LOCK).values()]
+    expect(found.map((p) => `${p.name}@${p.version}`)).toEqual(['serde@1.0.215', 'itoa@1.0.11', 'sketchy@0.2.0'])
+    expect(found.every((p) => p.ecosystem === 'cargo')).toBe(true)
+    expect(found[2].notRegistry).toMatch(/someone\/sketchy/)
+    expect(purl(found[0])).toBe('pkg:cargo/serde@1.0.215')
+  })
+
+  const CATALOG = `[versions]
+kotlin = "2.1.0"
+coreKtx = "1.15.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+okhttp = { module = "com.squareup.okhttp3:okhttp", version = "4.12.0" }
+junit = "junit:junit:4.13.2"
+compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2024.12.01" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+
+[plugins]
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+`
+
+  it('reads versioned libraries from a Gradle version catalog, all three notations, and skips BOM-managed ones', () => {
+    const found = [...versionCatalogPackages(CATALOG).values()]
+    expect(found.map((p) => `${p.name}@${p.version}`).sort()).toEqual([
+      'androidx.compose:compose-bom@2024.12.01',
+      'androidx.core:core-ktx@1.15.0',
+      'com.squareup.okhttp3:okhttp@4.12.0',
+      'junit:junit@4.13.2',
+    ])
+    expect(purl(found.find((p) => p.name === 'androidx.core:core-ktx')!)).toBe('pkg:maven/androidx.core/core-ktx@1.15.0')
+  })
+
+  it('reads PackageReference versions from a .csproj, attribute or element form', () => {
+    const csproj = `<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Version="1.6.241114003" Include="Microsoft.WindowsAppSDK" />
+    <PackageReference Include="xunit">
+      <Version>2.9.2</Version>
+    </PackageReference>
+    <ProjectReference Include="..\\Astrid.Core.Bindings\\Astrid.Core.Bindings.csproj" />
+  </ItemGroup>
+</Project>`
+    const found = [...csprojPackages(csproj).values()]
+    expect(found.map((p) => `${p.name}@${p.version}`)).toEqual(['Newtonsoft.Json@13.0.3', 'Microsoft.WindowsAppSDK@1.6.241114003', 'xunit@2.9.2'])
+    expect(purl(found[0])).toBe('pkg:nuget/Newtonsoft.Json@13.0.3')
+  })
+
+  it('picks the parser by file name, and ignores files it does not know', () => {
+    expect(packagesForFile('core/Cargo.lock', CARGO_LOCK).size).toBe(3)
+    expect(packagesForFile('gradle/libs.versions.toml', CATALOG).size).toBe(4)
+    expect(packagesForFile('app/Astrid.App/Astrid.App.csproj', '<PackageReference Include="A" Version="1.0.0" />').size).toBe(1)
+    expect(packagesForFile('package-lock.json', JSON.stringify({ packages: { 'node_modules/a': { version: '1.0.0' } } })).size).toBe(1)
+    expect(packagesForFile('README.md', '# hi').size).toBe(0)
+  })
+
+  it('matches Socket’s answers for each ecosystem, however it cases the name, and refuses a crate from someone else’s git', () => {
+    const serde = { name: 'serde', version: '1.0.215', ecosystem: 'cargo' } as const
+    const okhttp = { name: 'com.squareup.okhttp3:okhttp', version: '4.12.0', ecosystem: 'maven' } as const
+    const json = { name: 'Newtonsoft.Json', version: '13.0.3', ecosystem: 'nuget' } as const
+    const sketchy = { name: 'sketchy', version: '0.2.0', ecosystem: 'cargo', notRegistry: 'git+https://github.com/someone/sketchy.git' } as const
+    const lines = [
+      { type: 'cargo', name: 'serde', version: '1.0.215', score: SCORE, alerts: [{ type: 'installScripts', severity: 'middle', action: 'ignore' }] },
+      { type: 'maven', namespace: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.0', score: SCORE, alerts: [] },
+      { type: 'nuget', name: 'newtonsoft.json', version: '13.0.3', score: SCORE, alerts: [] },
+      { type: 'cargo', name: 'sketchy', version: '0.2.0', score: SCORE, alerts: [] },
+    ]
+    const verdicts = judge([serde, okhttp, json, sketchy], lines)
+    expect(verdicts.map((v) => v.ok)).toEqual([true, true, true, false])
+    expect(verdicts[3].reasons.join(' ')).toMatch(/not from the cargo registry/)
+  })
+
+  it('says a first-seen version is being analyzed and to re-run, rather than only "not analyzed"', () => {
+    const fresh = { name: 'serde', version: '1.0.999', ecosystem: 'cargo' } as const
+    const [verdict] = judge([fresh], [{ type: 'cargo', name: 'serde', version: '1.0.999', alerts: [{ type: 'pendingScan', severity: 'middle' }] }])
+    expect(verdict.ok).toBe(false)
+    expect(verdict.reasons.join(' ')).toMatch(/re-run in a few minutes/)
+  })
+})
