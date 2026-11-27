@@ -50,3 +50,34 @@ describe('ADEV-99 hosted /mcp calls its own origin, not the brand domain', () =>
     expect(mcpRequestBaseUrl(req)).toBe('https://app.example')
   })
 })
+
+describe('ADEV-337 a preview hops to itself, not to production', () => {
+  const prodEnv = () => {
+    vi.stubEnv('ASTRID_API_BASE_URL', 'https://www.astrid.cc')
+    vi.stubEnv('NEXTAUTH_URL', 'https://www.astrid.cc')
+  }
+
+  it('resolves the hosted backend to the preview branch origin', () => {
+    prodEnv()
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    vi.stubEnv('VERCEL_BRANCH_URL', 'adev-314-mcp-hop.astrid.cc')
+    vi.stubEnv('VERCEL_URL', 'astrid-web-abc.vercel.app')
+    expect(mcpHostedBaseUrl()).toBe('https://adev-314-mcp-hop.astrid.cc')
+  })
+
+  it('falls back to VERCEL_URL and names the preview in the OAuth challenge', () => {
+    prodEnv()
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    vi.stubEnv('VERCEL_BRANCH_URL', '')
+    vi.stubEnv('VERCEL_URL', 'astrid-web-abc.vercel.app')
+    expect(mcpHostedBaseUrl()).toBe('https://astrid-web-abc.vercel.app')
+    expect(mcpRequestBaseUrl({ headers: {} } as never)).toBe('https://astrid-web-abc.vercel.app')
+  })
+
+  it('leaves production unchanged', () => {
+    prodEnv()
+    vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('VERCEL_URL', 'astrid-web-abc.vercel.app')
+    expect(mcpHostedBaseUrl()).toBe('https://www.astrid.cc')
+  })
+})

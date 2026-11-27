@@ -319,7 +319,28 @@ export function mcpDefaultBaseUrl(): string {
  * dev machine NEXTAUTH_URL is localhost and they must still reach the real API.
  */
 export function mcpHostedBaseUrl(): string {
-  return process.env.ASTRID_API_BASE_URL?.trim() || nextAuthOrigin() || brandOrigin()
+  return previewOrigin() || process.env.ASTRID_API_BASE_URL?.trim() || nextAuthOrigin() || brandOrigin()
+}
+
+/**
+ * A Vercel preview's own origin (`VERCEL_BRANCH_URL`, else `VERCEL_URL`), or null off
+ * previews. Previews inherit production's NEXTAUTH_URL / ASTRID_API_BASE_URL, so the hosted
+ * /mcp hop would otherwise read and write production from a preview (ADEV-337).
+ */
+export function previewOrigin(): string | null {
+  if (process.env.VERCEL_ENV !== 'preview') return null
+  const host = (process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL)?.trim()
+  if (!host) return null
+  try {
+    return new URL(/^https?:\/\//.test(host) ? host : `https://${host}`).origin
+  } catch {
+    return null
+  }
+}
+
+/** This deployment's own origin: the preview's, else the operator-configured one. */
+export function deploymentOrigin(): string | null {
+  return previewOrigin() || nextAuthOrigin()
 }
 
 /**

@@ -1,6 +1,6 @@
 import type { NextApiRequest } from "next"
 import { NextRequest } from "next/server"
-import { BRAND, brandOrigin, mcpHostedBaseUrl, nextAuthOrigin } from "@/lib/brand/config"
+import { BRAND, brandOrigin, deploymentOrigin, mcpHostedBaseUrl } from "@/lib/brand/config"
 import { authenticateAPI, UnauthorizedError } from "@/lib/api-auth-middleware"
 import { sameOrigin } from "@/lib/auth-host"
 import type { AstridMCPServerOptions } from "../../mcp/mcp-server-oauth"
@@ -17,7 +17,7 @@ export function mcpAuthChallenge(baseUrl: string, invalidToken = false): string 
 
 export function mcpRequestBaseUrl(req: NextApiRequest): string {
   // Behind a proxy the Host header may be `localhost`; the configured origin is public (ADEV-99).
-  const configured = nextAuthOrigin()
+  const configured = deploymentOrigin()
   if (configured) return configured
   const host = req.headers.host || BRAND.domain
   const proto = host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https"
@@ -26,7 +26,7 @@ export function mcpRequestBaseUrl(req: NextApiRequest): string {
 
 export async function validateMCPAuthContext(
   options: AstridMCPServerOptions,
-  localOrigin = nextAuthOrigin() ?? brandOrigin(),
+  localOrigin = deploymentOrigin() ?? brandOrigin(),
 ): Promise<void> {
   const baseUrl = options.baseUrl || mcpHostedBaseUrl()
   mcpBackendUrl(baseUrl)
