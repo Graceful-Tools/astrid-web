@@ -528,7 +528,7 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     expect(checkout.run).toContain("'!gh auth git-credential'")
     expect(checkout.run).toContain('push --dry-run')
     expect(checkout.run).toMatch(/::error::\$\{MESSAGE\}/)
-    expect(checkout.run).toContain('Contents and Pull requests read/write (no Actions)')
+    expect(checkout.run).toContain('Contents and Pull requests read/write, Actions read-only')
     expect(yaml.load(read(AGENT_RUN)).jobs.run.env.ASTRID_CORE_REPO).toBe('Graceful-Tools/astrid-core')
   })
 

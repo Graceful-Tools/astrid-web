@@ -172,8 +172,8 @@ or device activation is implied by these repository changes.
    duplicate same-name lists must be resolved explicitly, never first-match.
 3. For optional Claude/Codex dispatches, the `agent` environment holds Astrid
    OAuth and `AGENT_GH_TOKEN` (a fine-grained token over the Graceful-Tools app repos,
-   astrid-core included, with Contents + Pull requests + Workflows read/write, no org
-   permissions and **no Actions access**; a PR touching `.github/` is never auto-merged). Subscription login configuration is unchanged.
+   astrid-core included, with Contents + Pull requests + Workflows read/write, **Actions
+   read-only** (for `npm run ci:logs`, ADEV-340), and no org permissions; a PR touching `.github/` is never auto-merged). Subscription login configuration is unchanged.
    `agent-run.yml` runs on a schedule (:05/:35, claude-code) since 2026-10-28, chains itself through a `repository_dispatch` that this same token sends, and can still be dispatched; it does not run Copilot CLI.
 4. For the selected **GitHub issue-assigned coding agent**, provision
    `COPILOT_DISPATCH_TOKEN` only in `copilot-bridge`. GitHub requires a real
@@ -311,8 +311,10 @@ nothing. On 2026-11-24 it was renewed twice that way while the runs kept reading
 
 - `AGENT_GH_TOKEN` (in `.env.cloud`): a fine-grained token over the Graceful-Tools app repos
   (astrid-web, astrid-core, astrid-ios, astrid-android, astrid-windows, gracefultools.com),
-  with **Contents**, **Pull requests** and **Workflows** read/write, no org permissions and
-  **no Actions** access. Workflows lets an agent push changes under `.github/workflows/`, so
+  with **Contents**, **Pull requests** and **Workflows** read/write, **Actions** read-only (so
+  `npm run ci:logs` can read failed-check logs on every app repo; added 2026-11-27, ADEV-340), and
+  no org permissions. Never give it Actions write: an agent could then re-run or dispatch
+  workflows. Workflows lets an agent push changes under `.github/workflows/`, so
   the ship bot (`scripts/land-and-deploy.ts`) never auto-merges a web or core PR that touches
   `.github/`, or one whose changed files it could not read in full; a human merges those
   (ADEV-42). Without it the agent's PRs get no CI, because GitHub doesn't run workflows on events
