@@ -1,5 +1,6 @@
 import { brandIconUrl } from '@/lib/brand/icons'
-import webpush from 'web-push'
+// web-push 4 is ESM with named exports only; a default import is undefined.
+import * as webpush from 'web-push'
 import { prisma as defaultPrisma } from '@/lib/prisma'
 import { decryptField } from '@/lib/field-encryption'
 import type { PushNotificationPayload } from '@/types/reminder'

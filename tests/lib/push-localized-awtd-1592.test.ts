@@ -25,13 +25,12 @@ const { sent, userLocale, prismaMock } = vi.hoisted(() => {
   }
 })
 
+// web-push 4 is ESM with named exports only (no default).
 vi.mock('web-push', () => ({
-  default: {
-    setVapidDetails: vi.fn(),
-    sendNotification: vi.fn(async (_sub: unknown, body: string) => {
-      sent.push(JSON.parse(body))
-    }),
-  },
+  setVapidDetails: vi.fn(),
+  sendNotification: vi.fn(async (_sub: unknown, body: string) => {
+    sent.push(JSON.parse(body))
+  }),
 }))
 vi.mock('@/lib/field-encryption', () => ({ decryptField: (v: string) => v }))
 
