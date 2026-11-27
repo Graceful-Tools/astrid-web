@@ -101,6 +101,10 @@ export const sharedResolve = {
 
 /** The base every config merges. */
 export const sharedTestConfig = defineConfig({
+  // Tests never apply the app's CSS (jsdom has no stylesheet), and postcss.config.mjs is written
+  // for Turbopack: a plugin name and an imported plugin, a mix Vite's loader rejects (ADEV-334).
+  // Tests that need the real CSS compile it themselves (tests/styles/compile-tailwind.ts).
+  css: { postcss: { plugins: [] } },
   test: {
     globals: true,
     setupFiles: ['./tests/setup.ts'],

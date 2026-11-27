@@ -7,7 +7,7 @@
 import { resolve } from 'node:path'
 import postcss from 'postcss'
 import tailwindcss from '@tailwindcss/postcss'
-import siblingSpacing from '../../lib/design/tailwind-v3-sibling-spacing.cjs'
+import siblingSpacing from '../../lib/design/tailwind-v3-sibling-spacing.mjs'
 
 const root = resolve(__dirname, '../..')
 

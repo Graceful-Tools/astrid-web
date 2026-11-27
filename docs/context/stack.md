@@ -29,7 +29,7 @@
 - **Test Utilities**: React Testing Library 16.3.3
 
 ## UI & Styling
-- **Styling**: Tailwind CSS 3.4.17
+- **Styling**: Tailwind CSS 4.3.5
 - **Components**: Radix UI primitives (Shadcn/ui)
 - **Icons**: Lucide React 1.77.0 (brand glyphs in `components/ui/brand-icons.tsx` — v1 dropped them)
 - **Forms**: Zod 4.6.6 for validation (no form library)
@@ -38,7 +38,7 @@
 - **Bundler**: Next.js built-in (Turbopack in dev)
 - **ESLint**: ESLint 10.15.0
 - **TypeScript**: Strict mode
-- **PostCSS**: the Tailwind CSS plugin only
+- **PostCSS**: `@tailwindcss/postcss`, then `lib/design/tailwind-v3-sibling-spacing.mjs` (keeps v3's `space-*`/`divide-*` rule)
 
 ## AI & Automation
 - **OpenAI**: Chat Completions API, called with fetch (no SDK)

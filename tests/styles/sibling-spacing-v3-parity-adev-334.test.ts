@@ -3,13 +3,12 @@
  * margin/border" to "every child but the last gets an end margin/border". The first child of a
  * `space-x-3` row then gets a 12px end margin that overrides its own `-m-2`, which moved every task
  * row 16px right in the Tailwind 3 → 4 screenshot comparison. The build keeps v3's rule
- * (lib/design/tailwind-v3-sibling-spacing.cjs); these tests read the CSS the classes compile to.
+ * (lib/design/tailwind-v3-sibling-spacing.mjs); these tests read the CSS the classes compile to.
  */
-import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import postcss from 'postcss'
-import siblingSpacing from '../../lib/design/tailwind-v3-sibling-spacing.cjs'
+import siblingSpacing from '../../lib/design/tailwind-v3-sibling-spacing.mjs'
 import { compileClasses } from './compile-tailwind'
 
 const V3 = ' > :not([hidden]) ~ :not([hidden])'
@@ -76,11 +75,8 @@ describe('space-* and divide-* keep the Tailwind 3 sibling rule (ADEV-334)', () 
     expect(body).not.toContain('margin-inline')
   })
 
-  it('runs in the build, after Tailwind', () => {
-    const config = readFileSync(resolve(__dirname, '../../postcss.config.mjs'), 'utf8')
-    const tailwind = config.indexOf("'@tailwindcss/postcss'")
-    const parity = config.indexOf('siblingSpacing,')
-    expect(tailwind).toBeGreaterThan(-1)
-    expect(parity).toBeGreaterThan(tailwind)
+  it('runs in the build, after Tailwind', async () => {
+    const { default: config } = await import('@/postcss.config.mjs')
+    expect(config.plugins).toEqual(['@tailwindcss/postcss', siblingSpacing])
   })
 })
