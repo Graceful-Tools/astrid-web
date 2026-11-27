@@ -516,9 +516,9 @@ export function WebhookSettingsManager() {
               <div className={`p-4 rounded-lg ${testResult.success ? 'bg-success-subtle border border-success/30' : 'bg-danger-subtle border border-danger/30'}`}>
                 <div className="flex items-start gap-2">
                   {testResult.success ? (
-                    <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
                   ) : (
-                    <AlertCircle className="w-5 h-5 text-danger flex-shrink-0" />
+                    <AlertCircle className="w-5 h-5 text-danger shrink-0" />
                   )}
                   <div>
                     <p className={`font-medium ${testResult.success ? 'text-success' : 'text-danger'}`}>

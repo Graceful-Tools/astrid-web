@@ -624,7 +624,7 @@ export function MainContent({
                           </Button>
                         </div>
                       ) : (
-                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left line-clamp-2 break-words ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
+                        <h1 className={`text-2xl font-semibold tracking-tight theme-text-primary mb-1 text-left line-clamp-2 wrap-break-word ${!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? 'cursor-pointer hover:theme-text-secondary' : ''}`}
                             onClick={!newFilterState.filters.search.trim() && canEditListSettingsMemo(currentList) && !isViewingFromFeatured ? () => handleEditListName(currentList) : undefined}>
                           {newFilterState.filters.search.trim() ? t('search.resultsTitle') : currentList.name}
                         </h1>
@@ -649,7 +649,7 @@ export function MainContent({
                     {/* View toggle, sort & filters, settings — compact so the name keeps
                         the room (AWTD-1155). The funnel sits beside the gear at every
                         width now (AWTD-1356); it used to straddle the divider line below. */}
-                    <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <div className="flex items-center gap-0.5 shrink-0">
                       <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
                       <ListSortFiltersButton list={currentList as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSortFiltersFor(selectedListId)} />
                       <ListSettingsButton list={currentList as never} currentUserId={effectiveSession?.user?.id} isViewingFromFeatured={isViewingFromFeatured} onOpen={() => setShowSettingsPopover(selectedListId)} />
@@ -666,7 +666,7 @@ export function MainContent({
                   <h1 className="text-2xl font-semibold tracking-tight theme-text-primary mb-1 truncate">{getSelectedListInfo().name}</h1>
                   <p className="theme-text-muted text-sm truncate">{getSelectedListInfo().description}</p>
                 </div>
-                <div className="flex items-center gap-0.5 flex-shrink-0">
+                <div className="flex items-center gap-0.5 shrink-0">
                   <ListViewToggle hasProjectBoard={Boolean(is3Column && hasProjectBoard)} taskViewMode={taskViewMode} onTaskViewModeChange={onTaskViewModeChange} isSearching={Boolean(newFilterState.filters.search.trim())} />
                   {/* A system list has no shared settings to separate from, so its
                       funnel opens the fixed settings popover — which IS its filter

@@ -1,3 +1,7 @@
+/* ADEV-334: Tailwind 4 compiles this file on its own; @reference gives its @apply rules the
+   theme and utilities from globals.css without emitting them twice. */
+@reference "../app/globals.css";
+
 /* Themed Component Classes */
 
 /* ===== PRIORITY COLORS ===== */
@@ -420,7 +424,7 @@ html, body {
    iOS and the Mac (astrid-core register DS18). The class stays as a hook. */
 
 .task-checkbox {
-  @apply w-5 h-5 flex-shrink-0;
+  @apply w-5 h-5 shrink-0;
 }
 
 .task-title {
@@ -497,11 +501,11 @@ html, body {
 
 /* Input Components */
 .themed-input {
-  @apply rounded-lg px-3 py-2 border transition-colors focus:outline-none focus:ring-2 focus:ring-brand;
+  @apply rounded-lg px-3 py-2 border transition-colors focus:outline-hidden focus:ring-2 focus:ring-brand;
 }
 
 .themed-button {
-  @apply rounded-lg px-3 py-2 border transition-colors hover:shadow-sm;
+  @apply rounded-lg px-3 py-2 border transition-colors hover:shadow-xs;
 }
 
 .themed-button-primary {
@@ -593,7 +597,7 @@ html, body {
 }
 
 .comment-input {
-  @apply w-full rounded-lg px-3 py-2 pr-12 resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-brand;
+  @apply w-full rounded-lg px-3 py-2 pr-12 resize-none transition-colors focus:outline-hidden focus:ring-2 focus:ring-brand;
 }
 
 /* Chat-style Comments */
@@ -688,7 +692,7 @@ html, body {
 }
 
 .form-input-spacer {
-  @apply w-5 h-5 flex-shrink-0;
+  @apply w-5 h-5 shrink-0;
 }
 
 /* Mobile Responsive Classes */
@@ -697,7 +701,7 @@ html, body {
 }
 
 .mobile-header {
-  @apply flex-shrink-0 z-50;
+  @apply shrink-0 z-50;
 }
 
 .mobile-content {
@@ -729,7 +733,7 @@ html, body {
 }
 
 .mobile-overlay {
-  @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+  @apply fixed inset-0 bg-black/50 z-40;
 }
 
 /* Mobile Touch Optimizations */
@@ -814,7 +818,7 @@ html, body {
 }
 
 .mobile-card {
-  @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mx-4 mb-4;
+  @apply bg-white dark:bg-gray-800 rounded-xl shadow-xs border border-gray-200 dark:border-gray-700 p-4 mx-4 mb-4;
 }
 
 /* Mobile Loading States */
@@ -831,15 +835,15 @@ html, body {
 }
 
 .mobile-skeleton-text {
-  @apply mobile-skeleton h-4 mb-2;
+  @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-4 mb-2; /* v4: @apply takes utilities only */
 }
 
 .mobile-skeleton-title {
-  @apply mobile-skeleton h-6 mb-3;
+  @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded h-6 mb-3;
 }
 
 .mobile-skeleton-button {
-  @apply mobile-skeleton h-10 rounded-lg;
+  @apply animate-pulse bg-gray-200 dark:bg-gray-700 h-10 rounded-lg;
 }
 
 /* Mobile Transitions */
@@ -1245,7 +1249,7 @@ html, body {
 }
 
 .focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-brand/50;
+  @apply focus:outline-hidden focus:ring-2 focus:ring-brand/50;
 }
 
 /* Reduced motion (astrid-core register DS17). Where the person has asked the

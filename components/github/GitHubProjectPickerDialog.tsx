@@ -226,7 +226,7 @@ export function GitHubProjectPickerDialog({ open, onOpenChange, navigate }: GitH
                         }`}
                       >
                         <div className="min-w-0">
-                          <div className="text-sm font-medium theme-text-primary break-words">{project.title}</div>
+                          <div className="text-sm font-medium theme-text-primary wrap-break-word">{project.title}</div>
                           <div className="text-xs theme-text-muted">
                             #{project.number}
                             {' · '}

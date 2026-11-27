@@ -64,7 +64,7 @@ export function TaskFieldRow({ label, icon, align = "center", children }: TaskFi
       {icon ? (
         <div
           aria-label={label}
-          className={`${FIELD_ICON_COLUMN_CLASS} flex-shrink-0 flex items-center justify-center theme-text-muted ${
+          className={`${FIELD_ICON_COLUMN_CLASS} shrink-0 flex items-center justify-center theme-text-muted ${
             align === "start" ? "mt-1.5" : ""
           }`}
         >
@@ -72,7 +72,7 @@ export function TaskFieldRow({ label, icon, align = "center", children }: TaskFi
         </div>
       ) : (
         <Label
-          className={`${FIELD_LABEL_COLUMN_CLASS} flex-shrink-0 text-sm theme-text-muted ${
+          className={`${FIELD_LABEL_COLUMN_CLASS} shrink-0 text-sm theme-text-muted ${
             align === "start" ? "mt-1.5" : ""
           }`}
         >

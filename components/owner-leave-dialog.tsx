@@ -59,7 +59,7 @@ export function OwnerLeaveDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200]">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-200">
       <Card className="theme-bg-primary theme-border w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">

@@ -103,7 +103,7 @@ function AstridAgentSelector() {
             </div>
           </div>
           {currentAgentId === agent.id && (
-            <Check className="w-5 h-5 text-brand flex-shrink-0" />
+            <Check className="w-5 h-5 text-brand shrink-0" />
           )}
         </button>
       ))}

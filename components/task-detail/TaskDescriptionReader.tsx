@@ -74,13 +74,13 @@ export function TaskDescriptionReader({ description, readOnly, entry, onSave, on
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               placeholder={t('tasks.placeholder.description')}
-              className="w-full h-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-base min-h-52"
+              className="w-full h-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-hidden focus:ring-2 focus:ring-brand focus:border-transparent text-base min-h-52"
               spellCheck={true}
               autoFocus
             />
           ) : (
             <div
-              className="prose prose-sm max-w-none theme-text-primary p-1 min-w-0 break-words [overflow-wrap:anywhere]"
+              className="prose prose-sm max-w-none theme-text-primary p-1 min-w-0 wrap-break-word wrap-anywhere"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(draft) }}
             />
           )}

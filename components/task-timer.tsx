@@ -163,7 +163,7 @@ export function TaskTimer({ task, onClose, onUpdate }: TaskTimerProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center text-white p-6">
+    <div className="fixed inset-0 z-100 bg-black flex flex-col items-center justify-center text-white p-6">
       <button
         onClick={onClose}
         className="absolute top-6 right-6 text-white/70 hover:text-white transition-colors"

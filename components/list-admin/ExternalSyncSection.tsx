@@ -125,7 +125,7 @@ export function ExternalSyncSection({ list }: ExternalSyncSectionProps) {
         </div>
       ) : state.link ? (
         <div className="flex items-center gap-2">
-          <RefreshCw className="w-3.5 h-3.5 theme-text-muted flex-shrink-0" />
+          <RefreshCw className="w-3.5 h-3.5 theme-text-muted shrink-0" />
           <span className="text-sm flex-1 truncate">
             {state.link.remoteContainerName || state.link.remoteContainerId}
           </span>

@@ -35,7 +35,7 @@ export function PendingResultsLine({ taskId, statusRole }: { taskId: string; sta
   return (
     <div className="mt-1 space-y-0.5 text-xs theme-text-muted" data-testid="pending-results-line">
       <p className="flex items-center gap-1">
-        <Hourglass className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
+        <Hourglass className="h-3 w-3 shrink-0" aria-hidden="true" />
         <span>{what}</span>
       </p>
       {stale && (

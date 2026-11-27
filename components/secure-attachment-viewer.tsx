@@ -114,7 +114,7 @@ export function SecureAttachmentViewer({
 
   // Thumbnail view
   const thumbnail = (
-    <div className={cn("relative group cursor-pointer w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0", className)}>
+    <div className={cn("relative group cursor-pointer w-12 h-12 sm:w-16 sm:h-16 shrink-0", className)}>
       {isImage && fileInfo ? (
         <img
           src={fileInfo.url}
@@ -211,14 +211,14 @@ export function SecureAttachmentViewer({
             {fileInfo ? (
               <>
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-theme bg-theme-inverse flex-shrink-0">
+                <div className="flex items-center justify-between p-4 border-b border-theme bg-theme-inverse shrink-0">
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
                     {isImage ? (
-                      <ImageIcon className="w-5 h-5 text-brand flex-shrink-0" />
+                      <ImageIcon className="w-5 h-5 text-brand shrink-0" />
                     ) : isVideo ? (
-                      <Play className="w-5 h-5 text-category-purple flex-shrink-0" />
+                      <Play className="w-5 h-5 text-category-purple shrink-0" />
                     ) : (
-                      <FileText className="w-5 h-5 text-category-green flex-shrink-0" />
+                      <FileText className="w-5 h-5 text-category-green shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
                       <h2 className="text-white font-medium text-lg truncate">{displayName}</h2>
@@ -227,7 +227,7 @@ export function SecureAttachmentViewer({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0">
+                  <div className="flex items-center space-x-2 shrink-0">
                     {isImage && (
                       <>
                         <Button

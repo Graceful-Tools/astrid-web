@@ -79,7 +79,7 @@ export function TaskDetailDescriptionRow({
             value={tempDescription}
             onChange={(e) => setTempDescription(e.target.value)}
             placeholder={t('tasks.placeholder.description')}
-            className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent text-base min-h-20 overflow-hidden"
+            className="w-full theme-comment-bg theme-border border theme-text-primary rounded-lg px-3 py-2 resize-none focus:outline-hidden focus:ring-2 focus:ring-brand focus:border-transparent text-base min-h-20 overflow-hidden"
             autoComplete="off"
             spellCheck={true}
             autoCapitalize="sentences"
@@ -118,7 +118,7 @@ export function TaskDetailDescriptionRow({
         </div>
       ) : (
         <div
-          className={`px-3 py-2 rounded border border-transparent flex items-start !min-h-0 ${!readOnly ? 'cursor-pointer theme-surface-hover hover:theme-border' : ''}`}
+          className={`px-3 py-2 rounded border border-transparent flex items-start min-h-0! ${!readOnly ? 'cursor-pointer theme-surface-hover hover:theme-border' : ''}`}
           onClick={handleTap}
         >
           {task.description ? (
@@ -128,7 +128,7 @@ export function TaskDetailDescriptionRow({
               // `.prose pre` scroll horizontally (task 61a21152). overflow-wrap
               // breaks a URL or other run with no spaces, like the title does
               // (AWTD2-176).
-              className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1 break-words [overflow-wrap:anywhere]"
+              className="prose prose-sm max-w-none theme-text-primary min-w-0 flex-1 wrap-break-word wrap-anywhere"
               onClick={gridViewer.onClick}
               onKeyDown={gridViewer.onKeyDown}
               dangerouslySetInnerHTML={{

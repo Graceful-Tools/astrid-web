@@ -9,7 +9,7 @@ export function ListHeaderImage({ list, onPick }: { list: TaskList; onPick?: () 
     <img
       src={getListImageUrl(list)}
       alt={list.name}
-      className={`w-16 h-16 rounded-xl object-cover flex-shrink-0 ${onPick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+      className={`w-16 h-16 rounded-xl object-cover shrink-0 ${onPick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
       onClick={onPick}
       title={onPick ? "Click to change image" : list.name}
       onError={(e) => {

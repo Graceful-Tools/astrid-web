@@ -87,9 +87,9 @@ export function PWAStatus() {
       }`}>
         <div className="flex items-center space-x-2 flex-1">
           {isOnline ? (
-            <Wifi className="w-4 h-4 flex-shrink-0 text-success" />
+            <Wifi className="w-4 h-4 shrink-0 text-success" />
           ) : (
-            <WifiOff className="w-4 h-4 flex-shrink-0 text-warning" />
+            <WifiOff className="w-4 h-4 shrink-0 text-warning" />
           )}
           <div className="flex flex-col">
             <span className="text-sm font-medium">

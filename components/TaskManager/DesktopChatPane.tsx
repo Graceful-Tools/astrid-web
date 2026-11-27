@@ -31,7 +31,7 @@ export function DesktopChatPane({ boardMode, dimmed, onDismissOverlay, children 
 
   if (collapsed) {
     return (
-      <div className="order-last theme-border border-l flex flex-col items-center pt-3 w-12 flex-shrink-0" data-testid="chat-pane-rail">
+      <div className="order-last theme-border border-l flex flex-col items-center pt-3 w-12 shrink-0" data-testid="chat-pane-rail">
         <ChatPaneToggleButton collapsed onToggle={toggleCollapsed} />
       </div>
     )
@@ -50,7 +50,7 @@ export function DesktopChatPane({ boardMode, dimmed, onDismissOverlay, children 
         />
       )}
       {boardMode && (
-        <div className="px-3 pt-3 flex items-center flex-shrink-0">
+        <div className="px-3 pt-3 flex items-center shrink-0">
           <ChatPaneToggleButton collapsed={false} onToggle={toggleCollapsed} />
         </div>
       )}

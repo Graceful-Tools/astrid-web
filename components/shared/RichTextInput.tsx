@@ -381,9 +381,9 @@ export const RichTextInput = React.memo(function RichTextInput({
       {uploadError && (
         <div className="mx-0 mb-1 p-2 bg-danger-subtle border border-danger/50 rounded-lg">
           <div className="flex items-start gap-2">
-            <X className="w-4 h-4 text-danger flex-shrink-0 mt-0.5" />
+            <X className="w-4 h-4 text-danger shrink-0 mt-0.5" />
             <p className="text-sm text-theme-primary flex-1">{uploadError}</p>
-            <button onClick={() => onUploadErrorChange?.(null)} className="text-danger hover:text-danger/80 flex-shrink-0">
+            <button onClick={() => onUploadErrorChange?.(null)} className="text-danger hover:text-danger/80 shrink-0">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -397,15 +397,15 @@ export const RichTextInput = React.memo(function RichTextInput({
             <div key={file.url} className="p-2 theme-bg-secondary rounded theme-border border">
               <div className="flex items-center gap-2">
                 {file.type?.startsWith('image/') ? (
-                  <ImageIcon className="w-4 h-4 text-brand flex-shrink-0" />
+                  <ImageIcon className="w-4 h-4 text-brand shrink-0" />
                 ) : (
-                  <FileText className="w-4 h-4 text-category-green flex-shrink-0" />
+                  <FileText className="w-4 h-4 text-category-green shrink-0" />
                 )}
                 <span className="text-sm theme-text-primary flex-1 truncate">{file.name}</span>
                 <button
                   onClick={() => removeAttachedFile(file.url)}
                   aria-label={fillMessage(t("richTextInput.removeFile"), { name: file.name })}
-                  className="text-danger hover:text-danger/80 flex-shrink-0"
+                  className="text-danger hover:text-danger/80 shrink-0"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -432,7 +432,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={disabled || uploading || isAttachmentQueueFull(attachedFiles)}
-              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
+              className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
               title={uploading ? t("richTextInput.uploading") : t("richTextInput.attachFile")}
             >
               {uploading ? (
@@ -451,7 +451,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <div
               ref={backdropRef}
               aria-hidden
-              className="absolute inset-0 rounded-xl px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words overflow-hidden pointer-events-none composer-input-max"
+              className="absolute inset-0 rounded-xl px-3 py-2 text-sm leading-5 whitespace-pre-wrap wrap-break-word overflow-hidden pointer-events-none composer-input-max"
               dangerouslySetInnerHTML={{ __html: highlightHtml }}
             />
           )}
@@ -467,7 +467,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             disabled={disabled}
             rows={1}
             spellCheck={!showOverlay}
-            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-none focus:ring-1 focus:ring-brand scrollbar-hide composer-input-max caret-current ${
+            className={`w-full resize-none rounded-xl px-3 py-2 text-sm leading-5 h-9 theme-bg-secondary border-0 outline-hidden focus:ring-1 focus:ring-brand scrollbar-hide composer-input-max caret-current ${
               showOverlay ? 'text-transparent' : 'theme-text-primary'
             }`}
           />
@@ -479,7 +479,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <button
               onClick={onTimerClick}
               disabled={disabled}
-              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full border theme-border theme-text-secondary hover:theme-text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full border theme-border theme-text-secondary hover:theme-text-primary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               title={t("richTextInput.timer")}
             >
               <Timer className="w-4 h-4" />
@@ -488,7 +488,7 @@ export const RichTextInput = React.memo(function RichTextInput({
             <button
               onClick={onSend}
               disabled={!canSend}
-              className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-brand text-brand-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-hover transition-colors"
+              className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full bg-brand text-brand-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-hover transition-colors"
               title={t("actions.send")}
               aria-label={t("actions.send")}
             >
@@ -507,18 +507,18 @@ function AutocompleteItemIcon({ item }: { item: AutocompleteItem }) {
   switch (item.type) {
     case 'mention':
       return item.image ? (
-        <img src={item.image} alt="" className="w-5 h-5 rounded-full flex-shrink-0" />
+        <img src={item.image} alt="" className="w-5 h-5 rounded-full shrink-0" />
       ) : (
-        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-caption2 font-medium flex-shrink-0">
+        <div className="w-5 h-5 rounded-full bg-theme-active flex items-center justify-center text-caption2 font-medium shrink-0">
           {item.label[0]?.toUpperCase()}
         </div>
       )
     case 'list':
-      return <Hash className="w-4 h-4 theme-text-muted flex-shrink-0" />
+      return <Hash className="w-4 h-4 theme-text-muted shrink-0" />
     case 'task':
       return item.completed
-        ? <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />
-        : <Circle className="w-4 h-4 theme-text-muted flex-shrink-0" />
+        ? <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+        : <Circle className="w-4 h-4 theme-text-muted shrink-0" />
   }
 }
 
@@ -526,21 +526,21 @@ function AutocompleteItemBadge({ item }: { item: AutocompleteItem }) {
   const { t } = useTranslations()
   if (item.type === 'mention' && item.isAIAgent) {
     return (
-      <span className="text-caption2 bg-agent-bubble text-agent px-1 rounded flex-shrink-0">
+      <span className="text-caption2 bg-agent-bubble text-agent px-1 rounded shrink-0">
         {t('richTextInput.aiBadge')}
       </span>
     )
   }
   if (item.type === 'list' && item.isShared) {
     return item.privacy === 'PUBLIC' ? (
-      <Globe className="w-3.5 h-3.5 text-category-green flex-shrink-0" />
+      <Globe className="w-3.5 h-3.5 text-category-green shrink-0" />
     ) : (
-      <Users className="w-3.5 h-3.5 text-brand flex-shrink-0" />
+      <Users className="w-3.5 h-3.5 text-brand shrink-0" />
     )
   }
   if (item.type === 'task' && item.completed) {
     return (
-      <span className="text-caption2 theme-text-muted flex-shrink-0">{t('richTextInput.taskDone')}</span>
+      <span className="text-caption2 theme-text-muted shrink-0">{t('richTextInput.taskDone')}</span>
     )
   }
   return null

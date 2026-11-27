@@ -148,7 +148,7 @@ function FieldEditor({ field, value, disabled, onSave, clearLabel, emptyLabel }:
                   {option.color && (
                     <span
                       aria-hidden
-                      className="inline-block w-2 h-2 rounded-full flex-shrink-0"
+                      className="inline-block w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: `#${String(option.color).replace(/^#/, "")}` }}
                     />
                   )}

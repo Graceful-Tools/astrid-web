@@ -196,7 +196,7 @@ export function LeftSidebar({
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
   if (!showHamburgerMenu && collapsed) {
     return (
-      <div className="theme-sidebar theme-border border-r flex flex-col items-center pt-3 w-12 flex-shrink-0" data-testid="sidebar-rail">
+      <div className="theme-sidebar theme-border border-r flex flex-col items-center pt-3 w-12 shrink-0" data-testid="sidebar-rail">
         <SidebarToggleButton collapsed onToggle={toggleCollapsed} />
       </div>
     )
@@ -249,7 +249,7 @@ export function LeftSidebar({
            *  stays — (a) IS that row — so this is an additional way in, for
            *  reaching search without reading the nav. Same handler, so the two
            *  cannot drift to different destinations. */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             {/* Notifications beside search (AWTD-1357). The list header that
              *  used to hold the bell renders nothing on desktop, so there was
              *  no bell there at all; this header renders in every layout. */}
@@ -285,7 +285,7 @@ export function LeftSidebar({
                 isMobile ? 'mobile-list-item text-left' : ''
               } ${
                 activeView === 'search'
-                  ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
+                  ? "bg-brand text-brand-foreground! hover:bg-brand-hover hover:text-brand-foreground!"
                   : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
               }`}
               onClick={handleSearchClick}
@@ -303,7 +303,7 @@ export function LeftSidebar({
                 isMobile ? 'mobile-list-item text-left' : ''
               } ${
                 effectiveSelectedListId === "my-tasks"
-                  ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
+                  ? "bg-brand text-brand-foreground! hover:bg-brand-hover hover:text-brand-foreground!"
                   : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
               }`}
               onClick={() => handleListClick("my-tasks")}
@@ -521,23 +521,23 @@ export function LeftSidebar({
       </div>
 
       {/* Fixed Footer — Settings with user avatar */}
-      <div className="border-t border-[rgb(var(--theme-border))] flex-shrink-0">
+      <div className="border-t border-[rgb(var(--theme-border))] shrink-0">
         <Button
           variant="ghost"
           onClick={handleSettingsClick}
           className={`w-full p-3 h-auto justify-start ${
             activeView === 'settings'
-              ? "bg-brand !text-brand-foreground hover:bg-brand-hover hover:!text-brand-foreground"
+              ? "bg-brand text-brand-foreground! hover:bg-brand-hover hover:text-brand-foreground!"
               : "theme-text-secondary hover:theme-text-primary hover:theme-bg-hover"
           }`}
         >
           <div className="flex items-center space-x-3 w-full">
-            <Avatar className="w-7 h-7 rounded-lg flex-shrink-0">
+            <Avatar className="w-7 h-7 rounded-lg shrink-0">
               <AvatarImage src={effectiveSession.user.image || "/placeholder.svg"} />
               <AvatarFallback className="text-xs">{effectiveSession.user.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             <span className="truncate text-sm font-medium flex-1 text-left">{effectiveSession.user.name}</span>
-            <Settings className="w-4 h-4 flex-shrink-0 opacity-60" />
+            <Settings className="w-4 h-4 shrink-0 opacity-60" />
           </div>
         </Button>
       </div>

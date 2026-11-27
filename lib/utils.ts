@@ -12,12 +12,14 @@ import { MOTION_NAMES, tokenEasings, tokenFontSizes, tokenLayers, tokenOpacity, 
  */
 const twMerge = extendTailwindMerge({
   extend: {
+    // tailwind-merge 3 keeps only Tailwind 4's theme namespaces here; opacity and scale
+    // are class groups now (ADEV-334).
     theme: {
-      opacity: Object.keys(tokenOpacity),
-      scale: Object.keys(tokenScale),
       spacing: Object.keys(tokenSpacing),
     },
     classGroups: {
+      opacity: [{ opacity: Object.keys(tokenOpacity) }],
+      scale: [{ scale: Object.keys(tokenScale) }],
       duration: [{ duration: [...MOTION_NAMES] }],
       ease: [{ ease: Object.keys(tokenEasings) }],
       // Without this `text-caption2` reads as a colour, and merging it with
@@ -25,6 +27,12 @@ const twMerge = extendTailwindMerge({
       'font-size': [{ text: Object.keys(tokenFontSizes) }],
       // `z-above-modal` over a primitive's `z-50` (ADEV-161).
       z: [{ z: Object.keys(tokenLayers) }],
+    },
+    // tailwind-merge 2 let a later font size drop an earlier leading-*; 3 dropped the rule for
+    // Tailwind 4. Components were written against 2 (the shadcn Label's `leading-none` gives way
+    // to a caller's `text-sm`), so keep it (ADEV-334).
+    conflictingClassGroups: {
+      'font-size': ['leading'],
     },
   },
 })

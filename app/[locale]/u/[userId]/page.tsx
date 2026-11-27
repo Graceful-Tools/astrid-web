@@ -314,7 +314,7 @@ export default function UserProfilePage() {
 
                                   return (
                                     <Hash
-                                      className="w-3 h-3 flex-shrink-0"
+                                      className="w-3 h-3 shrink-0"
                                       style={{ color: list.color }}
                                     />
                                   )
@@ -329,7 +329,7 @@ export default function UserProfilePage() {
                         )}
                       </div>
                       {task.dueDateTime && !shouldHideTaskWhen(task) && (
-                        <div className="text-xs theme-text-muted flex-shrink-0">
+                        <div className="text-xs theme-text-muted shrink-0">
                           {new Date(task.dueDateTime).toLocaleDateString(locale, { month: "short", day: "numeric" })}
                         </div>
                       )}

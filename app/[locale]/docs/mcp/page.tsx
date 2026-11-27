@@ -463,7 +463,7 @@ Content-Type: application/json
               </pre>
               <div className="bg-brand-subtle border border-brand/20 rounded-lg p-3">
                 <div className="flex items-start space-x-2">
-                  <Info className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
+                  <Info className="w-4 h-4 text-brand mt-0.5 shrink-0" />
                   <p className="text-xs theme-text-muted">
                     <strong className="theme-text-primary">Note:</strong> Operation names use <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">snake_case</code>{' '}
                     in the API (e.g., <code className="px-1 py-0.5 theme-bg-tertiary rounded font-mono">get_shared_lists</code>).
@@ -542,7 +542,7 @@ Content-Type: application/json
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-info-subtle text-info text-xs font-bold flex items-center justify-center mt-0.5">
+      <div className="shrink-0 w-6 h-6 rounded-full bg-info-subtle text-info text-xs font-bold flex items-center justify-center mt-0.5">
         {n}
       </div>
       <div className="flex-1">

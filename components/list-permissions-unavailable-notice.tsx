@@ -18,7 +18,7 @@ export function ListPermissionsUnavailableNotice() {
     >
       <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg shadow-lg bg-theme-surface text-theme-primary border border-warning">
         <div className="flex items-center gap-2 flex-1">
-          <ShieldAlert className="w-4 h-4 flex-shrink-0 text-warning" aria-hidden="true" />
+          <ShieldAlert className="w-4 h-4 shrink-0 text-warning" aria-hidden="true" />
           <span className="text-sm font-medium">{t("permissions.unavailable")}</span>
         </div>
         <button

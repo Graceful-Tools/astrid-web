@@ -143,7 +143,7 @@ export function AgentInstructionsSection({ list, canEditSettings, onUpdate }: Ag
               value={tempListDescription}
               onChange={(e) => setTempListDescription(e.target.value)}
               placeholder={t("listSettings.admin.instructionsPlaceholder")}
-              className="w-full theme-comment-bg border-theme border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm"
+              className="w-full theme-comment-bg border-theme border theme-text-primary rounded-lg px-3 py-2 resize-vertical focus:outline-hidden focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm"
               rows={8}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {

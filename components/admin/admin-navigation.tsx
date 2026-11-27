@@ -18,7 +18,7 @@ export function AdminNavigation() {
   const pathname = usePathname()
 
   return (
-    <header className="border-b bg-background/95 px-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur">
+    <header className="border-b bg-background/95 px-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm">
       <div className="container mx-auto max-w-7xl">
         <div className="pb-3">
           <h1 className="text-xl font-bold sm:text-2xl">Admin</h1>

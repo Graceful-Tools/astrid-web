@@ -125,7 +125,7 @@ export const MessageBubble = React.memo(function MessageBubble({
         onClick={onClick}
       >
         {/* Avatar */}
-        <Avatar className="h-8 w-8 flex-shrink-0">
+        <Avatar className="h-8 w-8 shrink-0">
           <AvatarImage src={author?.image || undefined} />
           <AvatarFallback>{getInitial(author)}</AvatarFallback>
         </Avatar>

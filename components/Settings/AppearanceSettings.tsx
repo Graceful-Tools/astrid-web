@@ -264,7 +264,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </div>
 
               {/* Examples */}
-              <div className="p-4 bg-gradient-to-r from-category-amber/10 to-category-orange/10 rounded-lg border theme-border">
+              <div className="p-4 bg-linear-to-r from-category-amber/10 to-category-orange/10 rounded-lg border theme-border">
                 <h4 className="font-medium theme-text-primary mb-2">{t("settingsPages.appearancePage.smartTasks.supportedPatterns")}</h4>
                 <ul className="space-y-2 text-sm theme-text-muted">
                   <li className="flex items-start space-x-2">
@@ -396,7 +396,7 @@ export default function AppearanceSettings({ onNavigate }: AppearanceSettingsPro
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 bg-gradient-to-r from-category-purple/10 to-category-blue/10 rounded-lg border theme-border">
+              <div className="p-4 bg-linear-to-r from-category-purple/10 to-category-blue/10 rounded-lg border theme-border">
                 <div className="flex items-start space-x-3">
                   <div className="p-2 bg-category-purple-subtle rounded-lg">
                     <Mail className="w-5 h-5 text-category-purple" />

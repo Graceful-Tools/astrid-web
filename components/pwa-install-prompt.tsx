@@ -84,7 +84,7 @@ export function PWAInstallPrompt() {
   return (
     <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:max-w-sm bg-theme-surface border border-theme-surface rounded-lg shadow-lg p-4 z-50">
       <div className="flex items-start space-x-3">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center">
             <Smartphone className="w-5 h-5 text-white" />
           </div>
@@ -120,7 +120,7 @@ export function PWAInstallPrompt() {
         
         <button
           onClick={handleDismiss}
-          className="flex-shrink-0 text-theme-muted hover:text-theme-primary"
+          className="shrink-0 text-theme-muted hover:text-theme-primary"
         >
           <X className="w-4 h-4" />
         </button>

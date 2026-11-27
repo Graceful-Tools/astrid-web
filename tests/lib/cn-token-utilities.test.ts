@@ -35,3 +35,17 @@ describe('cn() merges the design-token utilities (AWTD-1575)', () => {
     expect(cn('text-footnote', 'text-sm')).toBe('text-sm')
   })
 })
+
+// ADEV-334: tailwind-merge 2 let a later font size drop an earlier leading-*, so the shadcn Label's
+// `leading-none` gave way to a caller's `text-sm` (20px). tailwind-merge 3 dropped that rule, and
+// the task panel's "Comments" label shrank to a 14px line in the Tailwind 4 screenshot comparison.
+describe('cn keeps tailwind-merge 2 font-size over leading (ADEV-334)', () => {
+  it('a later font size drops an earlier leading-*', () => {
+    expect(cn('text-sm font-medium leading-none', 'text-sm theme-text-muted')).toBe('font-medium text-sm theme-text-muted')
+    expect(cn('leading-tight', 'text-caption2')).toBe('text-caption2')
+  })
+
+  it('a later leading-* still wins over an earlier font size', () => {
+    expect(cn('text-sm', 'leading-none')).toBe('text-sm leading-none')
+  })
+})

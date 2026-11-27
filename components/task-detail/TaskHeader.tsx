@@ -103,10 +103,10 @@ export function TaskHeader({
             <Button
               variant="ghost"
               onClick={onClose}
-              className="cols2:hidden flex items-center flex-shrink-0 theme-text-primary hover:theme-text-secondary rounded-md hover:theme-bg-hover px-1 py-1 -ml-1"
+              className="cols2:hidden flex items-center shrink-0 theme-text-primary hover:theme-text-secondary rounded-md hover:theme-bg-hover px-1 py-1 -ml-1"
               aria-label={t('tasks.detail.backToList')}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                 <polyline points="15,18 9,12 15,6"></polyline>
               </svg>
             </Button>
@@ -153,12 +153,12 @@ export function TaskHeader({
                   el.style.height = el.scrollHeight + 'px'
                 }
               }}
-              className="text-base py-1 px-2 rounded flex-1 bg-transparent border-none outline-none resize-none overflow-hidden theme-text-primary"
+              className="text-base py-1 px-2 rounded flex-1 bg-transparent border-none outline-hidden resize-none overflow-hidden theme-text-primary"
               rows={1}
             />
           ) : (
             <span
-              className={`text-base ${readOnly ? '' : 'cursor-pointer hover:theme-bg-hover'} py-1 rounded flex-1 min-w-0 break-words [overflow-wrap:anywhere] px-2 ${
+              className={`text-base ${readOnly ? '' : 'cursor-pointer hover:theme-bg-hover'} py-1 rounded flex-1 min-w-0 wrap-break-word wrap-anywhere px-2 ${
                 task.completed ? "line-through theme-text-muted" : "theme-text-primary"
               }`}
               data-testid="task-detail-title"
@@ -170,7 +170,7 @@ export function TaskHeader({
             </span>
           )}
           {/* Action menu, far right of the title row in every layout. */}
-          <div className="flex items-center flex-shrink-0">
+          <div className="flex items-center shrink-0">
             {onToggleFullScreen && (
               <Button
                 variant="ghost"

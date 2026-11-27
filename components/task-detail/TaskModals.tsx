@@ -171,7 +171,7 @@ export function TaskModals({
                   <select
                     value={copyTargetListId || ''}
                     onChange={(e) => setCopyTargetListId(e.target.value || undefined)}
-                    className="w-full px-3 py-2 rounded-md theme-bg-primary theme-text-primary theme-border focus:outline-none focus:ring-2 focus:ring-brand"
+                    className="w-full px-3 py-2 rounded-md theme-bg-primary theme-text-primary theme-border focus:outline-hidden focus:ring-2 focus:ring-brand"
                   >
                     <option value="">{t('tasks.modals.myTasksOnly')}</option>
                     {realLists.map((list) => (
@@ -243,7 +243,7 @@ export function TaskModals({
               {task.isPrivate && (
                 <div className="p-3 bg-brand-subtle border border-brand/30 rounded-lg mb-4">
                   <div className="flex items-start space-x-2">
-                    <Lock className="w-4 h-4 text-brand flex-shrink-0 mt-0.5" />
+                    <Lock className="w-4 h-4 text-brand shrink-0 mt-0.5" />
                     <p className="text-xs text-theme-primary">
                       {t('tasks.modals.privateNote')}
                     </p>
@@ -260,7 +260,7 @@ export function TaskModals({
                   <div className="p-3 bg-theme-tertiary rounded-lg">
                     <div className="flex items-center justify-between space-x-2">
                       <div className="flex items-center space-x-2 flex-1 min-w-0">
-                        <LinkIcon className="w-4 h-4 theme-text-muted flex-shrink-0" />
+                        <LinkIcon className="w-4 h-4 theme-text-muted shrink-0" />
                         <span className="text-sm theme-text-primary truncate font-mono">
                           {shareUrl}
                         </span>
@@ -269,7 +269,7 @@ export function TaskModals({
                         variant="outline"
                         size="sm"
                         onClick={onCopyShareUrl}
-                        className={`flex-shrink-0 ${
+                        className={`shrink-0 ${
                           shareUrlCopied
                             ? 'bg-success text-success-foreground border-success'
                             : 'theme-border theme-text-secondary hover:theme-bg-hover'

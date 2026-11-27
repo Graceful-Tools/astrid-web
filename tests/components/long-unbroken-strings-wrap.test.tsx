@@ -51,6 +51,6 @@ describe('long unbroken strings wrap (AWTD2-176)', () => {
     )
     const prose = container.querySelector('.prose')
     expect(prose).not.toBeNull()
-    expect(prose!.className).toContain('[overflow-wrap:anywhere]')
+    expect(prose!.className).toContain('wrap-anywhere')
   })
 })

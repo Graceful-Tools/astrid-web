@@ -301,7 +301,7 @@ export function QuickAdd({
             <button
               type="button"
               onClick={() => setShowPicker(true)}
-              className="flex-shrink-0 flex items-center justify-center transition-all duration-press ease-press active:scale-95"
+              className="shrink-0 flex items-center justify-center transition-all duration-press ease-press active:scale-95"
               aria-label={t('tasks.selectPriorityOrAssignee')}
             >
               {selectedAssignee === null ? (
@@ -352,7 +352,7 @@ export function QuickAdd({
                   bg-theme-tertiary
                   text-theme-primary
                   placeholder:text-theme-muted
-                  focus:outline-none focus:ring-2 focus:ring-brand focus:bg-theme-surface
+                  focus:outline-hidden focus:ring-2 focus:ring-brand focus:bg-theme-surface
                   transition-all duration-medium min-h-9 composer-input-max leading-[1.4]"
                 disabled={!isSessionReady || isCreating}
                 autoComplete="off"
@@ -392,12 +392,12 @@ export function QuickAdd({
                         }`}
                       >
                         {isPublicOrShared ? (
-                          <span className="text-brand font-mono text-sm flex-shrink-0">#</span>
+                          <span className="text-brand font-mono text-sm shrink-0">#</span>
                         ) : (
-                          <Hash className="w-3 h-3 flex-shrink-0" style={{ color: list.color || DEFAULT_LIST_COLOR }} />
+                          <Hash className="w-3 h-3 shrink-0" style={{ color: list.color || DEFAULT_LIST_COLOR }} />
                         )}
                         <span className="theme-text-primary flex-1 truncate">{list.name}</span>
-                        <span className="text-xs theme-text-muted flex-shrink-0">
+                        <span className="text-xs theme-text-muted shrink-0">
                           #{list.name.toLowerCase().replace(/\s+/g, '-')}
                         </span>
                       </button>
@@ -412,7 +412,7 @@ export function QuickAdd({
             <Button
               onClick={() => handleCreateTask(true)}
               disabled={!isSessionReady || !quickTaskInput.trim() || isCreating}
-              className={`flex-shrink-0 h-9 rounded-lg bg-brand hover:bg-brand-hover
+              className={`shrink-0 h-9 rounded-lg bg-brand hover:bg-brand-hover
                 text-brand-foreground disabled:opacity-disabled disabled:cursor-not-allowed
                 transition-all duration-press ease-press active:scale-95 ${
                   showAddTaskLabel ? 'px-4 gap-1 whitespace-nowrap' : 'w-9 p-0'

@@ -121,7 +121,7 @@ export function ListItem({
             <img
               src={getListImageUrl(list)}
               alt={list.name}
-              className="w-5 h-5 rounded-full object-cover flex-shrink-0"
+              className="w-5 h-5 rounded-full object-cover shrink-0"
               onError={(e) => {
                 const target = e.currentTarget as HTMLImageElement
                 const defaultImage = getConsistentDefaultImage(list.id).filename
@@ -132,7 +132,7 @@ export function ListItem({
             />
             <span className="truncate text-left w-full">{list.name}</span>
           </div>
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="flex items-center space-x-2 shrink-0">
             {/* Privacy/sharing indicator - positioned to the right of the list name */}
             {(privacy === 'PUBLIC' || hasAdditionalMembers) && (
               <div>

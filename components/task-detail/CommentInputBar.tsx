@@ -203,7 +203,7 @@ export function CommentInputBar({
           <button
             type="button"
             onClick={() => setComposerOpen(true)}
-            className="flex-shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
+            className="shrink-0 h-9 w-9 flex items-center justify-center rounded-full theme-text-muted hover:theme-text-secondary transition-colors"
             title={t('tasks.decisionComposer.title')}
             aria-label={t('tasks.decisionComposer.title')}
             data-testid="ask-for-decision"

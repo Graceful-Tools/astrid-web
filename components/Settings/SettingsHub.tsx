@@ -132,7 +132,7 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       <div className="space-y-4 sm:space-y-6">
         {/* Settings Page Header */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-category-blue to-category-purple rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-linear-to-br from-category-blue to-category-purple rounded-lg flex items-center justify-center">
             <div className="w-4 h-4 bg-white rounded-sm"></div>
           </div>
           <div>
