@@ -81,6 +81,8 @@
     "dev:local": "node scripts/dev-local.js",
     "docs:review": "tsx scripts/review-docs-after-changes.ts",
     "docs:metrics": "tsx scripts/report-refactoring-metrics.ts",
+    "deps:add": "node scripts/deps-gate.mjs add",
+    "deps:check": "node scripts/deps-gate.mjs check",
     "docs:scripts": "tsx scripts/report-script-inventory.ts",
     "lint": "eslint . --cache",
     "typegen": "next typegen",

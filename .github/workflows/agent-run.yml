@@ -194,6 +194,10 @@ jobs:
       # so it still cannot dispatch a deploy. Smoke test AWTD-1364 / PR #518 had no checks until a
       # person reopened it.
       GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+      # ADEV-339: `npm run deps:add` asks Socket about every package it would install and
+      # refuses without these. `agent` environment secrets; unset means no installs.
+      SOCKET_API_TOKEN: ${{ secrets.SOCKET_API_TOKEN }}
+      SOCKET_ORG_SLUG: ${{ secrets.SOCKET_ORG_SLUG }}
       # Core work belongs to the web and iOS loops (FIXALL_WORKFLOW.md → astrid-core is
       # worked by web and iOS). It is cloned beside this checkout, at ../astrid-core.
       ASTRID_CORE_REPO: Graceful-Tools/astrid-core

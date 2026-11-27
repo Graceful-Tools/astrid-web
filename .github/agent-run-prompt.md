@@ -77,6 +77,12 @@ core's `scripts/build-wasm.sh` names (`cargo install wasm-bindgen-cli --version 
 `packages/astrid-rules/` and the script change together. ADEV-279 and ADEV-281 stalled three
 runs on 2026-11-26 calling the script by path.
 
+**Adding or upgrading an npm package** is `npm run deps:add -- <name>@<version>` (add
+`--save-dev` for a dev dependency), never `npm install`. It asks Socket about every package
+version the change would install and installs only if all are analyzed and carry no blocking
+risk (ADEV-339). A refusal is final for this run: do not edit `package.json` or the lockfile by
+hand to get around it. Hand the task back with the refused packages and Socket's reasons.
+
 When the task's fix is already on `main` (an earlier PR merged it), write no code
 and open no PR. Comment `AWAITING-DEPLOY: <the origin/main sha that contains the fix>`
 and leave the task in Doing; the runner accepts a commit on `main` and completes
