@@ -148,7 +148,9 @@ jobs:
     # SKIPPED worker finishing after an OK one would read as "nothing done".
     # Each worker uploads its own verdict artifact for the chain job instead.
     environment: agent
-    timeout-minutes: 90
+    # ADEV-338: 100 minutes for the Claude step (6 real-work jobs were cut off at 75) plus
+    # setup and the cleanup steps that always run.
+    timeout-minutes: 115
     services:
       postgres:
         image: postgres:15
@@ -386,13 +388,19 @@ jobs:
           if OUT=$(claude -p "Reply with the single word OK." --max-turns 1 2>&1); then
             echo "ok=true" >> "${GITHUB_OUTPUT}"
             echo "Claude Code token accepted"
+          elif printf '%s' "${OUT}" | grep -qiE "hit your (weekly |daily |usage |5-hour |session )?limit"; then
+            # ADEV-338: a usage limit is not a revoked token. Claim nothing, stay green, and file no
+            # renewal task; the next run's probe finds the limit lifted once it resets.
+            echo "ok=false" >> "${GITHUB_OUTPUT}"
+            echo "limited=true" >> "${GITHUB_OUTPUT}"
+            echo "::notice::Claude Code usage limit reached, so this worker claims nothing: $(printf '%s' "${OUT}" | tr '\n' ' ' | head -c 200)"
           else
             echo "ok=false" >> "${GITHUB_OUTPUT}"
             echo "::error::Claude Code could not start, so this worker claims nothing: $(printf '%s' "${OUT}" | tr '\n' ' ' | head -c 300)"
           fi
 
       - name: Report a refused token
-        if: ${{ steps.auth.outputs.ok == 'false' }}
+        if: ${{ steps.auth.outputs.ok == 'false' && steps.auth.outputs.limited != 'true' }}
         run: |
           if [ "${ASTRID_AGENT_SLOT}" = 1 ]; then
             npx tsx scripts/report-harness-auth-failure.ts --list "${ASTRID_OAUTH_LIST_ID}" \
@@ -493,9 +501,14 @@ jobs:
 
       - name: Run Claude Code
         id: claude
-        timeout-minutes: 75
+        timeout-minutes: 100
         if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' && (inputs.harness || 'claude-code') == 'claude-code' }}
         env:
+          # ADEV-338: `npm run ci:logs` reads workflow runs and logs with a fine-grained token
+          # scoped to Actions: read only (ADEV-340). GH_TOKEN (AGENT_GH_TOKEN) has no Actions
+          # access, so `gh run` answers 403; this variable never replaces it. Not the job's
+          # github.token: that also carries contents and pull-requests write (Jon, 2026-11-27).
+          CI_LOGS_GH_TOKEN: ${{ secrets.AGENT_ACTIONS_READ_TOKEN }}
           # Subscription token from `claude setup-token` — never an API key
           # (Jon, 2026-09-19: the loops run on the subscription).
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -529,7 +542,7 @@ jobs:
               --mcp-config "${RUNNER_TEMP}/astrid-mcp.json" --strict-mcp-config \
               "${CORE_DIRS[@]}" \
               --permission-mode acceptEdits \
-              --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),Bash(node scripts/*),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
+              --allowedTools "Bash(npm run *),Bash(npx tsx scripts/*),Bash(npx vitest *),Bash(git *),Bash(gh pr *),Bash(cargo *),Bash(rustup *),Bash(npm view *),Bash(npm ls *),Bash(node *),mcp__astrid__*,Read,Edit,Write,Grep,Glob" \
               | tee .agent-output/agent-transcript.txt
           }
           if [ "${USE_RUNNER}" = true ] && [ "${ASTRID_AGENT_SLOT}" != 1 ]; then

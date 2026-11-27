@@ -11,7 +11,7 @@
 import { loadScriptEnv } from './lib/load-env'
 import { boardTasksUrl } from './lib/board-read-url'
 import { scriptApiOrigin } from './lib/script-client'
-import { RENEW_TOKEN_TITLE, openRenewalTask, renewalDescription } from './lib/harness-start'
+import { RENEW_TOKEN_TITLE, openRenewalTask, renewalDescription, renewalUrgency } from './lib/harness-start'
 
 loadScriptEnv()
 
@@ -68,7 +68,7 @@ async function main() {
       title: RENEW_TOKEN_TITLE,
       description: renewalDescription({ runUrl, repo }),
       listIds: [listId],
-      priority: 3,
+      ...renewalUrgency(new Date()),
       assigneeId: ownerId,
       statusRole: null,
     }),

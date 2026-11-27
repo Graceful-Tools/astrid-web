@@ -17,6 +17,27 @@ export function harnessStartFailure(input: { outcome: string; transcript: string
   return 'the harness exited before producing any output (for example, it could not authenticate)'
 }
 
+/**
+ * ADEV-338: the renewal task's urgency. The token was dead for about three days and nothing the
+ * owner reads said so: the task sat in the Inbox with no date. Top priority, due now, with a push
+ * and email reminder.
+ */
+export function renewalUrgency(now: Date): { priority: 3; dueDateTime: string; reminderTime: string; reminderType: 'both' } {
+  const at = now.toISOString()
+  return { priority: 3, dueDateTime: at, reminderTime: at, reminderType: 'both' }
+}
+
+/**
+ * ADEV-338: Claude Code's usage-limit answer ("You've hit your weekly limit · resets Nov 20").
+ * That is not a revoked token: nothing to renew, no task to file, and no worker should claim a
+ * task it cannot work. Returns the reset text, or null when the output is not a limit message.
+ */
+export function usageLimitReset(output: string): string | null {
+  const match = /hit your (?:weekly |daily |usage |5-hour |session )?limit(?:\s*[·•|–—-]\s*resets?\s+([^\n]*))?/i.exec(output)
+  if (!match) return null
+  return (match[1] ?? '').trim() || 'unknown'
+}
+
 /** Every token-renewal task starts with this, so a red run every half hour files only one. */
 export const RENEW_TOKEN_TITLE = 'Renew the Claude Code token for cloud agent runs'
 

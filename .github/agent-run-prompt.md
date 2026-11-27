@@ -94,6 +94,14 @@ Astrid task, and do not merge, modify the reviewed branch, or treat a review as
 implementation/deployment. A review task is completed once its report is on the
 task; the implementation task remains incomplete until deployed.
 
+**Time.** This step is cut off at 100 minutes. By minute 80, push your branch (a `wip:`
+commit is fine) and comment your progress on the task, so a cut-off leaves work to resume
+from rather than nothing. Do not start anything large after that.
+
+**CI logs.** `gh run` is not allowed and its token cannot read Actions. To see why a check
+failed, run `npm run ci:logs -- --pr <number>` (or `--branch <name>` / `--run <id>`, and
+`--tail <lines>`). A task that needs a Mac (titled `[mac]`) is not yours.
+
 End your output with exactly one line of its own, starting at column 0:
 
 RESULT: OK | SKIPPED | PARTIAL | FAILED — <one sentence why>

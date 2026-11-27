@@ -29,7 +29,7 @@ describe('cloud agent lifecycle wiring', () => {
     expect(workflow.permissions).toEqual({})
     expect(workflow.jobs.run.permissions.actions).toBe('read')
     expect(workflow.jobs.run.environment).toBe('agent')
-    expect(workflow.jobs.run['timeout-minutes']).toBe(90)
+    expect(workflow.jobs.run['timeout-minutes']).toBe(115)
     expect(source).toContain('--require-polling')
     expect(source).toContain('--include-unassigned')
     expect(source).toContain('--no-write-seen')
@@ -545,7 +545,8 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     expect(claude).toContain('--add-dir "${ASTRID_CORE_DIR}"')
     expect(claude).toContain('Bash(cargo *)')
     // ADEV-89: core's size gate is a node script; without this an unattended run stalls on approval.
-    expect(claude).toContain('Bash(node scripts/*)')
+    // ADEV-338 widened it to `node *`, which covers scripts/ too.
+    expect(claude).toContain('Bash(node *)')
     expect(step('Preserve unfinished astrid-core work')['working-directory']).toBe('${{ env.ASTRID_CORE_DIR }}')
   })
 

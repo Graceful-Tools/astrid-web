@@ -243,6 +243,8 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'ASTRID_WEBHOOK_SECRET', scope: 'optional', description: 'Verifies inbound AI-agent webhooks.' },
   { name: 'MCP_TOKEN', scope: 'tooling', description: 'MCP token used by local validation scripts.' },
   { name: 'ASTRID_CORE_PUSH', scope: 'tooling', description: 'Set by agent-run.yml: 1 when the runner can push to astrid-core, 0 when it cannot, so claim-next-fixall-task.ts skips core tasks.' },
+  { name: 'ASTRID_FIXALL_EPHEMERAL', scope: 'tooling', description: 'Set to 1 by agent-run.yml on a cloud runner: claim-next-fixall-task.ts then passes over a [mac] task, which needs a Mac the runner lacks (ADEV-338).' },
+  { name: 'CI_LOGS_GH_TOKEN', scope: 'tooling', description: 'Set by agent-run.yml from the agent environment secret AGENT_ACTIONS_READ_TOKEN (Actions: read only, ADEV-340): ci-logs.ts reads workflow runs and logs with it, in place of GH_TOKEN (ADEV-338).' },
   { name: 'ASTRID_PREDEPLOY_FILE_TASKS', scope: 'tooling', description: 'Predeploy files a "Predeploy Failed" board task only when HEAD is on origin/main (ADEV-31); 1 forces filing, 0 forbids it.' },
   { name: 'ASTRID_RUN_STARTED_AT', scope: 'tooling', description: 'Set by agent-run.yml when the agent starts: heartbeat-held-claims.ts renews only claim leases taken since then (ADEV-37).' },
   { name: 'ASTRID_FIXALL_CLAIMS_FILE', scope: 'tooling', description: 'Set by the scheduled /fixall runner: where claim-fixall-task.ts records a run’s claims so any left in Doing are released after it.' },

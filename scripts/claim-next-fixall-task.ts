@@ -33,6 +33,7 @@ import { loadScriptEnv } from './lib/load-env'
 import {
   claimNextReady,
   isCoreCandidate,
+  isNeedsMacCandidate,
   openPrBranches,
   runnerClaimedTask,
   skipTasksWithOpenPr,
@@ -64,6 +65,8 @@ async function main() {
   const agent = arg('--agent')
   const listId = arg('--list')
   const preflight = arg('--preflight') ?? '.agent-output/preflight.json'
+  // A cloud runner has no Mac: it passes over a `[mac]` task (ADEV-338).
+  const ephemeral = process.env.ASTRID_FIXALL_EPHEMERAL === '1'
   const noCore = process.argv.includes('--no-core') || process.env.ASTRID_CORE_PUSH === '0'
   if (!agent || !FIXALL_CLAIM_MAILBOXES.includes(agent) || !listId) {
     console.error('Usage: claim-next-fixall-task.ts --agent <mailbox> --list <board-id> [--preflight <file>] [--no-core]')
@@ -109,7 +112,7 @@ async function main() {
       openBranches: branches,
       comments: task => client.getComments(task.id),
       log,
-      otherwise: noCore ? isCoreCandidate : undefined,
+      otherwise: task => (noCore && isCoreCandidate(task)) || (ephemeral && isNeedsMacCandidate(task)),
     }),
     claim: async task => {
       const attempt = await requestFixallClaim({ client, taskId: task.id, action: 'ready', agent, listId })
@@ -122,7 +125,7 @@ async function main() {
   if (!result.claimed) {
     console.log(
       `NO_READY_TASK: nothing left to claim (${result.conflicts.length} taken by peers` +
-        `${result.skipped.length ? `, ${result.skipped.length} skipped (core, or an open PR)` : ''})`,
+        `${result.skipped.length ? `, ${result.skipped.length} skipped (core, needs a Mac, or an open PR)` : ''})`,
     )
     process.exit(3)
   }

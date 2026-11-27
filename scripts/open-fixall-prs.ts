@@ -24,7 +24,7 @@ import { loadScriptEnv } from './lib/load-env'
 import { branchesForCompletedTask, isFinishedWork, prBody, prTitle, type CandidateBranch } from './lib/fixall-prs'
 import { parseBlockedConditions } from '@/lib/ready-queue-scope'
 import { RUNNER_PR_MARKER } from './lib/land-and-deploy'
-import { claimsCloudHandoff, cloudHandoffEligible, handoffAlreadyOnMain } from './lib/cloud-handoff'
+import { claimsCloudHandoff, cloudHandoffEligible, handoffAlreadyOnMain, pickHandoffPr } from './lib/cloud-handoff'
 
 loadScriptEnv()
 
@@ -153,7 +153,7 @@ async function main() {
           run('gh', ['pr', 'list', '--head', branch, '--state', 'all', '--json', 'number,state,url,body,headRefOid,baseRefName'], repo),
         ) as Array<{ number: number; state: string; url: string; body: string; headRefOid: string; baseRefName: string }>
         if (existing.length > 0) {
-          const pr = existing[0]
+          const pr = pickHandoffPr(existing, awaitingSha) ?? existing[0]
           if (cloudAgent && (pr.state !== 'OPEN' || pr.baseRefName !== 'main' || pr.headRefOid !== awaitingSha)) {
             throw new Error(`Cloud PR #${pr.number} is not an open main-targeted handoff at the recorded SHA`)
           }
@@ -168,7 +168,7 @@ async function main() {
                 '-f', `body=${pr.body}\n\nCloud handoff verified by \`${RUNNER_PR_MARKER}\`: ${awaitingSha}.`], repo)
             }
           }
-          console.log(`  PR: ${task.identifier} — ${branch} already has #${existing[0].number} (${existing[0].state.toLowerCase()})`)
+          console.log(`  PR: ${task.identifier} — ${branch} already has #${pr.number} (${pr.state.toLowerCase()})`)
           continue
         }
         if (cloudAgent) throw new Error('Cloud worker did not open its required PR; refusing template-free recovery PR')
