@@ -394,6 +394,7 @@ export const ENV_VARS: EnvVar[] = [
   { name: 'VERCEL', scope: 'platform', description: 'Set by Vercel when building or running on their platform.' },
   { name: 'VERCEL_ENV', scope: 'platform', description: 'production | preview | development, set by Vercel.' },
   { name: 'VERCEL_URL', scope: 'platform', description: 'Deployment URL, set by Vercel.' },
+  { name: 'VERCEL_BRANCH_URL', scope: 'platform', description: 'Stable branch-alias URL of a preview deployment, set by Vercel; the hosted /mcp hop targets it (ADEV-337).' },
   { name: 'VERCEL_GIT_COMMIT_SHA', scope: 'platform', description: 'Commit SHA, set by Vercel.' },
   { name: 'VERCEL_DEPLOYMENT_ID', scope: 'platform', description: 'Deployment id, set by Vercel; stamps cache-metrics windows so a fleet aggregate can be attributed to a build.' },
   { name: 'NEXT_PUBLIC_VERCEL_ENV', scope: 'platform', description: 'VERCEL_ENV inlined for the client (next.config.mjs). Google sign-in bounces through the brand domain only when it is preview (lib/auth-host.ts).' },

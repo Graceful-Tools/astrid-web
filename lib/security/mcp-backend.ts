@@ -1,5 +1,5 @@
 import { Agent, fetch as undiciFetch } from 'undici'
-import { nextAuthOrigin } from '../brand/config'
+import { deploymentOrigin } from '../brand/config'
 import { assertOutboundUrlShape, OutboundUrlError, resolvePublicOutboundUrl } from './outbound-url'
 
 const MAX_RESPONSE_BYTES = 16 * 1024 * 1024
@@ -24,7 +24,7 @@ function parseBackend(raw: string): URL {
 function isConfiguredBackend(url: URL): boolean {
   // The operator's own settings: the explicit backend, else this deployment's origin
   // (what mcpHostedBaseUrl falls back to, ADEV-99).
-  const configured = [process.env.ASTRID_API_BASE_URL, nextAuthOrigin()]
+  const configured = [process.env.ASTRID_API_BASE_URL, deploymentOrigin()]
   return configured.some(value => Boolean(value && parseBackend(value).href === url.href))
 }
 
