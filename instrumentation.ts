@@ -89,12 +89,12 @@ export async function register() {
     installListPermissionsCore()
     assertListPermissionsCoreInstalled()
     // Search queries too (AWTD-1062): lib/search-query-parser.ts's parseSearchQuery, whose caller
-    // is GET /api/v1/search. Same setting, same fallback, pinned by the shared search fixture.
+    // is GET /api/v1/search. No TypeScript fallback since ADEV-313: a core that cannot parse refuses the search (503).
     try {
       const { installSearchQueryCore } = await import('@/lib/core-rules/search-query-core')
       installSearchQueryCore()
     } catch (error) {
-      console.error('search query: astrid-core module failed to import; the TypeScript parses', error)
+      console.error('search query: astrid-core module failed to import; searches are refused', error)
     }
     // Repeating-task rollover too (AWTD-1063): lib/repeating-rollover.ts's nextOccurrenceForTask,
     // whose caller is the server's completion path (lib/repeating-task-handler.ts). Same setting,

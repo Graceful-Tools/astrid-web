@@ -40,6 +40,8 @@ import {
   isEmptySearch,
   priorityToNumber,
   toTextSearchTerms,
+  SearchUnavailableError,
+  type ParsedSearchQuery,
 } from '@/lib/search-query-parser'
 
 const log = createLogger('v1.search')
@@ -62,7 +64,18 @@ export const GET = withAuth(
     const offset = Math.max(parseInt(url.searchParams.get('cursor') || '0', 10) || 0, 0)
     const includeTotal = url.searchParams.get('includeTotal') === 'true'
 
-    const parsed = parseSearchQuery(rawQuery)
+    // astrid-core is the only parser (ADEV-313): when it cannot parse, refuse rather than guess.
+    let parsed: ParsedSearchQuery
+    try {
+      parsed = parseSearchQuery(rawQuery)
+    } catch (error) {
+      if (!(error instanceof SearchUnavailableError)) throw error
+      log.error({ err: error }, 'Search unavailable')
+      return NextResponse.json(
+        { error: 'Service unavailable', message: error.message, retryable: true },
+        { status: 503, headers: { 'Retry-After': '5' } },
+      )
+    }
 
     // An empty query returns nothing rather than every task the caller can see:
     // "no query" is not "show me everything".

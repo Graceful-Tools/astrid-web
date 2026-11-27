@@ -90,7 +90,7 @@ every date below by the same amount.
 | Rule | Core rule | TypeScript (server and browser) | Since | Step A, earliest | Step B, also needs | Done |
 |---|---|---|---|---|---|---|
 | List permissions | `listAccess` | deleted (ADEV-304); `lib/list-permissions.ts` only asks the core | AWTD-1061 | **2026-12-14** (taken early, see below) | AWTD-1586 | ☑ A (2026-11-26) ☑ B (ADEV-304) |
-| Search query parse | `searchParse` | `lib/search-query-parser.ts` (~300) | AWTD-1062 | **2026-12-14** (taken early) | AWTD-1586 (search box) | ☑ A (2026-11-26) ☐ B |
+| Search query parse | `searchParse` | deleted (ADEV-313); `lib/search-query-parser.ts` keeps the types and helpers, and a parse the core can't give is a 503 | AWTD-1062 | **2026-12-14** (taken early) | AWTD-1586 (search box; no client calls the parser, only `GET /api/v1/search`) | ☑ A (2026-11-26) ☑ B (ADEV-313) |
 | Repeating rollover | `nextOccurrence` | `types/repeating.ts` (~610) | AWTD-1063 | **2026-12-14** (taken early) | none for Step B on the server. The browser shows the next date but completes through the server. Check the client callers first. | ☑ A (2026-11-26) ☐ B |
 | Board columns | `board` | `getProjectBoardColumns`, `boardColumnsFor` | AWTD-1585 | **2026-12-14**, from AWTD-1585's deploy (taken early) | AWTD-1586 (the board and the menus are client code) | ☑ A (2026-11-26) ☐ B |
 | Board drops | `boardMove` | `resolveProjectColumnMove`, `resolveColumnMove` | AWTD-1585 | **Blocked.** No server path asks for a drop yet. Drops now have their own counters (`coreRulesBoard.stats.drops`, AWTD-1608). The clock starts once a server caller exists. | AWTD-1586 | ☐ A ☐ B |

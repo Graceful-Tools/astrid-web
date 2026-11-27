@@ -1,17 +1,14 @@
 /**
- * Search query parsing (task 5df85b9f).
+ * Search query types and helpers (task 5df85b9f).
  *
- * Turns `assignee:me priority:high overdue rollover` into a structured filter
- * plus the free-text terms.
+ * `assignee:me priority:high overdue rollover` becomes a structured filter plus the free-text
+ * terms. The filter keys map onto the **existing virtual-list filter vocabulary**
+ * (`filterAssignee`, `filterPriority`, `filterDueDate`, …) rather than inventing a second one.
  *
- * The filter keys map onto the **existing virtual-list filter vocabulary**
- * (`filterAssignee`, `filterPriority`, `filterDueDate`, …) rather than
- * inventing a second one, so there is exactly one way to express "high
- * priority tasks assigned to me" in the product.
- *
- * Unknown keys degrade to free text rather than erroring: a search box must
- * never punish a typo. Someone typing `hostname:foo` is searching for
- * "hostname:foo", not making a mistake we should shout about.
+ * The grammar is astrid-core's `searchParse` and nothing else (ADEV-313, step B of
+ * docs/architecture/CORE_RULES_FALLBACK_RETIREMENT.md). There is no TypeScript parser: a query the
+ * core cannot parse is refused with {@link SearchUnavailableError}, never guessed. This module keeps
+ * the types and the small helpers the search route runs on the core's parse.
  */
 
 export type SearchPriority = 'none' | 'low' | 'medium' | 'high'
@@ -42,41 +39,6 @@ export interface ParsedSearchQuery {
   identifier: string | null
 }
 
-const PRIORITY_ALIASES: Record<string, SearchPriority> = {
-  none: 'none',
-  '0': 'none',
-  low: 'low',
-  '1': 'low',
-  medium: 'medium',
-  med: 'medium',
-  '2': 'medium',
-  high: 'high',
-  '3': 'high',
-  urgent: 'high',
-}
-
-const DUE_ALIASES: Record<string, SearchDue> = {
-  today: 'today',
-  overdue: 'overdue',
-  late: 'overdue',
-  week: 'week',
-  'this-week': 'week',
-  month: 'month',
-  'this-month': 'month',
-  none: 'none',
-  never: 'none',
-}
-
-const STATE_ALIASES: Record<string, SearchState> = {
-  open: 'open',
-  incomplete: 'open',
-  done: 'done',
-  complete: 'done',
-  completed: 'done',
-  canceled: 'canceled',
-  cancelled: 'canceled',
-}
-
 /** Numeric priority values as stored on Task. */
 export function priorityToNumber(priority: SearchPriority): number {
   switch (priority) {
@@ -87,37 +49,16 @@ export function priorityToNumber(priority: SearchPriority): number {
   }
 }
 
-const IDENTIFIER_RE = /^[A-Za-z][A-Za-z0-9]{1,4}-\d+$/
-
-/**
- * Split on whitespace while respecting double quotes, so
- * `list:"Bugs and Polish"` survives as one token.
- */
-function tokenize(query: string): string[] {
-  const tokens: string[] = []
-  let current = ''
-  let inQuotes = false
-
-  for (const char of query) {
-    if (char === '"') {
-      inQuotes = !inQuotes
-      continue
-    }
-    if (!inQuotes && /\s/.test(char)) {
-      if (current) tokens.push(current)
-      current = ''
-      continue
-    }
-    current += char
+/** The core could not parse the query. Retry later; nothing was searched. */
+export class SearchUnavailableError extends Error {
+  readonly retryable = true
+  constructor(reason: string) {
+    super(`Search is unavailable: ${reason}`)
+    this.name = 'SearchUnavailableError'
   }
-  if (current) tokens.push(current)
-  return tokens
 }
 
-/**
- * Parses a query, or returns `undefined` to leave it to the TypeScript below. Not given the
- * TypeScript's answer: the server comparison was retired (AWTD-1608).
- */
+/** Parses a query, or returns `undefined` when it cannot (the search is then refused). */
 export type SearchQueryCore = (query: string) => ParsedSearchQuery | undefined
 
 // On globalThis, as with lib/list-permissions.ts's hook: Next compiles this module into several
@@ -130,13 +71,9 @@ type CoreHost = { [CORE_KEY]?: SearchQueryCore | null }
  * {@link parseSearchQuery} — lib/core-rules/search-query-core.ts, installed from
  * instrumentation.ts on the Node runtime (AWTD-1062).
  *
- * A hook rather than an import so this module stays pure: the contract-fixture driver runs it
- * under plain Node, and nothing here may load WebAssembly from disk. Where nothing is installed
- * (scripts, tests, the stdio MCP server) the TypeScript parses, pinned to the core by the shared
- * search fixture (tests/lib/core-rules-search-parity.test.ts).
- *
- * Fail-safe by construction: the TypeScript answer is returned (computed only then) whenever the
- * core declines, throws, or answers something that is not a parse.
+ * A hook rather than an import so this module stays pure: nothing here may load WebAssembly from
+ * disk. Where nothing is installed every parse is refused; tests get the vendored core from the
+ * shared vitest setup (tests/support/install-search-core.ts).
  */
 export function setSearchQueryCore(core: SearchQueryCore | null): void {
   ;(globalThis as CoreHost)[CORE_KEY] = core
@@ -151,7 +88,7 @@ const isStringArray = (value: unknown): value is string[] =>
 
 /**
  * Is this a parse the search route can act on — every field present, of its type, and from its
- * vocabulary? A core answer that is not is discarded for the TypeScript one.
+ * vocabulary? A core answer that is not is refused.
  */
 export function isParsedSearchQuery(value: unknown): value is ParsedSearchQuery {
   if (!value || typeof value !== 'object') return false
@@ -171,104 +108,23 @@ export function isParsedSearchQuery(value: unknown): value is ParsedSearchQuery 
   )
 }
 
+/**
+ * Parse a search query with astrid-core. Throws {@link SearchUnavailableError} when the core is not
+ * installed, throws, or answers something that is not a parse.
+ */
 export function parseSearchQuery(query: string): ParsedSearchQuery {
   const core = (globalThis as CoreHost)[CORE_KEY]
-  if (!core) return parseWithTypeScript(query)
+  if (!core) throw new SearchUnavailableError('astrid-core is not loaded')
   let answer: ParsedSearchQuery | undefined
   try {
     answer = core(query)
   } catch {
-    // A core that throws must never fail a search: the TypeScript answer stands.
-    return parseWithTypeScript(query)
+    throw new SearchUnavailableError('astrid-core threw')
   }
-  return answer !== undefined && isParsedSearchQuery(answer) ? answer : parseWithTypeScript(query)
-}
-
-/**
- * The TypeScript parser: the server's fallback, and the canonical source astrid-core's
- * `search.json` fixture is generated from. A grammar change lands here first, then in astrid-core
- * (regenerate, port), then in packages/astrid-rules (scripts/build-astrid-rules.sh).
- */
-function parseWithTypeScript(query: string): ParsedSearchQuery {
-  const result: ParsedSearchQuery = {
-    text: '',
-    assignee: null,
-    listNames: [],
-    labelNames: [],
-    priorities: [],
-    due: null,
-    state: null,
-    statuses: [],
-    identifier: null,
+  if (answer === undefined || !isParsedSearchQuery(answer)) {
+    throw new SearchUnavailableError('astrid-core did not answer')
   }
-
-  const textParts: string[] = []
-
-  for (const token of tokenize(query || '')) {
-    // A bare identifier is a direct hit, not a search term.
-    if (IDENTIFIER_RE.test(token)) {
-      result.identifier = token.toUpperCase()
-      continue
-    }
-
-    const separator = token.indexOf(':')
-    if (separator <= 0 || separator === token.length - 1) {
-      // `is:` with no value, a bare word, or a leading colon — all free text.
-      if (token) textParts.push(token)
-      continue
-    }
-
-    const key = token.slice(0, separator).toLowerCase()
-    const value = token.slice(separator + 1)
-    const normalized = value.toLowerCase()
-
-    switch (key) {
-      case 'assignee':
-      case 'owner':
-        result.assignee = normalized === 'me' ? 'me' : value.replace(/^@/, '')
-        break
-      case 'list':
-        result.listNames.push(value)
-        break
-      case 'label':
-      case 'tag':
-        result.labelNames.push(value)
-        break
-      case 'priority':
-      case 'p': {
-        const priority = PRIORITY_ALIASES[normalized]
-        if (priority) result.priorities.push(priority)
-        else textParts.push(token)
-        break
-      }
-      case 'due': {
-        const due = DUE_ALIASES[normalized]
-        if (due) result.due = due
-        else textParts.push(token)
-        break
-      }
-      case 'status': {
-        // Any non-empty value is accepted: a project's custom states are
-        // configurable, so the parser cannot know the full set. An unmatched
-        // status simply returns nothing rather than erroring.
-        if (normalized) result.statuses.push(normalized)
-        else textParts.push(token)
-        break
-      }
-      case 'is': {
-        const state = STATE_ALIASES[normalized]
-        if (state) result.state = state
-        else textParts.push(token)
-        break
-      }
-      default:
-        // Unknown key: treat the whole token as text rather than erroring.
-        textParts.push(token)
-    }
-  }
-
-  result.text = textParts.join(' ').trim()
-  return result
+  return answer
 }
 
 /**

@@ -14,7 +14,8 @@ import { installSearchQueryCore, createSearchQueryCore, searchQueryCoreStatus } 
 import { installRepeatingCore, createRepeatingCore, repeatingCoreStatus } from '@/lib/core-rules/repeating-core'
 import { installBoardCore, createBoardCore, boardCoreStatus } from '@/lib/core-rules/board-core'
 import { canUserManageList, setListPermissionsCore, type ListDecisionQuestion } from '@/lib/list-permissions'
-import { parseSearchQuery, setSearchQueryCore } from '@/lib/search-query-parser'
+import { parseSearchQuery, SearchUnavailableError, setSearchQueryCore } from '@/lib/search-query-parser'
+import { installTestSearchCore } from '@/tests/support/install-search-core'
 import { nextOccurrenceForTask, RolloverUnavailableError, setRepeatingCore } from '@/lib/repeating-rollover'
 import { boardColumnsThroughCore, setBoardCore, type CoreBoardColumn } from '@/lib/board-core-hook'
 import type { TaskNextOccurrenceInput } from '@/types/repeating'
@@ -41,7 +42,7 @@ const DAILY: TaskNextOccurrenceInput = {
 
 afterEach(() => {
   installTestListPermissionsCore()
-  setSearchQueryCore(null)
+  installTestSearchCore()
   setRepeatingCore(null)
   setBoardCore(null)
 })
@@ -90,12 +91,11 @@ describe('AWTD-1608: when the core cannot answer, the TypeScript rule IS run', (
     expect(decider.stats.failed).toBe(2)
   })
 
-  it('searchParse', () => {
-    const expected = parseSearchQuery('milk priority:high')
+  it('searchParse is refused: step B (ADEV-313) deleted its TypeScript', () => {
     const parser = createSearchQueryCore(failing, quiet)
     setSearchQueryCore(parser.parse)
     expect(parser.parse('milk priority:high')).toBeUndefined()
-    expect(parseSearchQuery('milk priority:high')).toEqual(expected)
+    expect(() => parseSearchQuery('milk priority:high')).toThrow(SearchUnavailableError)
     expect(parser.stats.failed).toBe(2)
   })
 
