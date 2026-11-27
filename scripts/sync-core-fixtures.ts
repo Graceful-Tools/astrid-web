@@ -17,6 +17,8 @@ import { join, resolve } from 'node:path'
 import {
   diffFixtureSets,
   isInSync,
+  openRefreshPullRequest,
+  REFRESH_BRANCH_PREFIX,
   refreshPullRequestBody,
   type FixtureSet,
 } from './lib/core-fixture-sync'
@@ -85,12 +87,16 @@ if (!flag('--open-pr')) {
 }
 
 const webSha = execFileSync('git', ['-C', webRoot, 'rev-parse', '--short=12', 'HEAD'], { encoding: 'utf8' }).trim()
-const branch = `agent/fixture-sync/web-${webSha}`
-const existing = execFileSync(
-  'gh',
-  ['pr', 'list', '--repo', CORE_REPO, '--head', branch, '--state', 'open', '--json', 'url', '--jq', '.[].url'],
-  { encoding: 'utf8' },
-).trim()
+const branch = `${REFRESH_BRANCH_PREFIX}web-${webSha}`
+const existing = openRefreshPullRequest(
+  JSON.parse(
+    execFileSync(
+      'gh',
+      ['pr', 'list', '--repo', CORE_REPO, '--state', 'open', '--limit', '100', '--json', 'headRefName,url'],
+      { encoding: 'utf8' },
+    ),
+  ),
+)
 if (existing) {
   console.log(`Refresh PR already open: ${existing}`)
   process.exit(0)
