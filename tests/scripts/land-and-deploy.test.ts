@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest'
 import { resolvePolicy } from '@/lib/orchestration-policy'
 import {
   astridFallbackPolicy,
+  gatePlan,
   migrationKind,
   policyHold,
 } from '@/scripts/lib/land-and-deploy'
@@ -701,5 +702,27 @@ describe('ADEV-265: a handoff whose CI is still running is a wait the run watche
 
   it('does not count a landable PR', () => {
     expect(decide([pr()])).toEqual([])
+  })
+})
+
+// ADEV-341 — --gate must run predeploy on the merged sha, not the launching checkout's HEAD.
+describe('gatePlan (ADEV-341)', () => {
+  const plan = gatePlan({ repo: '/primary', sha: 'abc123', worktree: '/tmp/gate' })
+
+  it('checks the merged sha out in a throwaway worktree, then installs there', () => {
+    expect(plan.setup[0]).toEqual({
+      command: 'git',
+      args: ['worktree', 'add', '--detach', '/tmp/gate', 'abc123'],
+      cwd: '/primary',
+    })
+    expect(plan.setup[1]).toEqual({ command: 'npm', args: ['ci'], cwd: '/tmp/gate' })
+  })
+
+  it('runs predeploy in the worktree, never the launching checkout', () => {
+    expect(plan.gate).toEqual({ command: 'npm', args: ['run', 'predeploy'], cwd: '/tmp/gate' })
+  })
+
+  it('removes the worktree afterwards', () => {
+    expect(plan.cleanup.args).toEqual(['worktree', 'remove', '--force', '/tmp/gate'])
   })
 })

@@ -657,3 +657,32 @@ export function summary(input: {
 
   return lines.join('\n')
 }
+
+export interface GateStep {
+  command: string
+  args: string[]
+  /** Directory the step runs in: the launching checkout or the throwaway worktree. */
+  cwd: string
+}
+
+/**
+ * ADEV-341: the `--gate` predeploy must judge the merged `origin/main`, not whatever the
+ * launching checkout has out (a detached HEAD with an older `node_modules` read RED on a
+ * green main). The plan checks the sha out in a throwaway worktree with its own `npm ci`;
+ * the caller removes the worktree afterwards whatever the outcome.
+ */
+export function gatePlan(input: { repo: string; sha: string; worktree: string }): {
+  setup: GateStep[]
+  gate: GateStep
+  cleanup: GateStep
+} {
+  const { repo, sha, worktree } = input
+  return {
+    setup: [
+      { command: 'git', args: ['worktree', 'add', '--detach', worktree, sha], cwd: repo },
+      { command: 'npm', args: ['ci'], cwd: worktree },
+    ],
+    gate: { command: 'npm', args: ['run', 'predeploy'], cwd: worktree },
+    cleanup: { command: 'git', args: ['worktree', 'remove', '--force', worktree], cwd: repo },
+  }
+}
