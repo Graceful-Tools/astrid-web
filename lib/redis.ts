@@ -52,6 +52,8 @@ export async function getRedisClient() {
       log.info('[Redis] Using local Redis server')
       redis = createClient({
         url: process.env.REDIS_URL,
+        // redis 6 defaults to RESP3; keep the RESP2 wire format this code was written for.
+        RESP: 2,
         socket: {
           reconnectStrategy: false, // Don't auto-reconnect; use circuit breaker instead
           connectTimeout: 3_000,

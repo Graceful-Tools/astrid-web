@@ -36,7 +36,7 @@
 
 ## Build & Development
 - **Bundler**: Next.js built-in (Turbopack in dev)
-- **ESLint**: ESLint 9.39.5
+- **ESLint**: ESLint 10.15.0
 - **TypeScript**: Strict mode
 - **PostCSS**: the Tailwind CSS plugin only
 
@@ -52,7 +52,7 @@
 - **Outbound Email**: Resend 6.39.0
 - **Inbound Email**: Cloudflare Email Workers / Mailgun / Resend webhooks
 - **Email Parsing**: TurndownService (HTML to Markdown)
-- **Push Notifications**: web-push 3.6.7 (VAPID-based)
+- **Push Notifications**: web-push 4.0.0 (VAPID-based)
 
 ## Real-Time & Background Jobs
 - **SSE**: Server-Sent Events for real-time updates

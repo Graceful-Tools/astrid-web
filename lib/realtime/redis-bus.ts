@@ -52,7 +52,7 @@ export function createRedisBus(options: RedisBusOptions = {}): RealtimeBus {
   const newest = new Map<string, number>()
   const subscribed = new Map<string, Promise<void>>()
 
-  const publisher: NodeRedis = createClient({ url })
+  const publisher: NodeRedis = createClient({ url, RESP: 2 }) // redis 6 defaults to RESP3; keep RESP2
   const subscriber: NodeRedis = publisher.duplicate()
   publisher.on('error', err => log.error({ err }, '[realtime] redis publisher error'))
   subscriber.on('error', err => log.error({ err }, '[realtime] redis subscriber error'))
