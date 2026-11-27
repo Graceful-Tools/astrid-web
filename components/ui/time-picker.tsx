@@ -194,7 +194,7 @@ export function TimePicker({
             {displayValue}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className={`!w-auto p-0 ${popoverClassName}`} align="start">
+        <PopoverContent className={`w-auto! p-0 ${popoverClassName}`} align="start">
           <style>{`
             .time-picker-scroll::-webkit-scrollbar {
               display: none;

@@ -251,9 +251,9 @@ describe('shadcn\'s variables are answered by the theme (AWTD-1574)', () => {
 
   it('compiles, and keeps opacity modifiers', async () => {
     const css = await compileClasses(['bg-background', 'bg-background/95', 'hover:bg-primary/90', 'text-muted-foreground', 'border-input', 'ring-ring'])
-    expect(ruleFor(css, 'bg-background')).toContain('background-color: rgba(var(--background), var(--tw-bg-opacity, 1))')
-    expect(ruleFor(css, 'bg-background/95')).toBe('background-color: rgba(var(--background), 0.95)')
-    expect(ruleFor(css, 'hover:bg-primary/90')).toBe('background-color: rgba(var(--primary), 0.9)')
+    expect(ruleFor(css, 'bg-background')).toContain('background-color: rgba(var(--background), 1)')
+    expect(ruleFor(css, 'bg-background/95')).toBe('background-color: color-mix(in oklab, rgba(var(--background), 1) 95%, transparent)')
+    expect(ruleFor(css, 'hover:bg-primary/90')).toBe('background-color: color-mix(in oklab, rgba(var(--primary), 1) 90%, transparent)')
     expect(ruleFor(css, 'text-muted-foreground')).toContain('color: rgba(var(--muted-foreground)')
     expect(ruleFor(css, 'border-input')).toContain('border-color: rgba(var(--input)')
     expect(ruleFor(css, 'ring-ring')).toContain('--tw-ring-color: rgba(var(--ring)')
@@ -430,7 +430,7 @@ describe('a meaning as text reads its ink, as a fill its base colour (AWTD-1575)
     for (const [name, token] of MEANINGS) {
       expect(propertyOf(ruleFor(css, `text-${name}`)), `text-${name}`).toBe(`astrid-${token}-ink`)
       expect(propertyOf(ruleFor(css, `hover:text-${name}`)), `hover:text-${name}`).toBe(`astrid-${token}-ink`)
-      expect(ruleFor(css, `text-${name}/70`)).toBe(`color: rgba(var(--astrid-${token}-ink), 0.7)`)
+      expect(ruleFor(css, `text-${name}/70`)).toBe(`color: color-mix(in oklab, rgba(var(--astrid-${token}-ink), 1) 70%, transparent)`)
       expect(ruleFor(css, `fill-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
       expect(ruleFor(css, `stroke-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
     }
@@ -510,7 +510,7 @@ describe('categories, the agent and the inverse surface read their tokens (AWTD-
       expect(ruleFor(css, `fill-${name}`)).toContain(`rgba(var(--astrid-${token}-ink)`)
       expect(propertyOf(ruleFor(css, `bg-${name}`)), `bg-${name}`).toBe(`astrid-${token}`)
       expect(propertyOf(ruleFor(css, `border-${name}`)), `border-${name}`).toBe(`astrid-${token}`)
-      expect(ruleFor(css, `bg-${name}/20`)).toBe(`background-color: rgba(var(--astrid-${token}), 0.2)`)
+      expect(ruleFor(css, `bg-${name}/20`)).toBe(`background-color: color-mix(in oklab, rgba(var(--astrid-${token}), 1) 20%, transparent)`)
     }
     for (const hue of CATEGORY_HUES) {
       expect(ruleFor(css, `bg-category-${hue}-subtle`)).toBe(

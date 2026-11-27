@@ -19,9 +19,9 @@ const SAME: Array<[string, string]> = [
   ['caret-current', 'caret-color: currentColor'],
   ['transform-none', 'transform: none'],
   ['transition-none', 'transition-property: none'],
-  ['top-0', 'top: 0px'],
+  ['top-0', 'top: 0'],
   ['w-full', 'width: 100%'],
-  ['text-white', 'color: rgb(255 255 255'],
+  ['text-white', 'color: var(--color-white)'],
 ]
 
 describe('the classes that replaced fixed inline styles (AWTD-1616)', () => {

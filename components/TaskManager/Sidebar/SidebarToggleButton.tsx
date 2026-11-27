@@ -15,7 +15,7 @@ function PaneToggleButton({ collapsed, onToggle, label, Icon }: PaneToggleButton
       variant="ghost"
       size="sm"
       onClick={onToggle}
-      className="theme-text-muted hover:theme-text-primary h-8 w-8 p-0 flex-shrink-0"
+      className="theme-text-muted hover:theme-text-primary h-8 w-8 p-0 shrink-0"
       aria-label={label}
       title={label}
       aria-expanded={!collapsed}

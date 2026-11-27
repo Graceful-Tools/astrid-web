@@ -10,7 +10,7 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
   }, [error])
 
   return <main className="container mx-auto flex min-h-[60vh] max-w-xl items-center px-4 py-12">
-    <div className="w-full rounded-xl border bg-background p-6 shadow-sm">
+    <div className="w-full rounded-xl border bg-background p-6 shadow-xs">
       <AlertTriangle className="mb-4 h-8 w-8 text-warning" />
       <h1 className="text-xl font-semibold">Admin page couldn’t load</h1>
       <p className="mt-2 text-sm text-muted-foreground">A client update or temporary connection problem may have interrupted this page. Retry with the current version.</p>

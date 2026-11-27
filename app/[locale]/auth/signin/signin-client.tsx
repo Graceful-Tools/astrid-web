@@ -271,7 +271,7 @@ export function SignInContent() {
                   type="button"
                   onClick={() => handleRedirectSignIn(id)}
                   disabled={loading || isPasskeyLoading}
-                  className="w-full theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary border theme-border-input font-medium h-12 rounded-xl shadow-sm"
+                  className="w-full theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary border theme-border-input font-medium h-12 rounded-xl shadow-xs"
                   size="lg"
                 >
                   {id === "github" ? <Github className="w-5 h-5 mr-2" /> : <Building2 className="w-5 h-5 mr-2" />}
@@ -287,7 +287,7 @@ export function SignInContent() {
                   type="button"
                   onClick={handleGoogleSignIn}
                   disabled={loading || isPasskeyLoading}
-                  className="w-full bg-[rgb(var(--theme-accent))] hover:bg-[rgb(var(--theme-accent-hover))] text-[rgb(var(--theme-accent-text))] font-medium h-12 rounded-xl shadow-sm"
+                  className="w-full bg-[rgb(var(--theme-accent))] hover:bg-[rgb(var(--theme-accent-hover))] text-[rgb(var(--theme-accent-text))] font-medium h-12 rounded-xl shadow-xs"
                   size="lg"
                 >
                   {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Chrome className="w-5 h-5 mr-2" />}
@@ -303,7 +303,7 @@ export function SignInContent() {
                   type="button"
                   onClick={() => handleRedirectSignIn("apple")}
                   disabled={loading || isPasskeyLoading}
-                  className="w-full theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary border theme-border-input font-medium h-12 rounded-xl shadow-sm"
+                  className="w-full theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary border theme-border-input font-medium h-12 rounded-xl shadow-xs"
                   size="lg"
                 >
                   <AppleLogo className="w-5 h-5 mr-2" />
@@ -322,7 +322,7 @@ export function SignInContent() {
                     setShowPasskeyEmailPrompt(true)
                   }}
                   disabled={loading || isPasskeyLoading || !isPasskeySupported}
-                  className={`w-full font-medium h-12 rounded-xl shadow-sm ${
+                  className={`w-full font-medium h-12 rounded-xl shadow-xs ${
                     isPasskeySupported
                       ? "theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary border theme-border-input"
                       : "theme-bg-tertiary theme-text-muted cursor-not-allowed"
@@ -391,7 +391,7 @@ export function SignInContent() {
                     }
                   }}
                   disabled={loading || isPasskeyLoading}
-                  className="w-full theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary font-medium h-12 rounded-xl shadow-sm border theme-border-input"
+                  className="w-full theme-surface hover:bg-[rgb(var(--astrid-surface-hover))] theme-text-primary font-medium h-12 rounded-xl shadow-xs border theme-border-input"
                   size="lg"
                 >
                   {isPasskeyLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <KeyRound className="w-5 h-5 mr-2" />}

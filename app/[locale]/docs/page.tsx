@@ -184,7 +184,7 @@ export default function APIDocsPage() {
 
               <div className="bg-brand-subtle border border-brand/20 rounded-lg p-3">
                 <div className="flex items-start space-x-2">
-                  <Lock className="w-4 h-4 text-brand mt-0.5 flex-shrink-0" />
+                  <Lock className="w-4 h-4 text-brand mt-0.5 shrink-0" />
                   <div>
                     <p className="text-sm font-medium theme-text-primary">Security Best Practices</p>
                     <ul className="text-xs theme-text-muted space-y-1 mt-1 ml-4 list-disc">

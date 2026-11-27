@@ -29,7 +29,7 @@ export function PriorityPicker({ value, onChange, disabled = false }: PriorityPi
         onClick={() => onChange(0)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 0 
-            ? `${priorityFillClass(0)} hover:brightness-90 active:brightness-90 !text-white hover:!text-white active:!text-white` 
+            ? `${priorityFillClass(0)} hover:brightness-90 active:brightness-90 text-white! hover:text-white! active:text-white!` 
             : `bg-transparent ${priorityOutlineClass(0)} hover:bg-theme-hover`
         }`}
       >
@@ -42,7 +42,7 @@ export function PriorityPicker({ value, onChange, disabled = false }: PriorityPi
         onClick={() => onChange(1)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 1 
-            ? `${priorityFillClass(1)} hover:brightness-90 active:brightness-90 !text-white hover:!text-white active:!text-white` 
+            ? `${priorityFillClass(1)} hover:brightness-90 active:brightness-90 text-white! hover:text-white! active:text-white!` 
             : `bg-transparent ${priorityOutlineClass(1)} hover:bg-theme-hover`
         }`}
       >
@@ -55,7 +55,7 @@ export function PriorityPicker({ value, onChange, disabled = false }: PriorityPi
         onClick={() => onChange(2)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 2 
-            ? `${priorityFillClass(2)} hover:brightness-90 active:brightness-90 !text-white hover:!text-white active:!text-white` 
+            ? `${priorityFillClass(2)} hover:brightness-90 active:brightness-90 text-white! hover:text-white! active:text-white!` 
             : `bg-transparent ${priorityOutlineClass(2)} hover:bg-theme-hover`
         }`}
       >
@@ -68,7 +68,7 @@ export function PriorityPicker({ value, onChange, disabled = false }: PriorityPi
         onClick={() => onChange(3)}
         className={`w-10 h-10 flex items-center justify-center ${
           value === 3 
-            ? `${priorityFillClass(3)} hover:brightness-90 active:brightness-90 !text-white hover:!text-white active:!text-white` 
+            ? `${priorityFillClass(3)} hover:brightness-90 active:brightness-90 text-white! hover:text-white! active:text-white!` 
             : `bg-transparent ${priorityOutlineClass(3)} hover:bg-theme-hover`
         }`}
       >

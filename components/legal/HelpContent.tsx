@@ -45,7 +45,7 @@ function Level({ level, label, hint, children }: { level: keyof typeof LEVEL; la
 function Step({ number, title, children }: { number: number; title: ReactNode; children: ReactNode }) {
   return (
     <div className="flex gap-4">
-      <div className="flex-shrink-0 w-8 h-8 theme-bg-tertiary rounded-full flex items-center justify-center text-sm font-bold">{number}</div>
+      <div className="shrink-0 w-8 h-8 theme-bg-tertiary rounded-full flex items-center justify-center text-sm font-bold">{number}</div>
       <div>
         <h3 className="font-semibold theme-text-primary mb-1">{title}</h3>
         <p className="theme-text-secondary text-sm">{children}</p>

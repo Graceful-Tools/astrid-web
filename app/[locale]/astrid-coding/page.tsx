@@ -22,9 +22,9 @@ export default function AstridCodingPage() {
   }
 
   return (
-    <div className={`${scrollShellClassName} bg-theme-primary bg-gradient-to-br from-brand-subtle via-transparent to-agent-bubble`}>
+    <div className={`${scrollShellClassName} bg-theme-primary bg-linear-to-br from-brand-subtle via-transparent to-agent-bubble`}>
       {/* Header */}
-      <div className="bg-theme-header/80 backdrop-blur-sm border-b border-theme-header sticky top-0 z-10">
+      <div className="bg-theme-header/80 backdrop-blur-xs border-b border-theme-header sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -90,7 +90,7 @@ export default function AstridCodingPage() {
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-xs border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <Code className="w-12 h-12 text-brand mx-auto mb-4" />
               <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.codeGenerationTitle')}</h3>
@@ -100,7 +100,7 @@ export default function AstridCodingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-xs border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <GitBranch className="w-12 h-12 text-success mx-auto mb-4" />
               <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.githubPrsTitle')}</h3>
@@ -110,7 +110,7 @@ export default function AstridCodingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-xs border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <Globe className="w-12 h-12 text-category-purple mx-auto mb-4" />
               <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.livePreviewsTitle')}</h3>
@@ -120,7 +120,7 @@ export default function AstridCodingPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-theme-surface/60 backdrop-blur-sm border-theme-surface hover:shadow-lg transition-shadow">
+          <Card className="bg-theme-surface/60 backdrop-blur-xs border-theme-surface hover:shadow-lg transition-shadow">
             <CardContent className="p-6 text-center">
               <MessageSquare className="w-12 h-12 text-warning mx-auto mb-4" />
               <h3 className="font-semibold text-theme-primary mb-2">{t('codingAgentPage.features.commentActionsTitle')}</h3>
@@ -132,7 +132,7 @@ export default function AstridCodingPage() {
         </div>
 
         {/* How It Works */}
-        <Card className="mb-16 bg-theme-surface/60 backdrop-blur-sm border-theme-surface">
+        <Card className="mb-16 bg-theme-surface/60 backdrop-blur-xs border-theme-surface">
           <CardHeader>
             <CardTitle className="text-2xl text-center text-theme-primary">{t('codingAgentPage.howItWorks.title')}</CardTitle>
             <CardDescription className="text-center text-theme-muted">
@@ -150,7 +150,7 @@ export default function AstridCodingPage() {
                 { step: 6, title: t('codingAgentPage.howItWorks.deployTitle'), desc: t('codingAgentPage.howItWorks.deployDesc') }
               ].map((item, index) => (
                 <div key={index} className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-8 h-8 bg-brand-subtle text-brand rounded-full flex items-center justify-center text-sm font-medium">
+                  <div className="shrink-0 w-8 h-8 bg-brand-subtle text-brand rounded-full flex items-center justify-center text-sm font-medium">
                     {item.step}
                   </div>
                   <div className="flex-1">
@@ -167,7 +167,7 @@ export default function AstridCodingPage() {
         </Card>
 
         {/* GitHub App Benefits */}
-        <Card className="mb-16 bg-gradient-to-r from-transparent to-brand-subtle border-theme-surface">
+        <Card className="mb-16 bg-linear-to-r from-transparent to-brand-subtle border-theme-surface">
           <CardHeader>
             <div className="flex items-center justify-center space-x-3 mb-4">
               <Github className="w-8 h-8" />
@@ -205,7 +205,7 @@ export default function AstridCodingPage() {
         </Card>
 
         {/* Interactive Actions */}
-        <Card className="mb-16 bg-theme-surface/60 backdrop-blur-sm border-warning/30">
+        <Card className="mb-16 bg-theme-surface/60 backdrop-blur-xs border-warning/30">
           <CardHeader>
             <CardTitle className="text-2xl text-center text-theme-primary">{t('codingAgentPage.controls.title')}</CardTitle>
             <CardDescription className="text-center text-theme-muted">
@@ -232,7 +232,7 @@ export default function AstridCodingPage() {
 
         {/* CTA Section */}
         {/* `light`: the call to action is a brand gradient in every theme, so its purple stop and the white button under the pointer read the light ink (white text is 4.5:1+ across it). */}
-        <Card className="light bg-gradient-to-r from-brand to-category-purple-ink text-brand-foreground border-0">
+        <Card className="light bg-linear-to-r from-brand to-category-purple-ink text-brand-foreground border-0">
           <CardContent className="p-12 text-center">
             <h2 className="text-3xl font-bold mb-4">{t('codingAgentPage.cta.title')}</h2>
             <p className="text-xl mb-8 text-brand-foreground">

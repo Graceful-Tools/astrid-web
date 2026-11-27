@@ -148,7 +148,7 @@ export function CopyBlock({
       </div>
       <pre className="p-3 theme-bg-tertiary rounded-lg overflow-x-auto">
         <code
-          className="text-xs font-mono theme-text-primary whitespace-pre-wrap break-words"
+          className="text-xs font-mono theme-text-primary whitespace-pre-wrap wrap-break-word"
           data-testid={testId}
         >
           {code}

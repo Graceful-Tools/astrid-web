@@ -224,7 +224,7 @@ export default async function OAuthAuthorizePage({ searchParams }: PageProps) {
               <ul className="space-y-2">
                 {context.scopes.map(scope => (
                   <li key={scope} className="flex items-start space-x-3">
-                    <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="w-4 h-4 text-success mt-0.5 shrink-0" />
                     <div>
                       <code className="text-xs theme-bg-tertiary px-2 py-0.5 rounded">{scope}</code>
                       <div className="text-sm theme-text-muted">{localizedScopeDescription(scope, key => (tRoot.has(key) ? tRoot(key) : key))}</div>

@@ -123,7 +123,7 @@ export function AstridReminderPopover({
   const isOverdue = task.dueDateTime && new Date(task.dueDateTime) <= new Date()
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
       {completion.dialog}
       <div className="theme-bg-primary theme-border w-full max-w-lg shadow-2xl rounded-lg overflow-hidden">
         <div className="p-6 space-y-6">
@@ -168,7 +168,7 @@ export function AstridReminderPopover({
                           // Default to private - show colored dot
                           return (
                             <div
-                              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
                               style={{ backgroundColor: list.color }}
                             />
                           )
@@ -186,7 +186,7 @@ export function AstridReminderPopover({
 
             {/* Due Date on the right - exactly like task row */}
             {task.dueDateTime && (
-              <div className="text-xs theme-text-muted flex-shrink-0">
+              <div className="text-xs theme-text-muted shrink-0">
                 {formatMonthDay(new Date(task.dueDateTime), locale)}
               </div>
             )}
@@ -196,7 +196,7 @@ export function AstridReminderPopover({
               variant="ghost"
               size="sm"
               onClick={onDismiss}
-              className="flex-shrink-0 p-1 h-auto opacity-60 hover:opacity-100"
+              className="shrink-0 p-1 h-auto opacity-60 hover:opacity-100"
             >
               <X className="w-4 h-4" />
             </Button>
@@ -205,7 +205,7 @@ export function AstridReminderPopover({
           {/* Astrid with Speech Bubble */}
           <div className="flex items-start space-x-4">
             {/* Astrid Icon - 1/3 of screen width */}
-            <div className="flex-shrink-0 w-1/3">
+            <div className="shrink-0 w-1/3">
               <img
                 src={BRAND.icon}
                 alt={BRAND.appName}

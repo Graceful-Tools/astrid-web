@@ -102,7 +102,7 @@ export const AstridEmptyState = memo<AstridEmptyStateProps>(({
       {/* Astrid with Speech Bubble - matching push notification style */}
       <div className="flex items-start space-x-4 max-w-lg w-full animate-in fade-in slide-in-from-bottom-2 duration-panel">
         {/* Astrid Icon - 1/3 of width, matching popover */}
-        <div className={cn('flex-shrink-0', artClassName)}>
+        <div className={cn('shrink-0', artClassName)}>
           <img
             src={shownCharacterSrc}
             alt={BRAND.appName}

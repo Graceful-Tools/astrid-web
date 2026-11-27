@@ -8,7 +8,7 @@ export function SettingsSecondPane() {
     <div className="flex-1 min-w-pane-min border-l theme-border flex items-center justify-center p-8">
       <div className="flex flex-col items-center max-w-xs">
         <div className="flex items-start space-x-4 w-full">
-          <div className="flex-shrink-0 w-24">
+          <div className="shrink-0 w-24">
             <img src={BRAND.icon} alt={BRAND.appName} className="w-full h-auto" />
           </div>
           <div className="flex-1">

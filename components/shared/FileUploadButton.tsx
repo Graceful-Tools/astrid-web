@@ -202,7 +202,7 @@ export function FileAttachmentDisplay({
 
   return (
     <div className={`flex items-center gap-2 p-2 bg-theme-secondary rounded border border-theme ${className}`}>
-      <Paperclip className="w-4 h-4 text-theme-muted flex-shrink-0" />
+      <Paperclip className="w-4 h-4 text-theme-muted shrink-0" />
       <div className="flex-1 min-w-0">
         <div className="text-sm text-theme-primary truncate">{file.name}</div>
         <div className="text-xs text-theme-muted">{formatFileSize(file.size)}</div>
@@ -213,7 +213,7 @@ export function FileAttachmentDisplay({
           variant="ghost"
           size="sm"
           onClick={onRemove}
-          className="flex-shrink-0 hover:bg-theme-hover"
+          className="shrink-0 hover:bg-theme-hover"
         >
           <X className="w-4 h-4" />
         </Button>

@@ -27,7 +27,7 @@ export default function SettingsDetailPanel({ page, onNavigate }: SettingsDetail
         style={{ top: `${arrowTop}px` }}
       ></div>
       <div ref={panelRef} className="w-full theme-panel flex flex-col h-full relative" data-task-detail-panel>
-        <div className="flex items-center justify-end px-3 pt-2 flex-shrink-0">
+        <div className="flex items-center justify-end px-3 pt-2 shrink-0">
           <button
             onClick={() => window.open(`/settings/fullpage/${page}`, '_blank')}
             className="p-1.5 rounded-lg theme-text-muted hover:theme-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"

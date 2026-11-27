@@ -217,7 +217,7 @@ describe('TaskManagerHeader - List Name Truncation', () => {
     expect(hasSettingsIcon).toBe(true)
 
     // Right container should not shrink
-    const rightContainer = container.querySelector('.flex-shrink-0:has(svg.lucide-settings), .flex-shrink-0:has(svg.lucide-filter)')
+    const rightContainer = container.querySelector('.shrink-0:has(svg.lucide-settings), .shrink-0:has(svg.lucide-filter)')
     expect(rightContainer).toBeInTheDocument()
   })
 

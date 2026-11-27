@@ -122,7 +122,7 @@ export function TaskDetailSubtasksSection({
 
       {canAdd && (
         <div className="flex items-center gap-2">
-          <Plus className="w-4 h-4 theme-text-muted flex-shrink-0" aria-hidden />
+          <Plus className="w-4 h-4 theme-text-muted shrink-0" aria-hidden />
           <input
             value={title}
             onChange={event => setTitle(event.target.value)}
@@ -136,7 +136,7 @@ export function TaskDetailSubtasksSection({
             disabled={saving}
             placeholder={t("tasks.subtaskSection.addPlaceholder")}
             aria-label={t("tasks.subtaskSection.add")}
-            className="flex-1 bg-transparent border-none outline-none text-sm theme-text-primary placeholder:theme-text-muted"
+            className="flex-1 bg-transparent border-none outline-hidden text-sm theme-text-primary placeholder:theme-text-muted"
           />
         </div>
       )}

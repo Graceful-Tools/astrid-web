@@ -24,7 +24,7 @@ Insights was collecting the numbers — see below.
 | Incremental sync response | <= 100 KiB and <= 1 MiB across all pages | `scripts/measure-api-latency.ts` (route not yet added) | never |
 | Server error rate | < 1% | `vercel logs` status codes — sample too small to assert, see below | 2026-09-11, indicative only |
 | Redis cache hit rate | >= 60% after warm-up (re-based 2026-10-16, AWTD-1201 — was >= 80%) | `/admin/analytics` → **Redis Cache**, per day, from the `CacheMetricBucket` table | 2026-10-16: **66.3% over the last 7 days — within budget**; 70.6% since recording began 2026-09-25. See below |
-| Initial JavaScript | <= 250 KiB gzipped first load, per route | `npm run check:bundle` over `.next/diagnostics/route-bundle-stats.json` (`scripts/check-route-bundle-budget.ts`); gated in predeploy and the E2E workflow as a **ratchet at 362 KiB**, not at the budget (AWTD-1593, lowered by AWTD-1604 and on 2026-11-13) — see below | 2026-11-13 — heaviest route **360.0 KiB, OVER**; `/settings/*` (TaskManager shell) **359.0 KiB, OVER**; leanest `[locale]` page 189.8 KiB, within; 17 of 61 routes over |
+| Initial JavaScript | <= 250 KiB gzipped first load, per route | `npm run check:bundle` over `.next/diagnostics/route-bundle-stats.json` (`scripts/check-route-bundle-budget.ts`); gated in predeploy and the E2E workflow as a **ratchet at 360 KiB**, not at the budget (AWTD-1593, lowered by AWTD-1604, on 2026-11-13 and by ADEV-334) — see below | 2026-11-27 — heaviest route **358.3 KiB, OVER** (ADEV-334); 2026-11-13 — `/settings/*` (TaskManager shell) **359.0 KiB, OVER**; leanest `[locale]` page 189.8 KiB, within; 17 of 61 routes over |
 | Core Web Vitals (p75) | LCP <= 2.5 s; INP <= 200 ms; CLS <= 0.1 | Vercel Speed Insights (history, dashboard only) + `scripts/measure-web-vitals.ts` (scriptable, no history yet) — see below | **not yet transcribed** |
 | GitHub Projects webhook ack | p95 <= 300 ms (delivery check, one indexed read, one insert; work runs after the response) | `vercel logs --query projects_v2_item` route timings; shape pinned by `tests/api/github-projects-webhook.test.ts` (AWTD-1152) | 2026-10-21 (AWTD-1159): the lanes-test brand has it on and its App is delivering. GitHub's own delivery log reports **p50 360 ms, p95 1040 ms** over 58 `projects_v2_item` deliveries, all HTTP 200. **Not comparable to this budget**: GitHub's `duration` is its whole round trip — DNS, TLS, network and any cold start — while the budget is route time. Route time still unmeasured; see below |
 | GitHub Projects edit → replica | p95 <= 10 s from a github.com edit to the Astrid row | `npm run test:live:github-projects` (AWTD-1154) measures edit → hydrate job → replica; the webhook leg needs a deployed GitHub-Projects brand | 2026-10-21 (AWTD-1159), on the deployed lanes-test brand: webhook received → replica written is **p50 616 ms, p95 840 ms, max 1.34 s** over 67 first-attempt hydrate jobs. With the ack above that is **~1.9 s at p95**, against a 10 s budget. The one leg still unmeasured is github.com edit → GitHub delivering; see below. (2026-10-10: ~1.0–1.2 s for edit → hydrate → replica locally, webhook leg excluded, one run) |
@@ -564,8 +564,16 @@ The 17 still over are the 14 TaskManager-shell routes, `/admin/analytics`, `/sta
 TaskManager shell itself, which is the settings-without-the-shell split.
 
 So the gate is a **ratchet**: `CEILING_KIB` in `scripts/lib/route-bundle-budget.ts` is
-the heaviest route rounded up, plus 1 KiB for env-value noise between machines (362 KiB
-since 2026-11-13; 389 KiB after AWTD-1604; 405 KiB before it).
+the heaviest route rounded up, plus 1 KiB for env-value noise between machines (360 KiB
+since 2026-11-27; 362 KiB from 2026-11-13; 389 KiB after AWTD-1604; 405 KiB before it).
+
+**Tailwind 4 and the browser logger (2026-11-27, ADEV-334).** tailwind-merge 3, which the
+Tailwind 4 migration needs, is ~2.2 KiB heavier than 2 (its default config covers v4's class
+groups) and took four routes past 362 KiB. `lib/logger.ts` is imported by client components,
+so pino's browser build (`pino/browser.js` and `@pinojs/redact`, ~4.2 KiB) was in every first
+load although it only ever wrote to the console. Browser bundles now alias `pino` to
+`lib/pino-browser.ts` (`turbopack.resolveAlias` in next.config.mjs), which keeps levels, child
+loggers and redaction; the server keeps real pino. Heaviest route 360.7 → 358.3 KiB.
 
 **The markdown renderer, off the first load (2026-11-13).** Main went red on the 389 KiB
 ceiling with no single culprit: CI measured the list route at 388.4 KiB when the ceiling

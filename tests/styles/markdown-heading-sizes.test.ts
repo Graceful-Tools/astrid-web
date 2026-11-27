@@ -14,7 +14,7 @@ const tokensCss = readFileSync(join(process.cwd(), 'packages/astrid-design/astri
 
 const rule = (selector: string) => {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const match = globals.match(new RegExp(`^${escaped} \\{([^}]*)\\}`, 'm'))
+  const match = globals.match(new RegExp(`^\\s*${escaped} \\{([^}]*)\\}`, 'm'))
   expect(match, `${selector} rule`).not.toBeNull()
   return match![1]
 }

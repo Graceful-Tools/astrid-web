@@ -108,10 +108,10 @@ export function TaskRowContent({
         {(identifier || (task.dueDateTime && !shouldHideTaskWhen(task)) || boardStatusName || domainLists.length > 0 || labels.length > 0) && (
           <div className="flex items-center mt-1 gap-2">
             {identifier && (
-              <span className="text-xs font-mono theme-text-muted flex-shrink-0">{identifier}</span>
+              <span className="text-xs font-mono theme-text-muted shrink-0">{identifier}</span>
             )}
             {task.dueDateTime && !shouldHideTaskWhen(task) && (
-              <div className="text-xs theme-text-muted flex-shrink-0">
+              <div className="text-xs theme-text-muted shrink-0">
                 {formatDateForDisplay(new Date(task.dueDateTime), task.isAllDay, { locale, t })}
                 {!task.isAllDay && ` ${formatClockTime(new Date(task.dueDateTime), locale)}`}
               </div>
@@ -144,7 +144,7 @@ export function TaskRowContent({
                       className="flex items-center space-x-1 rounded px-1.5 py-0 text-xs"
                       style={{ backgroundColor: `${list.color}15` }}
                     >
-                      <ListGlyph list={list} className={`w-3 h-3 ${isMobile ? 'flex-shrink-0' : ''}`} />
+                      <ListGlyph list={list} className={`w-3 h-3 ${isMobile ? 'shrink-0' : ''}`} />
                       <span className="theme-text-secondary whitespace-nowrap">{chipLabelText(list.name)}</span>
                     </div>
                   ))}

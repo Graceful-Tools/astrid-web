@@ -50,7 +50,7 @@ describe('AWTD-1603: sonner-era screens reach the mounted toaster', () => {
     const message = await screen.findByText('Could not create the GitHub setup')
     const strip = message.closest('li')
     expect(strip).not.toBeNull()
-    expect(strip!.className).toContain('!bg-danger')
+    expect(strip!.className).toContain('bg-danger!')
   })
 
   it('toast.success shows in the success colour', async () => {
@@ -60,7 +60,7 @@ describe('AWTD-1603: sonner-era screens reach the mounted toaster', () => {
       toast.success('Feature rollout saved')
     })
     const message = await screen.findByText('Feature rollout saved')
-    await waitFor(() => expect(message.closest('li')!.className).toContain('!bg-success'))
+    await waitFor(() => expect(message.closest('li')!.className).toContain('bg-success!'))
   })
 
   it('no file imports sonner (one toast system)', () => {

@@ -104,7 +104,7 @@ export function TaskActionMenu({
         <Button
           variant="ghost"
           size="sm"
-          className="flex-shrink-0 theme-text-muted hover:theme-text-secondary"
+          className="shrink-0 theme-text-muted hover:theme-text-secondary"
           // The trigger had no accessible name at all — it was an icon and
           // nothing else, so a screen reader announced "button" and a test
           // could only reach it by class.

@@ -53,7 +53,7 @@ export function useTradeoffGridViewer(): {
       <DialogContent
         // Above an expanded task panel (z-index 60, styles/components.css), or the viewer
         // opens behind the task while still trapping focus.
-        className="tradeoff-viewer z-[70] block max-w-none w-screen h-[100dvh] left-0 top-0 translate-x-0 translate-y-0 overflow-auto rounded-none sm:rounded-none p-4 pt-12 theme-panel data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-top-0"
+        className="tradeoff-viewer z-70 block max-w-none w-screen h-dvh left-0 top-0 translate-x-0 translate-y-0 overflow-auto rounded-none sm:rounded-none p-4 pt-12 theme-panel data-[state=open]:slide-in-from-left-0 data-[state=open]:slide-in-from-top-0 data-[state=closed]:slide-out-to-left-0 data-[state=closed]:slide-out-to-top-0"
         aria-describedby={undefined}
         onCloseAutoFocus={e => {
           const control = opener.current

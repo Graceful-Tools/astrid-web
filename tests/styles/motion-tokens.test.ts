@@ -78,12 +78,10 @@ describe('stylesheets animate with the motion tokens (AWTD-1574)', () => {
 describe('the stylesheets compile with the real Tailwind config (AWTD-1574)', () => {
   it.each(['app/globals.css', 'styles/components.css'])('%s', async (path) => {
     const { default: postcss } = await import('postcss')
-    const { default: tailwindcss } = await import('tailwindcss')
-    const { default: config } = await import('@/tailwind.config')
-    // components.css is compiled after globals.css in the app, which is where
-    // `@tailwind` comes from; alone it needs the directives to @apply against.
-    const source = path === 'app/globals.css' ? read(...path.split('/')) : `@tailwind utilities;\n${read(...path.split('/'))}`
-    const result = await postcss([tailwindcss({ ...config, content: [{ raw: '', extension: 'html' }] })]).process(source, {
+    const { default: tailwindcss } = await import('@tailwindcss/postcss')
+    // Tailwind 4 (ADEV-334): globals.css carries `@import 'tailwindcss'` and `@config`, and
+    // components.css `@reference`s it, so each compiles exactly as the app's build does.
+    const result = await postcss([tailwindcss({ base: process.cwd(), optimize: { minify: false } })]).process(read(...path.split('/')), {
       from: join(process.cwd(), path),
     })
     expect(result.css.length).toBeGreaterThan(1000)
@@ -92,7 +90,7 @@ describe('the stylesheets compile with the real Tailwind config (AWTD-1574)', ()
       expect(result.css).toMatch(/\.task-panel-arrow \{[^}]*transition-duration: var\(--astrid-motion-fast-duration\)/)
       expect(result.css).toMatch(/\.transition-theme \{[^}]*transition-timing-function: var\(--astrid-motion-medium-ease\)/)
     } else {
-      expect(result.css).toMatch(/border-color: rgba\(var\(--border\), var\(--tw-border-opacity, 1\)\)/)
+      expect(result.css).toMatch(/border-color: rgba\(var\(--border\), 1\)/)
     }
   })
 })

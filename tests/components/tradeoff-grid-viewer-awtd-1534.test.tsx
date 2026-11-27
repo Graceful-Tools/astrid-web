@@ -96,7 +96,7 @@ describe('AWTD-1534 full-screen trade-off grid', () => {
   it('sits above an expanded task panel (z-index 60)', () => {
     render(<Host />)
     fireEvent.click(screen.getByRole('button', { name: /Plein écran/ }))
-    expect(screen.getByRole('dialog').className).toContain('z-[70]')
+    expect(screen.getByRole('dialog').className).toContain('z-70')
   })
 
   it('a click elsewhere in the text opens nothing', () => {

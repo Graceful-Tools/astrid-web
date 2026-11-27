@@ -223,7 +223,7 @@ export default function FeatureRolloutPage() {
         </CardContent>
       </Card>
 
-      <div data-testid="admin-bottom-actions" className="mb-8 mt-4 flex items-center justify-between rounded-xl border bg-background p-3 shadow-sm">
+      <div data-testid="admin-bottom-actions" className="mb-8 mt-4 flex items-center justify-between rounded-xl border bg-background p-3 shadow-xs">
         <div className="text-sm"><p className="font-medium">{dirty ? 'Your changes are not live yet.' : 'This rollout is up to date.'}</p><p className="hidden text-xs text-muted-foreground sm:block">{dirty ? 'Review the effective-access summary, then save.' : effectiveSummary}</p></div>
         <Button onClick={save} disabled={saveDisabled} className="min-w-36"><Save className="mr-2 h-4 w-4" />{saving ? 'Saving…' : 'Save changes'}</Button>
       </div>

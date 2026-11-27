@@ -352,7 +352,7 @@ export function TaskManagerHeader({
         <div className="flex items-center justify-between w-full max-w-full min-h-hit-target">
           {/* Left: Hamburger button with large tap target, aligned with task checkboxes.
               The hamburger stays put across mobile list / task / chat panes. */}
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <Button
               variant="ghost"
               size="sm"
@@ -416,7 +416,7 @@ export function TaskManagerHeader({
           {/* Right: Chat toggle + Settings icon (context-dependent). When the
               unified toggle is active it already contains Messages — don't
               render a duplicate ChatToggle icon. */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <TaskViewToggle {...taskViewToggleProps} />
 
             {!headerToggle.unified && onToggleActivePanel && activeView === 'list' && !(mobileSearchMode || searchValue.trim()) && (

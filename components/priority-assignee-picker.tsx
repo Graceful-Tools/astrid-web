@@ -428,7 +428,7 @@ export function PriorityAssigneePicker({
                   <div className="text-xs text-theme-muted">{t('tasks.noOneAssigned')}</div>
                 </div>
                 {tempAssignee === null && (
-                  <Check className="w-5 h-5 text-brand flex-shrink-0" />
+                  <Check className="w-5 h-5 text-brand shrink-0" />
                 )}
               </button>
 
@@ -463,7 +463,7 @@ export function PriorityAssigneePicker({
                       </div>
                     </div>
                     {isSelected && (
-                      <Check className="w-5 h-5 text-brand flex-shrink-0" />
+                      <Check className="w-5 h-5 text-brand shrink-0" />
                     )}
                   </button>
                 )

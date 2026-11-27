@@ -332,7 +332,7 @@ for (const task of queue) {
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-warning-subtle text-warning text-xs font-bold flex items-center justify-center mt-0.5">
+      <div className="shrink-0 w-6 h-6 rounded-full bg-warning-subtle text-warning text-xs font-bold flex items-center justify-center mt-0.5">
         {n}
       </div>
       <div className="flex-1">

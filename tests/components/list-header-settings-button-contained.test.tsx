@@ -171,7 +171,7 @@ describe('List header settings button stays inside the center column', () => {
     // otherwise the last item (the gear) is what overflows.
     const actionCluster = settingsButton!.parentElement
     expect(actionCluster).toBeTruthy()
-    expect(actionCluster!.className).toContain('flex-shrink-0')
+    expect(actionCluster!.className).toContain('shrink-0')
   })
 
   it('lets the flexible title block shrink so the buttons stay put', () => {

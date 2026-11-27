@@ -138,7 +138,7 @@ export function BoardColumn({
     >
       {lead}
       <div
-        className="flex min-h-[4.5rem] shrink-0 items-start justify-between gap-2 border-b theme-border board-column-header"
+        className="flex min-h-18 shrink-0 items-start justify-between gap-2 border-b theme-border board-column-header"
         data-testid={headerTestId}
       >
         <div className="min-w-0">

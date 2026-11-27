@@ -30,11 +30,11 @@ export function StreakRow({ entry, renderComment }: StreakRowProps) {
         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs theme-text-muted hover:theme-bg-hover transition-colors"
       >
         {expanded ? (
-          <ChevronDown className="w-3.5 h-3.5 flex-shrink-0" />
+          <ChevronDown className="w-3.5 h-3.5 shrink-0" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 flex-shrink-0" />
+          <ChevronRight className="w-3.5 h-3.5 shrink-0" />
         )}
-        <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
         <span className="truncate">{describeStreak(entry.count, entry.from, entry.to)}</span>
       </button>
 

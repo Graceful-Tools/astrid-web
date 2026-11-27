@@ -125,14 +125,14 @@ export default function IntegrationGuidePage() {
             >
               <CardContent className="py-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 mt-0.5">
+                  <div className="shrink-0 mt-0.5">
                     {ICON_MAP[method.icon] || <Code2 className="w-6 h-6 text-theme-muted" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold theme-text-primary">{method.name}</h3>
                       {method.externalUrl && (
-                        <ExternalLink className="w-3.5 h-3.5 theme-text-muted flex-shrink-0" />
+                        <ExternalLink className="w-3.5 h-3.5 theme-text-muted shrink-0" />
                       )}
                     </div>
                     <p className="text-sm theme-text-muted mt-0.5">{method.tagline}</p>

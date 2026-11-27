@@ -103,7 +103,7 @@ export function DecisionComposer({ open, onClose, canEditDescription, onPost }: 
                 aria-pressed={draft.recommended === option.id}
                 aria-label={t('tasks.decisionComposer.recommendHint')}
                 title={t('tasks.decisionComposer.recommendHint')}
-                className={`h-9 w-9 flex-shrink-0 flex items-center justify-center rounded-full ${draft.recommended === option.id ? 'text-brand' : 'theme-text-muted'}`}
+                className={`h-9 w-9 shrink-0 flex items-center justify-center rounded-full ${draft.recommended === option.id ? 'text-brand' : 'theme-text-muted'}`}
                 onClick={() => setDraft(d => ({ ...d, recommended: d.recommended === option.id ? null : option.id }))}
               >
                 <Star className="w-4 h-4" fill={draft.recommended === option.id ? 'currentColor' : 'none'} />
@@ -112,7 +112,7 @@ export function DecisionComposer({ open, onClose, canEditDescription, onPost }: 
                 <button
                   type="button"
                   aria-label={t('actions.delete')}
-                  className="h-9 w-9 flex-shrink-0 flex items-center justify-center theme-text-muted"
+                  className="h-9 w-9 shrink-0 flex items-center justify-center theme-text-muted"
                   onClick={() => setDraft(d => ({ ...d, options: d.options.filter(o => o.id !== option.id), recommended: d.recommended === option.id ? null : d.recommended }))}
                 >
                   <X className="w-4 h-4" />
@@ -146,7 +146,7 @@ export function DecisionComposer({ open, onClose, canEditDescription, onPost }: 
                 <button
                   type="button"
                   aria-label={t('actions.delete')}
-                  className="h-9 w-9 flex-shrink-0 flex items-center justify-center theme-text-muted"
+                  className="h-9 w-9 shrink-0 flex items-center justify-center theme-text-muted"
                   onClick={() => setDraft(d => ({ ...d, criteria: d.criteria.filter(c => c.id !== criterion.id) }))}
                 >
                   <X className="w-4 h-4" />

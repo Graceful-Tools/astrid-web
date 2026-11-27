@@ -419,7 +419,7 @@ function TaskRowImpl({
       >
         {manualSortPreviewActive && dragTargetTaskId === task.id && !isTouchManualSort && (
           /* A hint that floats over the rows: dark in every theme by design; `dark` makes its tokens answer as Dark (the selected blue). */
-          <div className="pointer-events-none absolute -top-12 left-1/2 z-[1600] flex w-max -translate-x-1/2 items-center gap-2 rounded-full dark border border-theme-focus/60 bg-theme-selected/95 px-3 py-1.5 text-xs font-medium text-theme-primary shadow-2xl backdrop-blur">
+          <div className="pointer-events-none absolute -top-12 left-1/2 z-1600 flex w-max -translate-x-1/2 items-center gap-2 rounded-full dark border border-theme-focus/60 bg-theme-selected/95 px-3 py-1.5 text-xs font-medium text-theme-primary shadow-2xl backdrop-blur-sm">
             <span className="inline-flex h-2 w-2 rounded-full bg-success" />
             <span>Drag to move • Hold Shift to add without removing</span>
           </div>

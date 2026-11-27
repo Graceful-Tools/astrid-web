@@ -86,7 +86,7 @@ describe('TaskHeader full-screen toggle (task 0ea0b818)', () => {
     // windowed pane it expands was rendering there.
     renderHeader({ onClose: vi.fn(), onToggleFullScreen: vi.fn(), fullScreen: false })
     const button = screen.getByLabelText('Full screen')
-    expect(button.className).not.toMatch(/\bhidden\b/)
+    expect(button.className.split(/\s+/)).not.toContain('hidden')
     expect(button.className).not.toMatch(/cols2:/)
   })
 

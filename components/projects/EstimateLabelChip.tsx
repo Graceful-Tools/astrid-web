@@ -41,7 +41,7 @@ export function EstimateLabelChip({ estimate, project }: { estimate: EstimateLab
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
           title={sentences.join("\n")}
           aria-label={t("projectMode.estimate.label.chipAria", { label: name })}
           data-testid="estimate-label-chip"
