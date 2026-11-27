@@ -82,6 +82,8 @@ export const ENV_VARS: EnvVar[] = [
   // ── Database ──────────────────────────────────────────────────────────────
   { name: 'DATABASE_URL', scope: 'required', description: 'Pooled Postgres connection used by every runtime query.', validate: isPostgres },
   { name: 'DATABASE_URL_DIRECT', scope: 'required', description: 'Unpooled Postgres connection; migrations run through it at deploy time.', validate: isPostgres },
+  { name: 'SOCKET_API_TOKEN', scope: 'tooling', description: 'Socket (socket.dev) API token with packages:list, for the package gate (npm run deps:add / deps:check). Unset means every new package is refused.' },
+  { name: 'SOCKET_ORG_SLUG', scope: 'tooling', description: 'The Socket organization the token belongs to, for the package gate.' },
   { name: 'DATABASE_URL_PROD', scope: 'tooling', description: 'Production pooled URL, for local deploy/backup scripts.' },
   { name: 'DATABASE_URL_DIRECT_PROD', scope: 'tooling', description: 'Production direct URL, for local migration scripts.' },
   { name: 'PRODUCTION_DATABASE_URL', scope: 'tooling', description: 'Legacy alias read by older maintenance scripts.' },

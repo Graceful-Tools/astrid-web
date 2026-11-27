@@ -511,6 +511,29 @@ targeted pass as the final gate.
 The manually dispatched `predeploy.yml` workflow defaults to `predeploy:full` and runs
 on GitHub-hosted `ubuntu-26.04` (the Mac's `astrid-web` runner was retired, AWTD-1363).
 
+### Adding or upgrading npm packages: the Socket gate (ADEV-339)
+
+No package version is installed unless [Socket](https://socket.dev) has analyzed it and reports
+no blocking risk (Jon, 2026-11-27). Use the gate, not `npm install <package>`:
+
+| Command | What it does |
+|---------|--------------|
+| `npm run deps:add -- <name>@<version> [--save-dev]` | Resolves into `package.json` and the lockfile only, asks Socket about every package version that would be new (transitive ones included), and runs `npm ci` only if all pass. A refusal restores both files. Registry names only: no git, URL, alias or path specs |
+| `npm run deps:check -- [--base <ref>]` | The same gate over the lockfile diff against `<ref>` (default `origin/main`). The `socket-package-gate` job in `security-gates.yml` runs it on every PR, before anything is installed, so Dependabot and hand-made changes are covered too |
+
+**What is refused** (`scripts/lib/socket-package-gate.mjs`): known or AI-detected malware and
+possible typosquats, always; any alert the Socket security policy marks `error`; any `critical`
+alert; any `high` supply-chain alert; a version that does not come from the npm registry; and
+any version Socket has not finished analyzing or does not know. To tighten the rule, change the
+security policy in the Socket dashboard: an alert set to `error` there blocks here.
+
+**It fails closed.** No token, a failed request, a quota 429 or an answer missing the canary
+package all exit 3, which is a refusal. It needs `SOCKET_API_TOKEN` (scope `packages:list`) and
+`SOCKET_ORG_SLUG`: in `.env.local` for local use, and as GitHub secrets in three places —
+repository Actions secrets, Dependabot secrets (Dependabot's PRs cannot read Actions secrets),
+and the `agent` environment. Each run with new packages is one request of 100 quota units;
+Socket's free plan allows 500 an hour.
+
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
 
