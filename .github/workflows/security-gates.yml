@@ -20,6 +20,29 @@ jobs:
         with:
           fail-on-severity: moderate
 
+  # ADEV-339: no package version is installed unless Socket has analyzed it and reports no
+  # blocking risk. Runs on the lockfile diff BEFORE anything is installed: the gate is plain
+  # Node with no dependencies. It fails closed, so a PR that adds packages is red until
+  # SOCKET_API_TOKEN and SOCKET_ORG_SLUG exist (Actions secrets, and Dependabot secrets for
+  # Dependabot's PRs). A PR that adds none makes no request and passes.
+  socket-package-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Check new package versions with Socket
+        env:
+          SOCKET_API_TOKEN: ${{ secrets.SOCKET_API_TOKEN }}
+          SOCKET_ORG_SLUG: ${{ secrets.SOCKET_ORG_SLUG }}
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/deps-gate.mjs check --base "origin/${BASE_REF}"
+
   dependency-audit:
     runs-on: ubuntu-26.04
     steps:
