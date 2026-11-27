@@ -256,7 +256,7 @@
     "postal-mime": "^2.7.6",
     "postcss": "^8.5.33",
     "prisma": "^7.10.1",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.3.5",
     "tsx": "^4.23.15",
     "typescript": "^6",
     "vite": "^8.3.8",
