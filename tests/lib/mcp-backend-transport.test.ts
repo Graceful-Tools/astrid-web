@@ -38,3 +38,30 @@ describe('AITD-447 hosted MCP real transport redirects', () => {
     }
   })
 })
+
+describe('ADEV-314 the hosted MCP hop reuses its connection to the configured backend', () => {
+  // Profiling on a preview (ADEV-314): a fresh TCP+TLS connection per hop was a third of the
+  // hop's cost. Hops to the operator's own backend now share one keep-alive pool.
+  it('ADEV-314: two hops to the trusted backend open one TCP connection, not two', async () => {
+    let connections = 0
+    const server = createServer((_req, res) => res.end('{}'))
+    server.on('connection', () => { connections += 1 })
+    try {
+      await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
+      const address = server.address()
+      if (!address || typeof address === 'string') throw new Error('Missing fixture address')
+      const backend = `http://127.0.0.1:${address.port}`
+      vi.stubEnv('ASTRID_API_BASE_URL', backend)
+      for (let i = 0; i < 2; i++) {
+        const res = await fetchMCPBackend(backend, '/api/v1/lists', { headers: { Authorization: 'Bearer fixture-not-real' } })
+        expect(res.status).toBe(200)
+        // Let undici return the socket to its pool, as the gap between real hops does.
+        await new Promise(resolve => setTimeout(resolve, 20))
+      }
+      expect(connections).toBe(1)
+    } finally {
+      server.closeAllConnections()
+      await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+    }
+  })
+})

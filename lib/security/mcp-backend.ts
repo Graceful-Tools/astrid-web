@@ -34,6 +34,18 @@ export function mcpBackendUrl(raw: string): URL {
   return url
 }
 
+let sharedPool: Agent | null = null
+
+/**
+ * One pool per process for hops to the configured backend, reused across requests.
+ * undici's default 4 s idle timeout: an agent's back-to-back calls reuse the socket, and a
+ * socket left idle across a suspended serverless instance is not kept long enough to go stale.
+ */
+function trustedBackendPool(): Agent {
+  sharedPool ??= new Agent()
+  return sharedPool
+}
+
 /** Hosted overrides are public HTTPS; only an exact operator-set backend is trusted. */
 export async function fetchMCPBackend(
   baseUrl: string,
@@ -54,7 +66,10 @@ export async function fetchMCPBackend(
     throw new TypeError('MCP backend requests require a serialized JSON body')
   }
   const resolved = trusted ? null : await resolvePublicOutboundUrl(target.href)
-  const dispatcher = new Agent(resolved ? {
+  // The operator's own backend shares one keep-alive pool (ADEV-314: a fresh TCP+TLS
+  // connection was a third of every hop). An override keeps its own connection, pinned
+  // to the address it was vetted at, and closes it after.
+  const dispatcher = resolved ? new Agent({
     connect: {
       lookup: (_hostname, options, callback) => {
         if (options.all) {
@@ -64,7 +79,7 @@ export async function fetchMCPBackend(
         }
       },
     },
-  } : {})
+  }) : trustedBackendPool()
   try {
     const response = await undiciFetch(target.href, {
       method: init.method,
@@ -107,6 +122,6 @@ export async function fetchMCPBackend(
       headers: Object.fromEntries(response.headers),
     })
   } finally {
-    await dispatcher.close()
+    if (resolved) await dispatcher.close()
   }
 }
