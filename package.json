@@ -227,7 +227,7 @@
     "tailwindcss-animate": "^1.0.7",
     "turndown": "^7.2.5",
     "undici": "6.29.1",
-    "web-push": "^3.6.7",
+    "web-push": "^4.0.0",
     "zod": "^4.6.6"
   },
   "devDependencies": {
