@@ -21,9 +21,22 @@ describe('ADEV-338: ci:logs', () => {
     expect(verbs).toEqual(['run list', 'pr view', 'run view'])
   })
 
-  it('swaps in the job token and refuses to run without it', () => {
-    expect(ciLogsEnv({ CI_LOGS_GH_TOKEN: 't', GH_TOKEN: 'agent' }).GH_TOKEN).toBe('t')
-    expect(() => ciLogsEnv({ GH_TOKEN: 'agent' })).toThrow(/CI_LOGS_GH_TOKEN/)
+  it('reads with the agent token itself and refuses to run without it (ADEV-340)', () => {
+    expect(ciLogsEnv({ GH_TOKEN: 'agent' }).GH_TOKEN).toBe('agent')
+    expect(ciLogsEnv({ GH_TOKEN: 'agent' }).GH_PROMPT_DISABLED).toBe('1')
+    expect(() => ciLogsEnv({})).toThrow(/GH_TOKEN/)
+  })
+
+  it('reads another app repo with --repo (ADEV-340)', () => {
+    expect(parseCiLogsArgs(['--pr', '7', '--repo', 'Graceful-Tools/astrid-core']).repo).toBe('Graceful-Tools/astrid-core')
+    expect(parseCiLogsArgs(['--pr', '7']).repo).toBeUndefined()
+    expect(() => parseCiLogsArgs(['--pr', '7', '--repo', 'astrid-core'])).toThrow(/--repo/)
+    expect(() => parseCiLogsArgs(['--pr', '7', '--repo', '--run'])).toThrow(/--repo/)
+    const repo = 'Graceful-Tools/astrid-core'
+    for (const args of [runListArgs('b', repo), prBranchArgs('1', repo), failedLogArgs('2', repo)]) {
+      expect(args.slice(-2)).toEqual(['--repo', repo])
+    }
+    expect(runListArgs('b')).not.toContain('--repo')
   })
 
   it('keeps the end of a long log', () => {
