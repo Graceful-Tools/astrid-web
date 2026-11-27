@@ -504,10 +504,11 @@ jobs:
         timeout-minutes: 100
         if: ${{ !inputs.dry_run && steps.take.outputs.go == 'true' && (inputs.harness || 'claude-code') == 'claude-code' }}
         env:
-          # ADEV-338: `npm run ci:logs` reads workflow runs and logs with the job's own
-          # read-only-in-use token. GH_TOKEN (AGENT_GH_TOKEN) has no Actions access, so `gh run`
-          # answers 403; this variable never replaces it.
-          CI_LOGS_GH_TOKEN: ${{ github.token }}
+          # ADEV-338: `npm run ci:logs` reads workflow runs and logs with a fine-grained token
+          # scoped to Actions: read only (ADEV-340). GH_TOKEN (AGENT_GH_TOKEN) has no Actions
+          # access, so `gh run` answers 403; this variable never replaces it. Not the job's
+          # github.token: that also carries contents and pull-requests write (Jon, 2026-11-27).
+          CI_LOGS_GH_TOKEN: ${{ secrets.AGENT_ACTIONS_READ_TOKEN }}
           # Subscription token from `claude setup-token` — never an API key
           # (Jon, 2026-09-19: the loops run on the subscription).
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

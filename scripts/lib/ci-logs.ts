@@ -2,10 +2,11 @@
  * Read CI logs from inside a cloud agent run (ADEV-338).
  *
  * The Claude step's GH_TOKEN is AGENT_GH_TOKEN, which has no Actions access, so `gh run view`
- * answers 403 and 17 runs handed a task back for want of a CI log. The job's own
- * `github.token` carries `actions: read`; agent-run.yml passes it under CI_LOGS_GH_TOKEN so it
- * never replaces GH_TOKEN (which pushes branches and opens PRs). This file builds the only
- * `gh` calls scripts/ci-logs.ts makes, all of them reads.
+ * answers 403 and 17 runs handed a task back for want of a CI log. agent-run.yml passes the
+ * `agent` environment secret AGENT_ACTIONS_READ_TOKEN (a fine-grained token with Actions: read
+ * and nothing else) under CI_LOGS_GH_TOKEN, so it never replaces GH_TOKEN (which pushes branches
+ * and opens PRs). Not the job's `github.token`, which also carries write scopes (Jon,
+ * 2026-11-27). This file builds the only `gh` calls scripts/ci-logs.ts makes, all of them reads.
  */
 
 export type CiLogsTarget = { kind: 'run'; runId: string } | { kind: 'branch'; branch: string } | { kind: 'pr'; number: string }
@@ -48,7 +49,7 @@ export function parseCiLogsArgs(argv: readonly string[]): CiLogsArgs {
 /** The environment for a `gh` read: the CI-logs token stands in for GH_TOKEN. */
 export function ciLogsEnv(env: Record<string, string | undefined>): Record<string, string | undefined> {
   const token = env.CI_LOGS_GH_TOKEN
-  if (!token) throw new Error('CI_LOGS_GH_TOKEN is not set: this script runs inside agent-run.yml, which passes the job token')
+  if (!token) throw new Error('CI_LOGS_GH_TOKEN is not set: this script runs inside agent-run.yml, which passes the agent environment secret AGENT_ACTIONS_READ_TOKEN (ADEV-340)')
   return { ...env, GH_TOKEN: token, GITHUB_TOKEN: token, GH_PROMPT_DISABLED: '1' }
 }
 

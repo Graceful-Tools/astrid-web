@@ -120,7 +120,7 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   A 100-minute harness timeout leaves time for WIP preservation, claim release and
   artifact upload within the 115-minute job (ADEV-338; the prompt tells the agent to push and
   comment by minute 80). A worker reads CI logs with `npm run ci:logs -- --pr <n>`, which uses
-  the job's own token; `gh run` stays off the allowlist. A task titled `[mac]` is skipped by the
+  a read-only Actions token (`AGENT_ACTIONS_READ_TOKEN`, never the job's write-capable `github.token`); `gh run` stays off the allowlist. A task titled `[mac]` is skipped by the
   cloud claim. A Claude usage-limit answer in the token probe makes the worker claim nothing
   and stay green; a refused token files the renewal task due now with a reminder. Force-cancelled/host-lost runs may
   still need the next tick's stale-Doing recovery.

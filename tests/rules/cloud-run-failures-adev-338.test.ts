@@ -6,8 +6,11 @@ const workflow = readFileSync('.github/workflows/agent-run.yml', 'utf8')
 const allowed = /--allowedTools "([^"]+)"/.exec(workflow)?.[1] ?? ''
 
 describe('ADEV-338: agent-run.yml', () => {
-  it('passes the job token to the Claude step under its own name, and ci:logs is an npm script', () => {
-    expect(workflow).toContain('CI_LOGS_GH_TOKEN: ${{ github.token }}')
+  it('passes a read-only Actions token to the Claude step under its own name, never the job token, and ci:logs is an npm script', () => {
+    // Decided (Jon, 2026-11-27): the job's github.token also carries contents and pull-requests
+    // write, so the agent would hold a second write token. AGENT_ACTIONS_READ_TOKEN is Actions: read only.
+    expect(workflow).toContain('CI_LOGS_GH_TOKEN: ${{ secrets.AGENT_ACTIONS_READ_TOKEN }}')
+    expect(workflow).not.toMatch(/CI_LOGS_GH_TOKEN: \$\{\{ github\.token/)
     expect(JSON.parse(readFileSync('package.json', 'utf8')).scripts['ci:logs']).toBe('tsx scripts/ci-logs.ts')
   })
 
