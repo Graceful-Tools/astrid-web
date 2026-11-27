@@ -49,6 +49,15 @@ export function sameBackendDispatchEnabled(env: NodeJS.ProcessEnv = process.env)
   return value === '1' || value === 'true'
 }
 
+/**
+ * Opt-in timing of the backend hop (ADEV-314). Hosted MCP reaches the REST API over HTTP; before
+ * building an in-process dispatcher, a preview run with this on shows what that hop costs.
+ */
+export function mcpTimingEnabled(env: Record<string, string | undefined> = process.env): boolean {
+  const value = env.ASTRID_MCP_TIMING?.trim().toLowerCase()
+  return value === '1' || value === 'true'
+}
+
 export interface ClaimTaskRequest {
   action: 'claim' | 'resume' | 'release' | 'heartbeat'
   agentMailbox?: string
@@ -168,6 +177,7 @@ export class OAuthAPIClient {
       }
     }
 
+    const startedAt = mcpTimingEnabled() ? performance.now() : null
     const response = await this.fetchBackend(endpoint, {
       ...options,
       headers: {
@@ -176,6 +186,12 @@ export class OAuthAPIClient {
         "Content-Type": "application/json",
       },
     })
+    if (startedAt !== null) {
+      log.info(
+        { endpoint, method: options.method ?? 'GET', status: response.status, hopMs: Math.round(performance.now() - startedAt) },
+        'mcp backend hop',
+      )
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: response.statusText }))
