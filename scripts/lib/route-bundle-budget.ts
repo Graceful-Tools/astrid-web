@@ -23,13 +23,13 @@ export const TARGET_KIB = 250
 export const NOISE_KIB = 1
 
 /**
- * Measured 2026-11-13 after the list description dialog's markdown renderer (marked +
- * DOMPurify) moved behind next/dynamic: heaviest route `/[locale]/lists/[listId]` at
- * 360.0 KiB gzipped locally, ~0.6 KiB more on CI (its public env values). The ceiling is
- * the CI figure rounded up to a whole KiB, plus NOISE_KIB.
- * (389 → 362; AWTD-1604 set 389, AWTD-1593 405.)
+ * Measured 2026-11-27 after the Tailwind 4 migration (ADEV-334): tailwind-merge 3 added
+ * ~2.2 KiB, and the browser bundle's `pino` became a console shim (lib/pino-browser.ts, -4.2
+ * KiB). Heaviest route `/[locale]/admin/analytics` at 358.3 KiB gzipped locally, ~0.6 KiB
+ * more on CI; rounded up to a whole KiB, plus NOISE_KIB.
+ * (362 → 360; 2026-11-13 set 362, AWTD-1604 389, AWTD-1593 405.)
  */
-export const CEILING_KIB = 362
+export const CEILING_KIB = 360
 
 export interface RouteBundleStat {
   route: string

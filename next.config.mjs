@@ -63,7 +63,12 @@ const nextConfig = {
     NEXT_PUBLIC_VERCEL_ENV: process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.VERCEL_ENV || '',
     ...brandColorEnv(),
   },
-  ...(filesystemRoot ? { turbopack: { root: filesystemRoot } } : {}),
+  turbopack: {
+    ...(filesystemRoot ? { root: filesystemRoot } : {}),
+    // Browser bundles get a console-only pino (lib/pino-browser.ts): pino's browser build was
+    // ~4.2 KiB of every route's first load. The server keeps real pino (ADEV-334).
+    resolveAlias: { pino: { browser: './lib/pino-browser.ts' } },
+  },
   // A self-contained `node server.js` for the Docker image (Dockerfile, AWTD-1286).
   // Opt-in, so a Vercel build is untouched: Vercel bundles its own way.
   ...(process.env.NEXT_OUTPUT === 'standalone' ? { output: 'standalone' } : {}),
