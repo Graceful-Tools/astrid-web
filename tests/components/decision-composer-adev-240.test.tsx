@@ -60,6 +60,14 @@ describe('the decision composer (ADEV-240)', () => {
     expect(container.querySelectorAll('.tradeoff tbody tr[data-choosable]')).toHaveLength(2)
   })
 
+  it('ADEV-356: the dialog column can shrink to the viewport, so a wide row cannot overflow it', () => {
+    render(<DecisionComposer open onClose={vi.fn()} canEditDescription onPost={vi.fn()} />)
+    const dialog = screen.getByTestId('decision-composer')
+    expect(dialog.className).toContain('grid-cols-[minmax(0,1fr)]')
+    expect(dialog.className).toContain('overflow-x-hidden')
+    expect(dialog.className).toContain('w-[calc(100vw-1rem)]')
+  })
+
   it('a note with no colour blocks posting', () => {
     render(<DecisionComposer open onClose={vi.fn()} canEditDescription={false} onPost={vi.fn()} />)
     fireEvent.change(screen.getByLabelText('tasks.decisionComposer.question'), { target: { value: 'Which?' } })

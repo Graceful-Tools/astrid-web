@@ -74,7 +74,7 @@ export function DecisionComposer({ open, onClose, canEditDescription, onPost }: 
 
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) close() }}>
-      <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto theme-panel" aria-describedby={undefined} data-testid="decision-composer">
+      <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto overflow-x-hidden grid-cols-[minmax(0,1fr)] w-[calc(100vw-1rem)] sm:w-full p-4 sm:p-6 theme-panel" aria-describedby={undefined} data-testid="decision-composer">
         <DialogTitle>{t('tasks.decisionComposer.title')}</DialogTitle>
 
         <section className="flex flex-col gap-2">
