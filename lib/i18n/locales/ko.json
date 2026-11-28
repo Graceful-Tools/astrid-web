@@ -214,7 +214,15 @@
       "showSystem": "시스템 표시",
       "refreshShort": "새로 고침",
       "replyingTo": "{name}에게 답글 작성 중",
-      "agentThinking": "{name}이(가) 생각 중..."
+      "agentThinking": "{name}이(가) 생각 중...",
+      "handBack": {
+        "replyReassignReady": "답장, 재할당 및 준비",
+        "reassignReady": "재할당 및 준비",
+        "replyReassign": "답장 및 재할당",
+        "reassign": "재할당",
+        "to": "{name}에게",
+        "handBackTo": "{name}에게 돌려주기"
+      }
     },
     "modals": {
       "deleteTitle": "작업 삭제",

@@ -214,7 +214,15 @@
       "showSystem": "システムを表示",
       "refreshShort": "更新",
       "replyingTo": "{name}に返信中",
-      "agentThinking": "{name}が考え中..."
+      "agentThinking": "{name}が考え中...",
+      "handBack": {
+        "replyReassignReady": "返信・再割り当て・準備完了",
+        "reassignReady": "再割り当て・準備完了",
+        "replyReassign": "返信・再割り当て",
+        "reassign": "再割り当て",
+        "to": "{name} へ",
+        "handBackTo": "{name} に戻す"
+      }
     },
     "modals": {
       "deleteTitle": "タスクを削除",

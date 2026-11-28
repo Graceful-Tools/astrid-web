@@ -214,7 +214,15 @@
       "showSystem": "Systeem tonen",
       "refreshShort": "Vernieuwen",
       "replyingTo": "Antwoord aan {name}",
-      "agentThinking": "{name} denkt na..."
+      "agentThinking": "{name} denkt na...",
+      "handBack": {
+        "replyReassignReady": "Antwoorden, toewijzen & klaar",
+        "reassignReady": "Toewijzen & klaar",
+        "replyReassign": "Antwoorden & toewijzen",
+        "reassign": "Toewijzen",
+        "to": "aan {name}",
+        "handBackTo": "Teruggeven aan {name}"
+      }
     },
     "modals": {
       "deleteTitle": "taak verwijderen",

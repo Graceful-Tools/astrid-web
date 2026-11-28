@@ -214,7 +214,15 @@
       "showSystem": "System einblenden",
       "refreshShort": "Aktualisieren",
       "replyingTo": "Antwort an {name}",
-      "agentThinking": "{name} denkt nach..."
+      "agentThinking": "{name} denkt nach...",
+      "handBack": {
+        "replyReassignReady": "Antworten, zuweisen & bereit",
+        "reassignReady": "Zuweisen & bereit",
+        "replyReassign": "Antworten & zuweisen",
+        "reassign": "Zuweisen",
+        "to": "an {name}",
+        "handBackTo": "An {name} zurückgeben"
+      }
     },
     "modals": {
       "deleteTitle": "Aufgabe löschen",

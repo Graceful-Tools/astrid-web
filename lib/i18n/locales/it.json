@@ -214,7 +214,15 @@
       "showSystem": "Mostra di sistema",
       "refreshShort": "Aggiorna",
       "replyingTo": "Risposta a {name}",
-      "agentThinking": "{name} sta pensando..."
+      "agentThinking": "{name} sta pensando...",
+      "handBack": {
+        "replyReassignReady": "Rispondi, riassegna e pronto",
+        "reassignReady": "Riassegna e pronto",
+        "replyReassign": "Rispondi e riassegna",
+        "reassign": "Riassegna",
+        "to": "a {name}",
+        "handBackTo": "Restituisci a {name}"
+      }
     },
     "modals": {
       "deleteTitle": "elimina attività",

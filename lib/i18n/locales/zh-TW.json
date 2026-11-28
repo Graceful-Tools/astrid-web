@@ -214,7 +214,15 @@
       "showSystem": "顯示系統",
       "refreshShort": "重新整理",
       "replyingTo": "正在回覆 {name}",
-      "agentThinking": "{name} 正在思考..."
+      "agentThinking": "{name} 正在思考...",
+      "handBack": {
+        "replyReassignReady": "回覆、重新指派並就緒",
+        "reassignReady": "重新指派並就緒",
+        "replyReassign": "回覆並重新指派",
+        "reassign": "重新指派",
+        "to": "給 {name}",
+        "handBackTo": "交還給 {name}"
+      }
     },
     "modals": {
       "deleteTitle": "刪除任務",
