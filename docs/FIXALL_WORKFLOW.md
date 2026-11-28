@@ -172,8 +172,26 @@ Astrid's stored values: it is prose about the policy, not a second copy of it.
 them like any other change, gate the merged `main`, deploy. The production workflow's destructive
 check is the backstop that stops a mis-classified one.
 
-When you do ask, batch it: one task per thing Jon must do, with the exact command or click, so a
-person can clear a stack of them in one sitting.
+When you do ask, batch it into **one standing task**, "Jon's setup checklist", on the web board,
+assigned to Jon in the Inbox. Add a checklist item with the exact command or click to that task
+(find it with `get_tasks` by title; create it only if none is open) instead of filing a new task
+for each thing. Link the task the item unblocks, and make that task wait on the checklist. Jon
+clears the stack in one sitting rather than being interrupted once per credential (2026-11-28
+session analysis: five credential tasks in three days, each its own interruption).
+
+### Tell Jon instead of waiting to be asked (2026-11-28)
+
+An interactive session that runs work in the background (CI, deploys, long gates) tells Jon when
+something changes, at three moments only:
+
+- something merged **and** production serves it;
+- something now needs him (a checklist item, a high-risk Decision);
+- the run has finished, or stopped.
+
+Use the harness's push notification where it has one (Claude Code: `PushNotification`). End every
+session or run with a short "Needs Jon" list naming each task by title, or say that there is none.
+Seven "Status?" check-ins in one three-day session were all asked while work was running and nothing
+had told him.
 
 ## Clarifying Inbox ideas (ADEV-227)
 

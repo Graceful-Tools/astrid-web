@@ -288,6 +288,12 @@ If `.vercel/project.json` is missing, create it manually (do NOT run `vercel lin
 ```
 Production: `astrid.cc` / `www.astrid.cc`. Token lives in `.env.local` as `VERCEL_TOKEN`.
 
+### Is a key set? Ask `scripts/env-has.sh`, never read the file
+`scripts/env-has.sh KEY [KEY...]` prints `KEY set` or `KEY missing`, never a value, and exits 1 if
+any key is missing. Use it instead of reading `.env.local`: the secret guard
+(`block-secret-dump.py`) refuses almost every command that reads that file, and the question is
+nearly always only whether a key exists.
+
 ---
 
 ## 1. Approvals
@@ -550,6 +556,13 @@ secrets). Organisation secrets reach every repo and astrid-web's `agent` environ
 one copy to renew. Each run with new packages is one request of 100 quota units; Socket's free
 plan allows 500 an hour, about five runs, shared by all five repos. A 429 is a refusal: re-run
 after the hour.
+
+**Verified 2026-11-28.** The org secrets reach both Actions and Dependabot: Dependabot's rebased
+astrid-windows#31 regenerated its `packages.lock.json`, and its Socket check passed with 2 new
+versions checked. **Making the check required is Jon's step**, because agents don't change branch
+protection: `scripts/require-socket-gate.sh` adds a `socket_gate` ruleset to web, core, iOS and
+Windows (`--dry-run` first). astrid-android waits for ADEV-355, because Socket does not index
+Google Maven.
 
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
