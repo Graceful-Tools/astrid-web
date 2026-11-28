@@ -701,6 +701,8 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   wrapped in `<untrusted_goal_signals>`. No tool writes an estimate, policy or connector. **Behaviour
   change:** `POST tasks/:id/estimates` from an agent that resolves to the built-in estimator returns
   `403 { reason: "spend_not_allowed" }` unless every board the task is on lets that agent `spend` alone.
+- **Target date (ADEV-359).** A goal may carry `targetDate: "YYYY-MM-DD"`, the day its `target` should be
+  hit. Optional; absent means no date. Anything not a `YYYY-MM-DD` day is a 400 on `PUT …/goals`.
 - **Typed metric (ADEV-270).** A goal may carry `metric: { unit?, direction: "up" | "down", target?,
   baseline?, current?, measuredAt?, source?: { connectorId, metricKey }, staleAfterHours? }` beside its
   free text. `current` and `measuredAt` are the server's: a `PUT …/goals` never overwrites them.
