@@ -15,6 +15,7 @@
  * `mcp-server-oauth.ts` because that file is on the oversized-files ratchet.
  */
 
+import { AGENT_WRITE_DESCRIPTION } from "./agent-identity"
 import type { ChatRequester as Requester } from "./list-chat"
 
 const TASK_REF = "Task id (uuid) or identifier such as AWTD-1007"
@@ -61,6 +62,7 @@ export const BLOCKER_TOOLS = [
         description: { type: "string", description: "The other half's description: the contract, the evidence, and what this side does once it exists" },
         priority: { type: "number", description: "0-3 (default: the create default)" },
         assigneeId: { type: "string", description: "Assign the half to this user or agent. Omit to leave it unassigned for the target board's queue" },
+        agent: { type: "string", description: AGENT_WRITE_DESCRIPTION },
       },
       required: ["taskId", "targetListId", "title"],
       additionalProperties: false,
@@ -80,10 +82,16 @@ function requireRef(args: any, key: "taskId" | "blockingTaskId" | "targetListId"
   return value.trim()
 }
 
-export async function callBlockerTool(client: Requester, name: BlockerToolName, args: any) {
+export async function callBlockerTool(
+  client: Requester,
+  name: BlockerToolName,
+  args: any,
+  signFor: (agent: string | undefined) => Promise<{ aiAgentId?: string }>,
+) {
   const taskId = requireRef(args, "taskId")
   if (name === "handoff_task") {
     const body: Record<string, unknown> = {
+      ...(await signFor(args?.agent)),
       targetListId: requireRef(args, "targetListId"),
       title: requireRef(args, "title"),
     }

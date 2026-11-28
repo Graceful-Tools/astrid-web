@@ -67,6 +67,10 @@ interface QueueAgentBlock {
  */
 export const HUMAN_MAILBOX = 'me'
 
+/** The `agent` property's description on every tool that writes as someone (ADEV-345). */
+export const AGENT_WRITE_DESCRIPTION =
+  'The agent mailbox writing this — "claude", "copilot", "codex", … Pass it when this server has not yet called get_agent_queue in this process (a client that starts the server per call never has), or the write is signed with the OAuth client owner\'s name instead of the agent\'s. Pass "me" to sign as the authenticated user on purpose. A mailbox that cannot be resolved is refused, never silently signed as the caller.'
+
 /** Thrown instead of signing a declared agent write as the authenticated caller. */
 export class UnresolvedAgentIdentityError extends Error {
   constructor(public readonly mailbox: string) {
