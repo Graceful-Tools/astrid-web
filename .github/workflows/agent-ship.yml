@@ -58,12 +58,24 @@ jobs:
       ASTRID_OAUTH_CLIENT_SECRET: ${{ secrets.ASTRID_OAUTH_CLIENT_SECRET }}
       ASTRID_WEB_LIST_ID: ${{ vars.ASTRID_WEB_LIST_ID || 'a623f322-4c3c-49b5-8a94-d2d9f00c82ba' }}
       DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
-      # AWTD-1682: the built-in token cannot write to another repository, so merging an
-      # astrid-core handoff uses the agent's fine-grained token (the Graceful-Tools app repos,
-      # Contents and Pull requests, no Actions), which this `release` environment must hold too.
-      # Unset, core merges are skipped and core completions still run.
-      ASTRID_CORE_GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+      # AWTD-1682 / ADEV-364: the built-in token cannot write to another repository, so merging an
+      # astrid-core handoff uses an Astrid Agent CI app token scoped to astrid-core (Contents and
+      # Pull requests write, no Actions). ASTRID_CORE_GH_TOKEN is set by the step below.
     steps:
+      - name: Mint the astrid-core token
+        id: core-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ secrets.AGENT_APP_ID }}
+          private-key: ${{ secrets.AGENT_APP_PRIVATE_KEY }}
+          owner: Graceful-Tools
+          repositories: astrid-core
+          permission-contents: write
+          permission-pull-requests: write
+      - name: Export the astrid-core token
+        env:
+          CORE_TOKEN: ${{ steps.core-token.outputs.token }}
+        run: echo "ASTRID_CORE_GH_TOKEN=${CORE_TOKEN}" >> "${GITHUB_ENV}"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
