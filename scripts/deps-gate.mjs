@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ADEV-339: the Socket gate (scripts/lib/socket-package-gate.mjs). `check` covers npm, Rust
- * (Cargo.lock), Gradle version catalogs and NuGet (.csproj), in this repo or any repo it is run
+ * (Cargo.lock), Gradle (gradle.lockfile) and NuGet (packages.lock.json), in this repo or any repo it is run
  * from (the other app repos call .github/workflows/socket-gate-reusable.yml); `add` is npm's.
  *
  *   npm run deps:add -- <name>[@version] [...] [--save-dev]
@@ -11,7 +11,7 @@
  *
  *   npm run deps:check -- [--base <git ref>]
  *     The same gate over the difference between <ref>'s package files and the working tree's:
- *     package-lock.json, Cargo.lock, libs.versions.toml and *.csproj, wherever they are tracked.
+ *     package-lock.json, Cargo.lock, *gradle.lockfile and packages.lock.json, wherever they are tracked.
  *     From another repo: node ../astrid-web/scripts/deps-gate.mjs check (run in that repo).
  *     The PR check (security-gates.yml) runs this before `npm ci`. Default base: origin/main.
  *

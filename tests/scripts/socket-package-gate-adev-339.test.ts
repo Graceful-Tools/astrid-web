@@ -149,9 +149,9 @@ describe('asking Socket fails closed', () => {
 })
 
 // ADEV-339, cross-platform: every repo's package manager goes through the same gate.
-import { cargoLockPackages, csprojPackages, versionCatalogPackages, packagesForFile } from '@/scripts/lib/socket-package-gate.mjs'
+import { cargoLockPackages, packagesForFile } from '@/scripts/lib/socket-package-gate.mjs'
 
-describe('cross-platform: Rust, Gradle and NuGet package versions', () => {
+describe('cross-platform: Rust package versions (Gradle and NuGet lockfiles: the ADEV-352 test)', () => {
   const CARGO_LOCK = `version = 4
 
 [[package]]
@@ -188,52 +188,8 @@ source = "git+https://github.com/someone/sketchy.git#deadbeef"
     expect(purl(found[0])).toBe('pkg:cargo/serde@1.0.215')
   })
 
-  const CATALOG = `[versions]
-kotlin = "2.1.0"
-coreKtx = "1.15.0"
-
-[libraries]
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-okhttp = { module = "com.squareup.okhttp3:okhttp", version = "4.12.0" }
-junit = "junit:junit:4.13.2"
-compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2024.12.01" }
-compose-ui = { group = "androidx.compose.ui", name = "ui" }
-
-[plugins]
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-`
-
-  it('reads versioned libraries from a Gradle version catalog, all three notations, and skips BOM-managed ones', () => {
-    const found = [...versionCatalogPackages(CATALOG).values()]
-    expect(found.map((p) => `${p.name}@${p.version}`).sort()).toEqual([
-      'androidx.compose:compose-bom@2024.12.01',
-      'androidx.core:core-ktx@1.15.0',
-      'com.squareup.okhttp3:okhttp@4.12.0',
-      'junit:junit@4.13.2',
-    ])
-    expect(purl(found.find((p) => p.name === 'androidx.core:core-ktx')!)).toBe('pkg:maven/androidx.core/core-ktx@1.15.0')
-  })
-
-  it('reads PackageReference versions from a .csproj, attribute or element form', () => {
-    const csproj = `<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Version="1.6.241114003" Include="Microsoft.WindowsAppSDK" />
-    <PackageReference Include="xunit">
-      <Version>2.9.2</Version>
-    </PackageReference>
-    <ProjectReference Include="..\\Astrid.Core.Bindings\\Astrid.Core.Bindings.csproj" />
-  </ItemGroup>
-</Project>`
-    const found = [...csprojPackages(csproj).values()]
-    expect(found.map((p) => `${p.name}@${p.version}`)).toEqual(['Newtonsoft.Json@13.0.3', 'Microsoft.WindowsAppSDK@1.6.241114003', 'xunit@2.9.2'])
-    expect(purl(found[0])).toBe('pkg:nuget/Newtonsoft.Json@13.0.3')
-  })
-
   it('picks the parser by file name, and ignores files it does not know', () => {
     expect(packagesForFile('core/Cargo.lock', CARGO_LOCK).size).toBe(3)
-    expect(packagesForFile('gradle/libs.versions.toml', CATALOG).size).toBe(4)
-    expect(packagesForFile('app/Astrid.App/Astrid.App.csproj', '<PackageReference Include="A" Version="1.0.0" />').size).toBe(1)
     expect(packagesForFile('package-lock.json', JSON.stringify({ packages: { 'node_modules/a': { version: '1.0.0' } } })).size).toBe(1)
     expect(packagesForFile('README.md', '# hi').size).toBe(0)
   })
