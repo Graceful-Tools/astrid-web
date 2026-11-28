@@ -121,8 +121,9 @@ past. The full mechanics are in [AGENT_FLEET.md → Parallel workers](./AGENT_FL
   artifact upload within the 115-minute job (ADEV-338; the prompt tells the agent to push and
   comment by minute 80). A worker reads CI logs with `npm run ci:logs -- --pr <n>`, which reads
   with `AGENT_GH_TOKEN` itself (Actions: Read since ADEV-340; `--repo Graceful-Tools/astrid-core`
-  for core); `gh run` stays off the allowlist. A task titled `[mac]` is skipped by the
-  cloud claim. A Claude usage-limit answer in the token probe makes the worker claim nothing
+  for core); `gh run` stays off the allowlist. A task titled `[mac]`, or carrying a `NEEDS-MAC:` comment (the handback for a run
+  blocked only by its environment, ADEV-363), is skipped by the cloud claim and taken first by
+  the local `/fixall`. A Claude usage-limit answer in the token probe makes the worker claim nothing
   and stay green; a refused token files the renewal task due now with a reminder. Force-cancelled/host-lost runs may
   still need the next tick's stale-Doing recovery.
 - **astrid-core tasks on an ephemeral runner** (AWTD-1682). Core work belongs to the web

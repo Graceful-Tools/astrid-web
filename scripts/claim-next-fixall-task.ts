@@ -33,7 +33,8 @@ import { loadScriptEnv } from './lib/load-env'
 import {
   claimNextReady,
   isCoreCandidate,
-  isNeedsMacCandidate,
+  needsMac,
+  needsMacFirst,
   openPrBranches,
   runnerClaimedTask,
   skipTasksWithOpenPr,
@@ -106,13 +107,17 @@ async function main() {
   }, log)
 
   const result = await claimNextReady({
-    initial: snapshotQueue(preflight),
+    // A cloud run skips `needs-mac` tasks; the local /fixall takes them first (ADEV-363).
+    initial: ephemeral
+      ? snapshotQueue(preflight)
+      : await needsMacFirst(snapshotQueue(preflight), t => client.getComments(t.id)),
     refresh,
     skip: skipTasksWithOpenPr({
       openBranches: branches,
       comments: task => client.getComments(task.id),
       log,
-      otherwise: task => (noCore && isCoreCandidate(task)) || (ephemeral && isNeedsMacCandidate(task)),
+      otherwise: async task =>
+        (noCore && isCoreCandidate(task)) || (ephemeral && (await needsMac(task, t => client.getComments(t.id)))),
     }),
     claim: async task => {
       const attempt = await requestFixallClaim({ client, taskId: task.id, action: 'ready', agent, listId })
