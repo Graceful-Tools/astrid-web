@@ -272,6 +272,7 @@ export function TaskManagerHeader({
     'connections': t("settingsPages.connections.title"),
     'api-access': t("settingsPages.connections.title"),
     'contacts': t("settingsPages.contacts.title"),
+    'projects': t("projectMode.projectsHeading"),
     'debug': t("settingsPages.debug.title"),
     'tasks': 'Task Settings',
     'api-testing': 'API Testing',

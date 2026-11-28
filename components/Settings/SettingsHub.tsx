@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { useTranslations } from "@/lib/i18n/client"
 import { useToast } from "@/hooks/use-toast"
+import { useProjectMode } from "@/hooks/use-project-mode"
 import { signOut } from "next-auth/react"
 import {
   User,
@@ -14,6 +15,7 @@ import {
   ChevronRight,
   Network,
   Users,
+  FolderKanban,
   HelpCircle,
   RefreshCw,
   LogOut
@@ -26,6 +28,7 @@ interface SettingsHubProps {
 export default function SettingsHub({ onNavigate }: SettingsHubProps) {
   const { t } = useTranslations()
   const { toast } = useToast()
+  const projectMode = useProjectMode()
   const [refreshingData, setRefreshingData] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
 
@@ -90,6 +93,15 @@ export default function SettingsHub({ onNavigate }: SettingsHubProps) {
       page: "contacts",
       color: "text-category-teal"
     },
+    ...(projectMode
+      ? [{
+          icon: FolderKanban,
+          title: t("projectMode.projectsHeading"),
+          description: t("projectMode.settingsTitle"),
+          page: "projects",
+          color: "text-brand"
+        }]
+      : []),
     {
       icon: Palette,
       title: t("settingsPages.appearance.title"),

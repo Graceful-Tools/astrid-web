@@ -10,6 +10,8 @@ export interface ClientProject {
   id: string
   /** The board's name, drawn in the sidebar's Projects section (AWTD-1660). */
   name?: string | null
+  description?: string | null
+  color?: string | null
   key?: string | null
   /** Keys this project had before a rename; ids under them still resolve (AWTD-1024). */
   keyAliases?: Array<{ key: string }> | null
@@ -71,6 +73,20 @@ export function loadProjectsOnce(): Promise<ClientProject[]> {
 export function renameLoadedProject(projectId: string, name: string) {
   if (!cachedProjects) return
   cachedProjects = cachedProjects.map(project => (project.id === projectId ? { ...project, name } : project))
+  for (const listener of projectListeners) listener(cachedProjects)
+}
+
+/** Show a project made from Settings now, in the sidebar, not after a reload (ADEV-361). */
+export function addLoadedProject(project: ClientProject) {
+  if (!cachedProjects) return
+  cachedProjects = [...cachedProjects.filter(existing => existing.id !== project.id), project]
+  for (const listener of projectListeners) listener(cachedProjects)
+}
+
+/** Show an edit made from Settings now, in the sidebar and the open board, not after a reload (ADEV-361). */
+export function updateLoadedProject(projectId: string, changes: Partial<ClientProject>) {
+  if (!cachedProjects) return
+  cachedProjects = cachedProjects.map(project => (project.id === projectId ? { ...project, ...changes } : project))
   for (const listener of projectListeners) listener(cachedProjects)
 }
 

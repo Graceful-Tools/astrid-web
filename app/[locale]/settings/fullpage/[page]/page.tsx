@@ -23,6 +23,7 @@ const PAGE_TITLE_KEYS: Record<string, string> = {
   'connections': 'settingsPages.connections.title',
   'api-access': 'settingsPages.connections.title',
   'contacts': 'settingsPages.contacts.title',
+  'projects': 'projectMode.projectsHeading',
   'debug': 'settingsPages.debug.title',
   'tasks': 'settingsPages.tasksPage.title',
   'api-testing': 'settingsPages.pageTitles.apiTesting',
