@@ -536,7 +536,13 @@ and checksums (ADEV-352; see `DEPENDENCIES.md` in astrid-android), and astrid-wi
 `packages.lock.json` per project and restores locked in CI (ADEV-353). The first run over
 Android's lockfiles refused AGP's Bouncy Castle 1.80.2 (critical CVE), which the version catalog
 had never shown. `org.rustls:rustls-platform-verifier` is skipped in Gradle lockfiles because it
-ships inside a crate that is checked in `Cargo.lock`. Our own
+ships inside a crate that is checked in `Cargo.lock`. **Google Maven is exempt (ADEV-355, Jon,
+2026-11-28):** Socket does not index Google's Maven repository, so artifacts in `androidx.*`,
+`com.android` and below, `com.google.android.*` and `com.google.testing.platform` are not sent to it.
+They pass and are listed as exempt in the report. What protects them is astrid-android's
+`gradle/verification-metadata.xml`, which pins each one's sha256. Google artifacts on Maven Central
+(guava, protobuf) are still checked. Checked live on 2026-11-28: of Android's 510 versions, 248 were
+analyzed and passed, and 262 were exempt. Our own
 crates pinned by git (`github.com/Graceful-Tools/...`) are skipped; anyone else's git crate is
 refused. A version Socket sees for the first time is refused as "not analyzed yet" while Socket
 scans it; re-run the check a few minutes later.
@@ -560,9 +566,10 @@ after the hour.
 **Verified 2026-11-28.** The org secrets reach both Actions and Dependabot: Dependabot's rebased
 astrid-windows#31 regenerated its `packages.lock.json`, and its Socket check passed with 2 new
 versions checked. **Making the check required is Jon's step**, because agents don't change branch
-protection: `scripts/require-socket-gate.sh` adds a `socket_gate` ruleset to web, core, iOS and
-Windows (`--dry-run` first). astrid-android waits for ADEV-355, because Socket does not index
-Google Maven.
+protection: `scripts/require-socket-gate.sh` adds a `socket_gate` ruleset to each app repo
+(`--dry-run` first; a repo that already has one is skipped). Web, core, iOS and Windows have been
+required since 2026-11-28. astrid-android joins the next time the script runs, now that ADEV-355
+exempts Google Maven.
 
 **Test locations:** Vitest unit → `tests/`; Playwright E2E → `e2e/*.spec.ts`.
 iOS tests live in the separate [astrid-ios](https://github.com/Graceful-Tools/astrid-ios) repo.
@@ -592,6 +599,13 @@ Run without asking: `git add|commit|checkout|log|status`, `npm run *`, `npx tsx 
 `npx tsc`, `npx prisma *`, `npx next lint`.
 Still require approval: `git push`, `git merge`, `vercel --prod`, DB destructive ops,
 deletions outside the project. (See §1.)
+
+**Auto mode housekeeping (Jon, 2026-11-28).** Auto mode decides through a classifier, which plain
+allow rules don't override. So `autoMode.allow` in `.claude/settings.local.json` (template:
+`.claude/settings.json.example`) tells it that these are approved: merging, closing or reopening
+Graceful-Tools PRs, cancelling or re-running Actions runs, and `@dependabot` commands on Dependabot
+PRs. All are reversible, and merging deploys nothing. Secrets, branch protection, force-push and
+deletes are not on the list and still go to the classifier.
 
 ---
 

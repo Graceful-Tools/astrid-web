@@ -123,5 +123,17 @@
       "Bash(npx prisma migrate reset *)",    // Destructive database operations
       "Bash(npx prisma db push --force-reset *)" // Destructive database operations
     ]
+  },
+  // Auto mode decides through a classifier, which plain allow rules do not override. These rules
+  // tell it what Jon approved as reversible housekeeping (2026-11-28, "Fewer interventions"
+  // analysis). "$defaults" keeps every built-in rule: secrets, branch protection, force-push and
+  // deletes still go through the classifier.
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Merging, closing or reopening pull requests in Graceful-Tools repositories with gh pr merge, gh pr close or gh pr reopen, including --delete-branch and a closing comment. Jon approved this as reversible housekeeping on 2026-11-28: a closed PR can be reopened, and merging to main deploys nothing because production deploys are a separate manual workflow.",
+      "Cancelling or re-running GitHub Actions workflow runs in Graceful-Tools repositories with gh run cancel or gh run rerun, for example a duplicate deploy run or a flaky job. Jon approved this on 2026-11-28.",
+      "Posting a Dependabot command (such as @dependabot rebase or @dependabot recreate) as a comment on a Dependabot pull request in a Graceful-Tools repository. Jon approved this on 2026-11-28."
+    ]
   }
 }

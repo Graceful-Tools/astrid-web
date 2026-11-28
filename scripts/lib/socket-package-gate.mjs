@@ -48,9 +48,10 @@ export function specProblem(spec) {
 
 /**
  * @typedef {'npm' | 'cargo' | 'maven' | 'nuget'} Ecosystem
- * @typedef {{ name: string, version: string, resolved?: string, ecosystem?: Ecosystem, notRegistry?: string }} LockedPackage
+ * @typedef {{ name: string, version: string, resolved?: string, ecosystem?: Ecosystem, notRegistry?: string, exempt?: string }} LockedPackage
  * `ecosystem` defaults to npm. A Maven name is `group:artifact`. `notRegistry` names a source
- * Socket's analysis of the registry version does not cover (someone else's git repo).
+ * Socket's analysis of the registry version does not cover (someone else's git repo). `exempt`
+ * says why a version is not sent to Socket at all (ADEV-355); it passes, and the report lists it.
  */
 
 /** The key a package is compared and matched by: its ecosystem, name and version, lowercased. */
@@ -121,6 +122,17 @@ export function cargoLockPackages(text) {
 const MAVEN_FROM_CRATES = new Set(['org.rustls:rustls-platform-verifier'])
 
 /**
+ * Groups published only on Google's Maven repository (dl.google.com), which Socket does not index:
+ * every version comes back "Package not found", however long it waits. Jon decided on 2026-11-28
+ * (ADEV-355, option 1) to exempt them rather than refuse every androidx and AGP upgrade, and rely
+ * on astrid-android's gradle/verification-metadata.xml, which pins the sha256 of each artifact as
+ * downloaded from Google. Google artifacts on Maven Central (guava, gson, protobuf) are not here:
+ * Socket covers those.
+ */
+const GOOGLE_MAVEN_GROUP = /^(androidx\.|com\.android(\.|$)|com\.google\.android\.|com\.google\.testing\.platform$)/
+export const GOOGLE_MAVEN_EXEMPTION = 'Google Maven: Socket does not index it; the artifact is checksum-pinned in gradle/verification-metadata.xml (ADEV-355)'
+
+/**
  * Every Maven artifact a Gradle lockfile pins (`group:artifact:version=configurations`, one per
  * line), which covers dependencies of dependencies as well as declared ones. ADEV-352: astrid-android
  * locks every configuration, plus the plugins' classpath in `buildscript-gradle.lockfile`.
@@ -136,6 +148,7 @@ export function gradleLockfilePackages(text) {
     if (MAVEN_FROM_CRATES.has(`${group}:${artifact}`)) continue
     /** @type {LockedPackage} */
     const pkg = { name: `${group}:${artifact}`, version, ecosystem: 'maven' }
+    if (GOOGLE_MAVEN_GROUP.test(group)) pkg.exempt = GOOGLE_MAVEN_EXEMPTION
     found.set(packageKey(pkg), pkg)
   }
   return found
@@ -209,7 +222,7 @@ export function parseNdjson(text) {
 }
 
 /**
- * @typedef {{ package: string, ok: boolean, reasons: string[] }} Verdict
+ * @typedef {{ package: string, ok: boolean, reasons: string[], exempt?: string }} Verdict
  * Judge each requested package against Socket's answer lines.
  * @param {LockedPackage[]} requested
  * @param {any[]} lines parsed NDJSON from the purl endpoint
@@ -230,7 +243,7 @@ export function judge(requested, lines) {
 
   return requested.map((pkg) => {
     const ecosystem = pkg.ecosystem ?? 'npm'
-    const label = ecosystem === 'npm' ? `${pkg.name}@${pkg.version}` : `${ecosystem}:${pkg.name}@${pkg.version}`
+    const label = verdictLabel(pkg)
     const key = normalizeKey(purl(pkg))
     /** @type {string[]} */
     const reasons = []
@@ -275,8 +288,11 @@ export function judge(requested, lines) {
  * @param {{ token?: string, org?: string, fetchImpl?: typeof fetch, timeoutSec?: number }} options
  * @returns {Promise<Verdict[]>}
  */
-export async function checkPackages(packages, { token, org, fetchImpl = fetch, timeoutSec = 120 } = {}) {
-  if (packages.length === 0) return []
+export async function checkPackages(all, { token, org, fetchImpl = fetch, timeoutSec = 120 } = {}) {
+  /** @type {Verdict[]} */
+  const exempted = all.filter((pkg) => pkg.exempt).map((pkg) => ({ package: verdictLabel(pkg), ok: true, reasons: [], exempt: pkg.exempt }))
+  const packages = all.filter((pkg) => !pkg.exempt)
+  if (packages.length === 0) return exempted
   if (!token || !org) {
     throw new Error('SOCKET_API_TOKEN and SOCKET_ORG_SLUG are not both set, so nothing can be shown to be analyzed. Refusing.')
   }
@@ -301,19 +317,30 @@ export async function checkPackages(packages, { token, org, fetchImpl = fetch, t
     }
     verdicts.push(...rest)
   }
-  return verdicts
+  return [...verdicts, ...exempted]
+}
+
+/** How a package is named in verdicts and the report: `name@version`, ecosystem-prefixed off npm. */
+function verdictLabel(pkg) {
+  const ecosystem = pkg.ecosystem ?? 'npm'
+  return ecosystem === 'npm' ? `${pkg.name}@${pkg.version}` : `${ecosystem}:${pkg.name}@${pkg.version}`
 }
 
 /** @param {Verdict[]} verdicts */
 export function formatReport(verdicts) {
   const blocked = verdicts.filter((verdict) => !verdict.ok)
-  const lines = [`Socket gate: ${verdicts.length} new package version(s) checked, ${blocked.length} refused.`]
+  const exempt = verdicts.filter((verdict) => verdict.exempt)
+  const lines = [`Socket gate: ${verdicts.length} new package version(s) checked, ${blocked.length} refused${exempt.length ? `, ${exempt.length} exempt` : ''}.`]
   for (const verdict of blocked) {
     lines.push(`  ✗ ${verdict.package}`)
     for (const reason of verdict.reasons) lines.push(`      - ${reason}`)
     const eco = /^(cargo|maven|nuget):/.exec(verdict.package)?.[1] ?? 'npm'
     const bare = verdict.package.replace(/^(cargo|maven|nuget):/, '')
     lines.push(`      https://socket.dev/${eco}/package/${bare.slice(0, bare.lastIndexOf('@'))}/overview/${bare.slice(bare.lastIndexOf('@') + 1)}`)
+  }
+  for (const reason of new Set(exempt.map((verdict) => verdict.exempt))) {
+    lines.push(`  ○ exempt, ${reason}:`)
+    for (const verdict of exempt.filter((v) => v.exempt === reason)) lines.push(`      ${verdict.package}`)
   }
   return lines.join('\n')
 }
