@@ -189,13 +189,10 @@ jobs:
       # handbacks), and the run stops at the PR.
       ASTRID_FIXALL_EPHEMERAL: '1'
       ASTRID_FIXALL_MAX_TASKS: ${{ vars.ASTRID_FIXALL_MAX_TASKS || '1' }}
-      # PRs opened with the built-in token do not trigger other workflows (GitHub's
-      # loop guard), so an agent PR would get no CI. AGENT_GH_TOKEN is a
-      # fine-grained token over the Graceful-Tools app repos, astrid-core included
-      # (AWTD-1682), with contents + pull-requests read/write and NO actions access,
-      # so it still cannot dispatch a deploy. Smoke test AWTD-1364 / PR #518 had no checks until a
-      # person reopened it.
-      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
+      # GH_TOKEN is set by the "Export the agent token" step (ADEV-364). PRs opened with the
+      # built-in token do not trigger other workflows (GitHub's loop guard), so an agent PR
+      # would get no CI. The Astrid Agent CI app token covers astrid-web and astrid-core with
+      # contents + pull-requests write and actions READ only, so it cannot dispatch a deploy.
       # ADEV-339: `npm run deps:add` asks Socket about every package it would install and
       # refuses without these. `agent` environment secrets; unset means no installs.
       SOCKET_API_TOKEN: ${{ secrets.SOCKET_API_TOKEN }}
@@ -204,12 +201,33 @@ jobs:
       # worked by web and iOS). It is cloned beside this checkout, at ../astrid-core.
       ASTRID_CORE_REPO: Graceful-Tools/astrid-core
     steps:
+      # ADEV-364: a short-lived installation token of the org-owned Astrid Agent CI app replaces
+      # the personal AGENT_GH_TOKEN. Only the permissions this job uses are requested (no
+      # workflows, no checks). Pushes made with it start CI, as the old token's did.
+      - name: Mint the agent token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ secrets.AGENT_APP_ID }}
+          private-key: ${{ secrets.AGENT_APP_PRIVATE_KEY }}
+          owner: Graceful-Tools
+          repositories: |
+            astrid-web
+            astrid-core
+          permission-contents: write
+          permission-pull-requests: write
+          permission-actions: read
+      - name: Export the agent token
+        env:
+          APP_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: echo "GH_TOKEN=${APP_TOKEN}" >> "${GITHUB_ENV}"
+
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           # git push uses this, so the agent's branch push triggers CI too.
-          token: ${{ secrets.AGENT_GH_TOKEN || github.token }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Agent setup
         uses: ./.github/actions/agent-setup
@@ -257,7 +275,7 @@ jobs:
           echo "agent=${AGENT}" >> "${GITHUB_OUTPUT}"
           if [ "${DRY_RUN}" != "true" ]; then
             if [ -z "${GH_TOKEN}" ]; then
-              echo "::error::AGENT_GH_TOKEN is required so branch pushes and PRs receive CI"
+              echo "::error::the Astrid Agent CI app token is required so branch pushes and PRs receive CI"
               exit 1
             fi
             npx tsx scripts/agent-queue-status.ts --agent "${AGENT}" --list "${ASTRID_OAUTH_LIST_ID}" \
@@ -336,7 +354,7 @@ jobs:
       # actions/checkout cannot write outside the workspace, and a checkout moved out of
       # it loses the credentials it keyed to its path, so this is a plain clone. The repo
       # is public, so the clone needs no token; pushes go through `gh auth git-credential`,
-      # which reads GH_TOKEN (AGENT_GH_TOKEN) when git asks. The dry-run push is the access
+      # which reads GH_TOKEN (the app token) when git asks. The dry-run push is the access
       # check: GitHub refuses the push handshake to a token without Contents write.
       - name: Check out astrid-core beside this repo
         if: ${{ !inputs.dry_run && steps.preflight.outputs.work == 'true' }}
@@ -356,10 +374,10 @@ jobs:
           if GIT_TERMINAL_PROMPT=0 git -C "${CORE_DIR}" push --dry-run --quiet origin \
               "HEAD:refs/heads/agent/access-check-${GITHUB_RUN_ID}" 2>/dev/null; then
             echo "ASTRID_CORE_PUSH=1" >> "${GITHUB_ENV}"
-            echo "AGENT_GH_TOKEN can push to ${ASTRID_CORE_REPO}"
+            echo "The agent app token can push to ${ASTRID_CORE_REPO}"
           else
             echo "ASTRID_CORE_PUSH=0" >> "${GITHUB_ENV}"
-            MESSAGE="AGENT_GH_TOKEN cannot push to ${ASTRID_CORE_REPO}: add ${ASTRID_CORE_REPO} to the token's repository access with Contents and Pull requests read/write, Actions read-only. docs/AGENT_FLEET.md"
+            MESSAGE="The agent app token cannot push to ${ASTRID_CORE_REPO}: check the Astrid Agent CI app is installed on it with Contents and Pull requests write. docs/AGENT_FLEET.md"
             # A web-only run is unaffected, so it goes on; a run whose candidates include
             # a core task could not finish it, so it stops here, saying why.
             if [ "${CORE_TASK}" = true ]; then echo "::error::${MESSAGE}"; exit 1; fi
@@ -760,7 +778,7 @@ jobs:
   # by the agent PR's CI finishing (agent-ship.yml).
   #
   # It starts the next run with a repository_dispatch, which needs only the
-  # Contents write AGENT_GH_TOKEN already has. A workflow_dispatch would need
+  # Contents write the app token has. A workflow_dispatch would need
   # actions: write, and with that the job could dispatch a production deploy.
   # Only the default harness chains: a repository_dispatch carries no inputs.
   #
@@ -778,16 +796,25 @@ jobs:
     # Owner-only: a fork's schedule and events run nothing here (ADEV-103).
     if: ${{ github.repository_owner == 'Graceful-Tools' && (!cancelled() && !inputs.dry_run && (inputs.harness || 'claude-code') == 'claude-code' && needs.run.result != 'skipped') }}
     runs-on: ubuntu-26.04
-    # AGENT_GH_TOKEN is an `agent` environment secret; without this it reads empty.
     environment: agent
     timeout-minutes: 5
     permissions: {}
     env:
-      GH_TOKEN: ${{ secrets.AGENT_GH_TOKEN }}
       GH_REPO: ${{ github.repository }}
       DEPTH: ${{ github.event.client_payload.chain_depth || '0' }}
       MAX_CHAIN: ${{ vars.ASTRID_AGENT_MAX_CHAIN || '8' }}
     steps:
+      # ADEV-364: repository_dispatch needs only Contents write; no Actions write is requested.
+      - name: Mint the agent token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          app-id: ${{ secrets.AGENT_APP_ID }}
+          private-key: ${{ secrets.AGENT_APP_PRIVATE_KEY }}
+          owner: Graceful-Tools
+          repositories: astrid-web
+          permission-contents: write
+
       # This run's artifacts only, through the job's runtime token: no
       # permission, and a pattern that matches nothing downloads nothing.
       - name: Collect the workers' verdicts
@@ -798,6 +825,7 @@ jobs:
 
       - name: Start the next run unless the chain is at its cap
         env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           VERDICTS: ${{ runner.temp }}/agent-verdicts
         run: |
           if ! grep -rqsxE 'OK|PARTIAL' "${VERDICTS}"; then

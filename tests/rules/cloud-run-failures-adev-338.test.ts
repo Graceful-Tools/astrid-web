@@ -7,7 +7,7 @@ const allowed = /--allowedTools "([^"]+)"/.exec(workflow)?.[1] ?? ''
 
 describe('ADEV-338: agent-run.yml', () => {
   it('passes no separate CI-log token: ci:logs reads with the agent token (ADEV-340), and ci:logs is an npm script', () => {
-    // Decided (Jon, 2026-11-27): AGENT_GH_TOKEN gained Actions: Read. Never the job's github.token,
+    // Decided (Jon, 2026-11-27): the agent token (now the Astrid Agent CI app's, ADEV-364) has Actions: Read. Never the job's github.token,
     // which also carries write scopes, and no second secret to renew.
     expect(workflow).not.toMatch(/CI_LOGS_GH_TOKEN|AGENT_ACTIONS_READ_TOKEN/)
     expect(JSON.parse(readFileSync('package.json', 'utf8')).scripts['ci:logs']).toBe('tsx scripts/ci-logs.ts')

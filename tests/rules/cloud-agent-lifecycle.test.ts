@@ -352,7 +352,11 @@ describe('the loop keeps itself going without the scheduler', () => {
     expect(workflow.jobs.chain.needs).toBe('run')
     // The agent's own token: Contents write is all a repository_dispatch needs,
     // and production-deployment.yml does not listen for one.
-    expect(workflow.jobs.chain.env.GH_TOKEN).toBe('${{ secrets.AGENT_GH_TOKEN }}')
+    // ADEV-364: minted per run from the Astrid Agent CI app, with Contents write only.
+    const mint = workflow.jobs.chain.steps.find((s: { id?: string }) => s.id === 'app-token')
+    expect(mint.with['permission-contents']).toBe('write')
+    expect(Object.keys(mint.with).filter((k) => k.startsWith('permission-') && k !== 'permission-contents')).toEqual([])
+    expect(JSON.stringify(workflow)).not.toMatch(/AGENT_GH_TOKEN/)
     // The token is an `agent` environment secret: the first chained run's gh
     // call failed with an empty GH_TOKEN because this job named no environment.
     expect(workflow.jobs.chain.environment).toBe(workflow.jobs.run.environment)
@@ -401,7 +405,7 @@ describe('the loop keeps itself going without the scheduler', () => {
       }
       const result = runWorkflowStep(workflowStep(AGENT_RUN, 'chain', CHAIN_STEP), {
         cwd: dir,
-        env: { PATH: `${dir}:${process.env.PATH}`, GH_REPO: 'Graceful-Tools/astrid-web', DEPTH: depth, MAX_CHAIN: max, VERDICTS: root },
+        env: { PATH: `${dir}:${process.env.PATH}`, GH_TOKEN: 'token', GH_REPO: 'Graceful-Tools/astrid-web', DEPTH: depth, MAX_CHAIN: max, VERDICTS: root },
       })
       const calls = existsSync(join(dir, 'gh-calls')) ? read(join(dir, 'gh-calls')).trim() : ''
       return { ...result, calls }
@@ -528,7 +532,7 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
     expect(checkout.run).toContain("'!gh auth git-credential'")
     expect(checkout.run).toContain('push --dry-run')
     expect(checkout.run).toMatch(/::error::\$\{MESSAGE\}/)
-    expect(checkout.run).toContain('Contents and Pull requests read/write, Actions read-only')
+    expect(checkout.run).toContain('Astrid Agent CI app is installed on it with Contents and Pull requests write')
     expect(yaml.load(read(AGENT_RUN)).jobs.run.env.ASTRID_CORE_REPO).toBe('Graceful-Tools/astrid-core')
   })
 
@@ -575,7 +579,11 @@ describe('AWTD-1682: the cloud worker does astrid-core tasks', () => {
 
   it('AWTD-1682: the ship workflow lands core handoffs with a token that can write there', () => {
     const ship = yaml.load(read('.github/workflows/agent-ship.yml'))
-    expect(ship.jobs.ship.env.ASTRID_CORE_GH_TOKEN).toBe('${{ secrets.AGENT_GH_TOKEN }}')
+    // ADEV-364: an Astrid Agent CI app token scoped to astrid-core, exported by a step.
+    const mint = ship.jobs.ship.steps.find((s: { id?: string }) => s.id === 'core-token')
+    expect(mint.with.repositories).toBe('astrid-core')
+    expect(mint.with['permission-actions']).toBeUndefined()
+    expect(read('.github/workflows/agent-ship.yml')).toContain('ASTRID_CORE_GH_TOKEN=${CORE_TOKEN}')
     expect(read('.github/workflows/agent-ship.yml')).toContain('--max-land 1 --core-repo Graceful-Tools/astrid-core')
   })
 
