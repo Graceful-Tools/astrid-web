@@ -519,14 +519,18 @@ no blocking risk (Jon, 2026-11-27). Use the gate, not `npm install <package>`:
 | Command | What it does |
 |---------|--------------|
 | `npm run deps:add -- <name>@<version> [--save-dev]` | Resolves into `package.json` and the lockfile only, asks Socket about every package version that would be new (transitive ones included), and runs `npm ci` only if all pass. A refusal restores both files. Registry names only: no git, URL, alias or path specs |
-| `npm run deps:check -- [--base <ref>]` | The same gate over the diff of every package file against `<ref>` (default `origin/main`): `package-lock.json`, `Cargo.lock`, Gradle `libs.versions.toml` and NuGet `*.csproj`. The `socket-package-gate` job in `security-gates.yml` runs it on every PR, before anything is installed, so Dependabot and hand-made changes are covered too |
-| `node ../astrid-web/scripts/deps-gate.mjs check` | The same check from a sibling repo (astrid-core, astrid-ios, astrid-android, astrid-windows), run in that repo after `cargo add`, a version-catalog edit or a `PackageReference` change. It finds the token in astrid-web's `.env.local` |
+| `npm run deps:check -- [--base <ref>]` | The same gate over the diff of every package file against `<ref>` (default `origin/main`): `package-lock.json`, `Cargo.lock`, Gradle `*gradle.lockfile` and NuGet `packages.lock.json`. The `socket-package-gate` job in `security-gates.yml` runs it on every PR, before anything is installed, so Dependabot and hand-made changes are covered too |
+| `node ../astrid-web/scripts/deps-gate.mjs check` | The same check from a sibling repo (astrid-core, astrid-ios, astrid-android, astrid-windows), run in that repo after `cargo add`, or after a version-catalog or `PackageReference` change once the lockfiles are regenerated. It finds the token in astrid-web's `.env.local` |
 
 **Every app repo runs it.** astrid-core, astrid-ios, astrid-android and astrid-windows each have a
 `socket-package-gate.yml` that calls `.github/workflows/socket-gate-reusable.yml` here with
-`secrets: inherit`, so the gate is one piece of code. Coverage per ecosystem: npm and Rust read
-lockfiles, so transitive versions are checked; Gradle reads the version catalog and NuGet reads
-`PackageReference`s, so only declared versions are (neither repo commits a lockfile yet). Our own
+`secrets: inherit`, so the gate is one piece of code. Every ecosystem is read from its lockfile, so
+transitive versions are checked as well as declared ones: astrid-android commits Gradle lockfiles
+and checksums (ADEV-352; see `DEPENDENCIES.md` in astrid-android), and astrid-windows commits a
+`packages.lock.json` per project and restores locked in CI (ADEV-353). The first run over
+Android's lockfiles refused AGP's Bouncy Castle 1.80.2 (critical CVE), which the version catalog
+had never shown. `org.rustls:rustls-platform-verifier` is skipped in Gradle lockfiles because it
+ships inside a crate that is checked in `Cargo.lock`. Our own
 crates pinned by git (`github.com/Graceful-Tools/...`) are skipped; anyone else's git crate is
 refused. A version Socket sees for the first time is refused as "not analyzed yet" while Socket
 scans it; re-run the check a few minutes later.

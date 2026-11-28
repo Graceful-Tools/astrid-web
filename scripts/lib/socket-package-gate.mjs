@@ -1,9 +1,10 @@
 /**
  * ADEV-339: no package version is installed unless Socket (socket.dev) has analyzed it and
  * reports no blocking risk. Jon, 2026-11-27: "Let's not install packages with risk or that
- * haven't been analyzed." Cross-platform since 2026-11-27: npm (`package-lock.json`), Rust
- * (`Cargo.lock`), Gradle version catalogs (`libs.versions.toml`, Maven) and NuGet (`.csproj`),
- * so astrid-core, astrid-ios, astrid-android and astrid-windows run the same gate
+ * haven't been analyzed." Cross-platform since 2026-11-27, and lockfiles only since ADEV-352/353,
+ * so every version a build resolves is checked, not only the declared ones: npm
+ * (`package-lock.json`), Rust (`Cargo.lock`), Gradle (`gradle.lockfile`, Maven) and NuGet
+ * (`packages.lock.json`). astrid-core, astrid-ios, astrid-android and astrid-windows run the same gate
  * (.github/workflows/socket-gate-reusable.yml).
  *
  * Plain ES module with no dependencies, on purpose: the PR check runs it BEFORE `npm ci`, so the
@@ -111,37 +112,28 @@ export function cargoLockPackages(text) {
 }
 
 /**
- * Versioned libraries in a Gradle version catalog (`[libraries]`, with `[versions]` refs), as
- * Maven packages. A library without a version is BOM-managed: the BOM itself is checked, not it.
- * Plugins are not checked (the Gradle plugin portal is not a registry Socket covers).
+ * Maven artifacts this repo takes from a crate rather than from a Maven registry. The rustls
+ * project publishes `org.rustls:rustls-platform-verifier` only inside the
+ * `rustls-platform-verifier-android` crate's Maven archive (astrid-android `settings.gradle.kts`),
+ * and astrid-android reads its version from `core/Cargo.lock`. The gate checks that crate, so the
+ * Maven name is skipped here rather than refused for being missing from Maven Central.
+ */
+const MAVEN_FROM_CRATES = new Set(['org.rustls:rustls-platform-verifier'])
+
+/**
+ * Every Maven artifact a Gradle lockfile pins (`group:artifact:version=configurations`, one per
+ * line), which covers dependencies of dependencies as well as declared ones. ADEV-352: astrid-android
+ * locks every configuration, plus the plugins' classpath in `buildscript-gradle.lockfile`.
  * @param {string} text
  * @returns {Map<string, LockedPackage>}
  */
-export function versionCatalogPackages(text) {
-  const sections = new Map()
-  let current = ''
-  for (const raw of text.split('\n')) {
-    const line = raw.replace(/#.*$/, '').trim()
-    if (!line) continue
-    const header = /^\[([^\]]+)\]$/.exec(line)
-    if (header) { current = header[1].trim(); continue }
-    const entry = /^([A-Za-z0-9_.-]+)\s*=\s*(.+)$/.exec(line)
-    if (entry) (sections.get(current) ?? sections.set(current, []).get(current)).push([entry[1], entry[2].trim()])
-  }
-  const versions = new Map((sections.get('versions') ?? []).map(([key, value]) => [key, /^"([^"]+)"$/.exec(value)?.[1]]))
+export function gradleLockfilePackages(text) {
   const found = new Map()
-  for (const [, value] of sections.get('libraries') ?? []) {
-    let group, artifact, version
-    const plain = /^"([^":]+):([^":]+):([^":]+)"$/.exec(value)
-    if (plain) [, group, artifact, version] = plain
-    else {
-      const prop = (key) => new RegExp(`(?:^|[{,\\s])${key.replace('.', '\\.')}\\s*=\\s*"([^"]+)"`).exec(value)?.[1]
-      const coordinates = prop('module')
-      if (coordinates) [group, artifact] = coordinates.split(':')
-      else { group = prop('group'); artifact = prop('name') }
-      version = prop('version') ?? versions.get(prop('version.ref') ?? '')
-    }
-    if (!group || !artifact || !version) continue
+  for (const raw of text.split('\n')) {
+    const match = /^([^#=\s:]+):([^=\s:]+):([^=\s:]+)=/.exec(raw.trim())
+    if (!match) continue
+    const [, group, artifact, version] = match
+    if (MAVEN_FROM_CRATES.has(`${group}:${artifact}`)) continue
     /** @type {LockedPackage} */
     const pkg = { name: `${group}:${artifact}`, version, ecosystem: 'maven' }
     found.set(packageKey(pkg), pkg)
@@ -150,26 +142,32 @@ export function versionCatalogPackages(text) {
 }
 
 /**
- * NuGet `PackageReference`s in a project file, with the version as an attribute or an element.
- * @param {string} text
+ * Every NuGet package a `packages.lock.json` resolves, across all target frameworks and runtimes,
+ * transitive ones included. ADEV-353: astrid-windows restores with a lockfile in every project.
+ * Project references are this repo's own code and are skipped.
+ * @param {{ dependencies?: Record<string, Record<string, { type?: string, resolved?: string }>> }} lock
  * @returns {Map<string, LockedPackage>}
  */
-export function csprojPackages(text) {
+export function nugetLockPackages(lock) {
   const found = new Map()
-  for (const match of text.matchAll(/<PackageReference\b([^>]*?)(\/>|>([\s\S]*?)<\/PackageReference>)/g)) {
-    const attrs = match[1]
-    const name = /\bInclude="([^"]+)"/.exec(attrs)?.[1]
-    const version = /\bVersion="([^"]+)"/.exec(attrs)?.[1] ?? /<Version>\s*([^<\s]+)\s*<\/Version>/.exec(match[3] ?? '')?.[1]
-    if (!name || !version) continue
-    /** @type {LockedPackage} */
-    const pkg = { name, version, ecosystem: 'nuget' }
-    found.set(packageKey(pkg), pkg)
+  for (const target of Object.values(lock.dependencies ?? {})) {
+    for (const [name, entry] of Object.entries(target ?? {})) {
+      if (entry?.type === 'Project' || !entry?.resolved) continue
+      /** @type {LockedPackage} */
+      const pkg = { name, version: entry.resolved, ecosystem: 'nuget' }
+      found.set(packageKey(pkg), pkg)
+    }
   }
   return found
 }
 
 /** The files the gate reads, as git pathspecs. */
-export const GATED_FILES = ['package-lock.json', '**/package-lock.json', 'Cargo.lock', '**/Cargo.lock', '**/libs.versions.toml', '*.csproj', '**/*.csproj']
+export const GATED_FILES = [
+  'package-lock.json', '**/package-lock.json',
+  'Cargo.lock', '**/Cargo.lock',
+  '*gradle.lockfile', '**/*gradle.lockfile',
+  'packages.lock.json', '**/packages.lock.json',
+]
 
 /**
  * The packages a file declares, by its name; an unknown file declares none.
@@ -181,8 +179,8 @@ export function packagesForFile(path, text) {
   const base = path.split('/').pop() ?? ''
   if (base === 'package-lock.json') return lockfilePackages(JSON.parse(text))
   if (base === 'Cargo.lock') return cargoLockPackages(text)
-  if (base.endsWith('.versions.toml')) return versionCatalogPackages(text)
-  if (base.endsWith('.csproj')) return csprojPackages(text)
+  if (base.endsWith('gradle.lockfile')) return gradleLockfilePackages(text)
+  if (base === 'packages.lock.json') return nugetLockPackages(JSON.parse(text))
   return new Map()
 }
 
