@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Makes the Socket package gate (ADEV-339) a required check on the default branch of astrid-web,
-# astrid-core, astrid-ios and astrid-windows. It adds one ruleset, `socket_gate`, per repo and
+# astrid-core, astrid-ios, astrid-windows and astrid-android. It adds one ruleset, `socket_gate`, per repo and
 # leaves the existing rulesets alone. Repo admins can still bypass it through a pull request, as
 # they can on astrid-web's protect_main.
 #
@@ -10,8 +10,8 @@
 #   scripts/require-socket-gate.sh            apply
 #   scripts/require-socket-gate.sh --dry-run  print what it would create
 #
-# astrid-android is left out until ADEV-355 ("Socket can't analyze Google Maven") is decided:
-# required today, the check would refuse every androidx or AGP upgrade.
+# astrid-android joined on 2026-11-28, once ADEV-355 exempted Google Maven artifacts (which Socket
+# does not index) instead of refusing every androidx or AGP upgrade.
 #
 # To undo for one repo: gh api -X DELETE repos/Graceful-Tools/<repo>/rulesets/<id>
 set -euo pipefail
@@ -25,6 +25,7 @@ targets=(
   "astrid-core|socket / socket-package-gate"
   "astrid-ios|socket / socket-package-gate"
   "astrid-windows|socket / socket-package-gate"
+  "astrid-android|socket / socket-package-gate"
 )
 
 for target in "${targets[@]}"; do
