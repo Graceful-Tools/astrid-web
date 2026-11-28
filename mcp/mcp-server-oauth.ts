@@ -193,7 +193,7 @@ export default class AstridMCPServerOAuth {
           case "get_list_messages":
             return await this.getListMessages(args)
           default:
-            const side = await callSideTool(this.oauthClient, name, args, this.agentIdentity.signature())
+            const side = await callSideTool(this.oauthClient, name, args, agent => this.agentIdentity.resolveSignatureFor(agent, this.oauthClient))
             if (side) return side
             throw new Error(`Unknown tool: ${name}`)
         }

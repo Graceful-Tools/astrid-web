@@ -18,21 +18,26 @@ import { callGoalSignalsTool, isGoalSignalsTool } from "./goal-signals-tool"
 import type { ChatRequester } from "./list-chat"
 import type { OAuthAPIClient } from "./oauth-api-client"
 
+/** Resolves the identity for a write that may declare `agent` (ADEV-345). */
+export type SignFor = (agent: string | undefined) => Promise<{ aiAgentId?: string }>
+
 type Requester = ChatRequester & Pick<OAuthAPIClient, "claimTask">
 
 export async function callSideTool(
   client: Requester,
   name: string,
   args: unknown,
-  signature: Parameters<typeof callAttachmentTool>[2],
+  signFor: SignFor,
 ) {
   if (name === "claim_task") return callClaimTaskTool(client, args)
-  if (isBlockerTool(name)) return callBlockerTool(client, name, args)
+  if (isBlockerTool(name)) return callBlockerTool(client, name, args, signFor)
   if (isListTool(name)) return callListTool(client, name, args)
   if (isOrchestrationTool(name)) return callOrchestrationTool(client, name, args)
   if (isDecisionEvidenceTool(name)) return callDecisionEvidenceTool(client, args)
   if (isProjectGoalsTool(name)) return callProjectGoalsTool(client, name, args)
   if (isGoalSignalsTool(name)) return callGoalSignalsTool(client, name, args)
-  if (isAttachmentTool(name)) return callAttachmentTool(client as Parameters<typeof callAttachmentTool>[0], args, signature)
+  if (isAttachmentTool(name)) {
+    return callAttachmentTool(client as Parameters<typeof callAttachmentTool>[0], args, await signFor((args as { agent?: string } | null)?.agent))
+  }
   return null
 }

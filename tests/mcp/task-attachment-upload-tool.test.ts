@@ -48,7 +48,7 @@ describe(`MCP ${TOOL}`, () => {
     expect(tool).toBeDefined()
     expect(tool.inputSchema.required).toEqual(['taskId', 'fileName'])
     expect(Object.keys(tool.inputSchema.properties).sort()).toEqual(
-      ['caption', 'clientRequestId', 'fileName', 'mimeType', 'taskId'].sort(),
+      ['agent', 'caption', 'clientRequestId', 'fileName', 'mimeType', 'taskId'].sort(),
     )
     expect(JSON.stringify(tool.inputSchema)).not.toMatch(/base64/i)
   })
@@ -87,6 +87,44 @@ describe(`MCP ${TOOL}`, () => {
     )
 
     expect(JSON.parse(call(fetchMock, '/attachment-uploads').init.body as string).aiAgentId).toBe('ai-agent-copilot')
+  })
+
+  // ADEV-345: a client that starts the stdio server per call has neither
+  // ASTRID_AGENT_ID nor a prior poll, so the call itself must be able to declare.
+  it('ADEV-345: signs as the agent named in the call, on a fresh identity, without forwarding agent', async () => {
+    process.env.ASTRID_AGENT_ID_CLAUDE = 'ai-agent-claude'
+    try {
+      const fetchMock = vi.fn(async () => jsonOk(ticketResponse))
+      vi.stubGlobal('fetch', fetchMock)
+      const server = new AstridMCPServerOAuth({ accessToken: 'astrid_token', baseUrl: 'https://astrid.test' })
+
+      await (server as any).server._requestHandlers.get('tools/call')(
+        { method: 'tools/call', params: { name: TOOL, arguments: { taskId: 'task-1', fileName: 'shot.png', agent: 'claude' } } },
+        {},
+      )
+
+      const sent = JSON.parse(call(fetchMock, '/attachment-uploads').init.body as string)
+      expect(sent.aiAgentId).toBe('ai-agent-claude')
+      expect(sent).not.toHaveProperty('agent')
+    } finally {
+      delete process.env.ASTRID_AGENT_ID_CLAUDE
+    }
+  })
+
+  it('ADEV-345: agent "me" signs as the caller, and an unresolvable mailbox is refused', async () => {
+    const fetchMock: Mock = vi.fn(async (..._args: unknown[]) => jsonOk(ticketResponse))
+    vi.stubGlobal('fetch', fetchMock)
+    const server = new AstridMCPServerOAuth({ accessToken: 'astrid_token', baseUrl: 'https://astrid.test' })
+    const handler = (server as any).server._requestHandlers.get('tools/call')
+
+    await handler({ method: 'tools/call', params: { name: TOOL, arguments: { taskId: 'task-1', fileName: 'a.png', agent: 'me' } } }, {})
+    expect(JSON.parse(call(fetchMock, '/attachment-uploads').init.body as string)).not.toHaveProperty('aiAgentId')
+
+    fetchMock.mockClear()
+    fetchMock.mockImplementation(async () => jsonOk({ agent: { mailbox: 'nobody', id: null } }))
+    const refused = await handler({ method: 'tools/call', params: { name: TOOL, arguments: { taskId: 'task-1', fileName: 'a.png', agent: 'nobody' } } }, {})
+    expect(refused.isError).toBe(true)
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/attachment-uploads'))).toBe(false)
   })
 
   it('refuses a call without a taskId or fileName before touching the network', async () => {

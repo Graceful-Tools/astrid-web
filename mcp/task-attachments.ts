@@ -14,6 +14,7 @@
  * oversized-files ratchet.
  */
 
+import { AGENT_WRITE_DESCRIPTION } from "./agent-identity"
 import type { ChatRequester as Requester } from "./list-chat"
 
 export const ATTACHMENT_TOOL_NAME = "create_task_attachment_upload"
@@ -35,6 +36,7 @@ export const ATTACHMENT_TOOLS = [
         },
         caption: { type: "string", description: "Comment text shown with the image (max 1000 chars). Defaults to 'Attached: <fileName>'." },
         clientRequestId: { type: "string", description: "Optional idempotency key; the same key never posts the image twice" },
+        agent: { type: "string", description: AGENT_WRITE_DESCRIPTION },
       },
       required: ["taskId", "fileName"],
       additionalProperties: false,
