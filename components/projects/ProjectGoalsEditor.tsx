@@ -69,6 +69,7 @@ export function ProjectGoalsEditor({ value, onChange }: ProjectGoalsEditorProps)
 
       <fieldset className="space-y-2">
         <legend className="font-medium">{t("projectMode.goals.goalsHeading")}</legend>
+        <p className="text-xs theme-text-secondary">{t("projectMode.goals.fieldsHint")}</p>
         {value.goals.map((goal, index) => (
           <div key={goal.id} className="space-y-1 rounded-md border theme-border p-2" data-testid="project-goal-row">
             <div className="flex items-center gap-2">
@@ -90,17 +91,33 @@ export function ProjectGoalsEditor({ value, onChange }: ProjectGoalsEditorProps)
                 <X className="h-4 w-4" aria-hidden="true" />
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {(["measure", "target", "current"] as const).map(field => (
-                <Input
-                  key={field}
-                  value={goal[field] ?? ""}
-                  maxLength={FIELD_MAX_CHARS}
-                  placeholder={t(`projectMode.goals.${field}Placeholder`)}
-                  aria-label={t(`projectMode.goals.${field}Placeholder`)}
-                  onChange={event => setGoal(index, { [field]: event.target.value })}
-                />
+                <div key={field} className="space-y-1">
+                  <label htmlFor={`${goal.id}-${field}`} className="text-xs theme-text-secondary">
+                    {t(`projectMode.goals.${field}Label`)}
+                  </label>
+                  <Input
+                    id={`${goal.id}-${field}`}
+                    value={goal[field] ?? ""}
+                    maxLength={FIELD_MAX_CHARS}
+                    placeholder={t(`projectMode.goals.${field}Placeholder`)}
+                    onChange={event => setGoal(index, { [field]: event.target.value })}
+                  />
+                </div>
               ))}
+              <div className="space-y-1">
+                <label htmlFor={`${goal.id}-targetDate`} className="text-xs theme-text-secondary">
+                  {t("projectMode.goals.targetDateLabel")}
+                </label>
+                <Input
+                  id={`${goal.id}-targetDate`}
+                  type="date"
+                  value={goal.targetDate ?? ""}
+                  data-testid="project-goal-target-date"
+                  onChange={event => setGoal(index, { targetDate: event.target.value || undefined })}
+                />
+              </div>
             </div>
             {goal.metric ? (
               <div className="space-y-1" data-testid="project-goal-metric">

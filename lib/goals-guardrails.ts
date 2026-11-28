@@ -34,6 +34,8 @@ export interface ProjectGoal {
   target?: string
   /** Where it is now, e.g. "6.1%". */
   current?: string
+  /** The day the target should be hit, YYYY-MM-DD (ADEV-359). */
+  targetDate?: string
   /** The latest changes to `current`, oldest first. Written by the server, never by the editor. */
   history?: GoalMeasurement[]
   /**
@@ -202,6 +204,8 @@ function parseHistory(raw: unknown): GoalMeasurement[] | null {
   return out.slice(-GOAL_HISTORY_MAX)
 }
 
+const TARGET_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 
 /** Read a submitted metric block, or null when it is not one. Unknown keys are dropped. */
@@ -306,6 +310,13 @@ export function parseGoalsAndGuardrails(raw: unknown): ParseResult {
       if (value.length > FIELD_MAX_CHARS) return { ok: false, error: `A goal's ${field} is at most ${FIELD_MAX_CHARS} characters` }
       goal[field] = value
     }
+    const targetDate = text(g.targetDate)
+    if (targetDate) {
+      if (!TARGET_DATE_PATTERN.test(targetDate) || Number.isNaN(Date.parse(targetDate))) {
+        return { ok: false, error: "A goal's targetDate is a day as YYYY-MM-DD" }
+      }
+      goal.targetDate = targetDate
+    }
     if (g.history !== undefined) {
       const history = parseHistory(g.history)
       if (!history) return { ok: false, error: "A goal's history is a list of { value, by, at }" }
@@ -375,6 +386,7 @@ export function goalMeasurePhrase(goal: ProjectGoal): string {
     goal.measure && `measure: ${goal.measure}`,
     goal.target && `target: ${goal.target}`,
     goal.current && `current: ${goal.current}`,
+    goal.targetDate && `by: ${goal.targetDate}`,
   ]
     .filter(Boolean)
     .join('; ')
