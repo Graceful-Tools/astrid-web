@@ -214,7 +214,15 @@
       "showSystem": "Mostrar del sistema",
       "refreshShort": "Actualizar",
       "replyingTo": "Respondiendo a {name}",
-      "agentThinking": "{name} está pensando..."
+      "agentThinking": "{name} está pensando...",
+      "handBack": {
+        "replyReassignReady": "Responder, reasignar y listo",
+        "reassignReady": "Reasignar y listo",
+        "replyReassign": "Responder y reasignar",
+        "reassign": "Reasignar",
+        "to": "a {name}",
+        "handBackTo": "Devolver a {name}"
+      }
     },
     "modals": {
       "deleteTitle": "eliminar tarea",

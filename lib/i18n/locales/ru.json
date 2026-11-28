@@ -214,7 +214,15 @@
       "showSystem": "Показать системные",
       "refreshShort": "Обновить",
       "replyingTo": "Ответ для {name}",
-      "agentThinking": "{name} думает..."
+      "agentThinking": "{name} думает...",
+      "handBack": {
+        "replyReassignReady": "Ответить, переназначить и готово",
+        "reassignReady": "Переназначить и готово",
+        "replyReassign": "Ответить и переназначить",
+        "reassign": "Переназначить",
+        "to": "для {name}",
+        "handBackTo": "Вернуть: {name}"
+      }
     },
     "modals": {
       "deleteTitle": "удаление задачи",

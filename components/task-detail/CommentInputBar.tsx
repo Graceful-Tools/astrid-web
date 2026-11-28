@@ -4,13 +4,15 @@ import { useTranslations } from '@/lib/i18n/client'
 import { BRAND } from '@/lib/brand/config'
 import { useState, useMemo, useEffect } from "react"
 import { RichTextInput } from "@/components/shared/RichTextInput"
-import type { Task, User } from "@/types/task"
+import type { Comment, Task, User } from "@/types/task"
 import type { FileAttachment } from "@/hooks/task-detail/useTaskDetailState"
 import { hasExplicitListRole } from "@/lib/list-permissions"
 import { buildPendingComments, postPendingComments } from "@/lib/comment-posting"
 import { Vote } from "lucide-react"
 import { DecisionComposer, type DecisionDestination } from "@/components/task-detail/DecisionComposer"
 import { appendDecision } from "@/lib/decision-draft"
+import { handBackTarget, handedBackTask, replyThenHandBack } from "@/lib/reply-hand-back"
+import { ReplyHandBackButton } from "@/components/task-detail/ReplyHandBackButton"
 
 export interface CommentInputBarProps {
   task: Task
@@ -63,6 +65,7 @@ export function CommentInputBar({
 }: CommentInputBarProps) {
   const { t } = useTranslations()
   const [composerOpen, setComposerOpen] = useState(false)
+  const [handingBack, setHandingBack] = useState(false)
   // Fetch Astrid agent so it's available in the @-mention list.
   const [defaultAgent, setDefaultAgent] = useState<User | null>(null)
   useEffect(() => {
@@ -100,14 +103,40 @@ export function CommentInputBar({
     return Array.from(users.values()).filter(u => u.id !== currentUser.id)
   }, [task, currentUser.id, defaultAgent])
 
-  const handleAddComment = () => postComment(newComment, attachedFiles, true)
+  const handleAddComment = () => { void postComment(newComment, attachedFiles, true) }
+
+  // ADEV-360: on a task assigned to me, one tap answers whoever asked and hands it back to them.
+  const handBack = handBackTarget(task, currentUser.id)
+  const hasReply = newComment.trim().length > 0 || attachedFiles.length > 0
+  const handleHandBack = async () => {
+    if (!handBack || handingBack) return
+    setHandingBack(true)
+    let posted: Comment[] = []
+    try {
+      await replyThenHandBack(
+        handBack,
+        hasReply ? async () => {
+          const result = await postComment(newComment, attachedFiles, true)
+          posted = result.posted
+          return result.ok
+        } : null,
+        async target => { await onUpdate(handedBackTask(task, target, posted)) },
+      )
+    } finally {
+      setHandingBack(false)
+    }
+  }
 
   /**
    * Post a comment optimistically. `fromComposer` is the typed comment: it clears the input and
    * restores it on failure. A decision from the composer (ADEV-240) posts its own text and leaves
    * whatever is half-typed in the input alone.
    */
-  const postComment = async (text: string, files: FileAttachment[], fromComposer: boolean) => {
+  const postComment = async (
+    text: string,
+    files: FileAttachment[],
+    fromComposer: boolean,
+  ): Promise<{ ok: boolean; posted: Comment[] }> => {
     // One comment per staged file — the comments API takes a single fileId (Task 9f325964).
     const pending = await buildPendingComments({
       taskId: task.id,
@@ -115,7 +144,7 @@ export function CommentInputBar({
       text,
       files,
     })
-    if (pending.length === 0) return
+    if (pending.length === 0) return { ok: false, posted: [] }
 
     const originalComment = text
     const originalFiles = files
@@ -146,8 +175,10 @@ export function CommentInputBar({
       writeComments(comments => [...comments, ...(optimistic as any[])])
     }
 
-    await postPendingComments(task.id, pending, originalFiles, originalComment, {
+    const fromServer: Comment[] = []
+    const ok = await postPendingComments(task.id, pending, originalFiles, originalComment, {
       replace: (tempId, serverComment) => {
+        fromServer.push(serverComment)
         if (!shouldSkipOptimisticUpdate) {
           writeComments(comments => comments.map(c => (c.id === tempId ? serverComment : c)))
         } else if (onLocalUpdate) {
@@ -169,6 +200,8 @@ export function CommentInputBar({
         setAttachedFiles(files)
       },
     })
+    // Offline, nothing comes back from the server: the queued optimistic rows stand in.
+    return { ok, posted: fromServer.length ? fromServer : (pending.map(p => p.optimistic) as unknown as Comment[]) }
   }
 
   const postDecision = async (markdown: string, destination: DecisionDestination) => {
@@ -183,6 +216,9 @@ export function CommentInputBar({
 
   return (
     <div className="border-t theme-border px-3 py-3">
+      {handBack && (
+        <ReplyHandBackButton target={handBack} hasReply={hasReply} busy={handingBack} onClick={handleHandBack} />
+      )}
       <RichTextInput
         value={newComment}
         onChange={setNewComment}

@@ -100,6 +100,8 @@ export async function buildPendingComments(opts: {
  * already accepted by the server stay posted rather than vanishing from the UI.
  *
  * Assumes the caller has already inserted the optimistic comments and cleared the input.
+ * Resolves true when every comment went out (or was queued offline), false after a failure —
+ * so a follow-up that must wait for the reply (ADEV-360's hand-back) knows whether to go ahead.
  */
 export async function postPendingComments(
   taskId: string,
@@ -107,7 +109,7 @@ export async function postPendingComments(
   files: FileAttachment[],
   originalText: string,
   handlers: CommentPostHandlers,
-): Promise<void> {
+): Promise<boolean> {
   const { OfflineSyncManager, isOfflineMode } = await import("@/lib/offline-sync")
   const { OfflineCommentOperations } = await import("@/lib/offline-db")
 
@@ -128,7 +130,7 @@ export async function postPendingComments(
         )
         sent += 1
       }
-      return
+      return true
     }
 
     for (const { commentData, tempId } of pending) {
@@ -148,10 +150,12 @@ export async function postPendingComments(
       sent += 1
       handlers.replace(tempId, serverComment)
     }
+    return true
   } catch (error) {
     log.error({ err: error }, "Error adding comment")
     handlers.remove(pending.slice(sent).map(p => p.tempId))
     // The caption rides only the first comment, so it is lost only if that one failed.
     handlers.restore(sent === 0 ? originalText : null, files.slice(sent))
+    return false
   }
 }
