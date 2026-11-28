@@ -70,7 +70,7 @@ describe('ADEV-360 Reply, Reassign & Ready', () => {
   it('ADEV-360: an agent asker gets the reply, then the task in Ready', async () => {
     const order: string[] = []
     postPendingComments.mockImplementation(async () => { order.push('reply'); return true })
-    const onUpdate = vi.fn(() => { order.push('handBack') })
+    const onUpdate = vi.fn((_task: Task) => { order.push('handBack') })
     renderBar(task(), 'Use B', onUpdate)
 
     const button = screen.getByTestId('comment-hand-back')
