@@ -9,6 +9,7 @@
 import React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Dialog,
   DialogContent,
@@ -22,18 +23,37 @@ import { useTranslations } from "@/lib/i18n/client"
 import { ProjectGoalsEditor, withoutDraftIds } from "@/components/projects/ProjectGoalsEditor"
 import { ProjectConnectionsSection } from "@/components/projects/ProjectConnectionsSection"
 import { useProjectGoals } from "@/hooks/use-project-goals"
+import { DEFAULT_LIST_COLOR, LIST_COLOR_PALETTE } from "@/lib/brand/colors"
 import { EMPTY_GOALS_AND_GUARDRAILS, type GoalsAndGuardrails } from "@/lib/goals-guardrails"
 
 interface ProjectSettingsDialogProps {
   projectId: string
   projectName: string
+  /** Offered with `projectColor` by the Settings Projects tab (ADEV-361); the board header leaves them out. */
+  projectDescription?: string | null
+  projectColor?: string | null
+  /** The project as saved, so a list can follow an edit without a reload. */
+  onSaved?: (changes: { name: string; description: string | null; color: string }) => void
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChange }: ProjectSettingsDialogProps) {
+export function ProjectSettingsDialog({
+  projectId,
+  projectName,
+  projectDescription,
+  projectColor,
+  onSaved,
+  open,
+  onOpenChange,
+}: ProjectSettingsDialogProps) {
   const { t } = useTranslations()
+  const detailsOffered = projectDescription !== undefined || projectColor !== undefined
+  const storedDescription = projectDescription ?? ""
+  const storedColor = projectColor ?? DEFAULT_LIST_COLOR
   const [name, setName] = React.useState(projectName)
+  const [description, setDescription] = React.useState(storedDescription)
+  const [color, setColor] = React.useState(storedColor)
   const [saving, setSaving] = React.useState(false)
   const [failed, setFailed] = React.useState(false)
   const [goalsFailed, setGoalsFailed] = React.useState(false)
@@ -44,11 +64,13 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
   React.useEffect(() => {
     if (open) {
       setName(projectName)
+      setDescription(storedDescription)
+      setColor(storedColor)
       setFailed(false)
       setGoalsFailed(false)
       setGoalsTouched(false)
     }
-  }, [open, projectName])
+  }, [open, projectName, storedDescription, storedColor])
 
   // Load what is stored into the editor, until the person starts editing it.
   React.useEffect(() => {
@@ -56,7 +78,10 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
   }, [open, storedGoals, goalsTouched])
 
   const trimmed = name.trim()
-  const unchanged = trimmed === projectName && !goalsTouched
+  const trimmedDescription = description.trim()
+  const descriptionChanged = detailsOffered && trimmedDescription !== storedDescription.trim()
+  const colorChanged = detailsOffered && color.toLowerCase() !== storedColor.toLowerCase()
+  const unchanged = trimmed === projectName && !descriptionChanged && !colorChanged && !goalsTouched
 
   const save = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -69,10 +94,15 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
     setFailed(false)
     setGoalsFailed(false)
     let ok = true
-    if (trimmed !== projectName) {
+    if (trimmed !== projectName || descriptionChanged || colorChanged) {
       try {
-        await apiPatch(`/api/v1/projects/${projectId}`, { name: trimmed })
-        renameLoadedProject(projectId, trimmed)
+        await apiPatch(`/api/v1/projects/${projectId}`, {
+          ...(trimmed !== projectName ? { name: trimmed } : {}),
+          ...(descriptionChanged ? { description: trimmedDescription } : {}),
+          ...(colorChanged ? { color } : {}),
+        })
+        if (trimmed !== projectName) renameLoadedProject(projectId, trimmed)
+        onSaved?.({ name: trimmed, description: trimmedDescription || null, color })
       } catch {
         ok = false
         setFailed(true)
@@ -108,6 +138,36 @@ export function ProjectSettingsDialog({ projectId, projectName, open, onOpenChan
               data-testid="project-settings-name"
             />
           </label>
+          {detailsOffered && (
+            <>
+              <label className="block space-y-1 text-sm theme-text-primary">
+                <span>{t("lists.listDescription")}</span>
+                <Textarea
+                  value={description}
+                  onChange={event => setDescription(event.target.value)}
+                  data-testid="project-settings-description"
+                />
+              </label>
+              <div className="flex items-center justify-between text-sm theme-text-primary">
+                <span>{t("listSettings.color.label")}</span>
+                <div className="flex flex-wrap justify-end gap-1.5" role="radiogroup" aria-label={t("listSettings.color.label")}>
+                  {LIST_COLOR_PALETTE.map(swatch => (
+                    <button
+                      key={swatch}
+                      type="button"
+                      role="radio"
+                      aria-checked={color.toLowerCase() === swatch}
+                      aria-label={swatch}
+                      data-testid={`project-settings-color-${swatch}`}
+                      onClick={() => setColor(swatch)}
+                      className={`h-6 w-6 rounded-full ring-offset-1 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-brand ${color.toLowerCase() === swatch ? "ring-2 ring-brand" : ""}`}
+                      style={{ backgroundColor: swatch }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
           <div className="max-h-96 overflow-y-auto border-t theme-border pt-3">
             <h3 className="mb-2 text-sm font-semibold theme-text-primary">{t("projectMode.goals.title")}</h3>
             <ProjectGoalsEditor
