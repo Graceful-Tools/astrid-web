@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ciLogsEnv, failedLogArgs, parseCiLogsArgs, prBranchArgs, runListArgs, tailLines } from '../../scripts/lib/ci-logs'
 import { renewalUrgency, usageLimitReset } from '../../scripts/lib/harness-start'
-import { isNeedsMacCandidate } from '../../scripts/lib/claim-next'
+import { hasNeedsMacMarker, needsMac, needsMacFirst, isNeedsMacCandidate } from '../../scripts/lib/claim-next'
 import { pickHandoffPr } from '../../scripts/lib/cloud-handoff'
 
 const SHA = 'a'.repeat(40)
@@ -68,6 +68,18 @@ describe('ADEV-338: handing work off', () => {
     expect(isNeedsMacCandidate({ id: '1', title: ' [Needs-Mac] x' })).toBe(true)
     expect(isNeedsMacCandidate({ id: '1', title: 'Fix the macOS layout [mac]' })).toBe(false)
     expect(isNeedsMacCandidate({ id: '1', title: null })).toBe(false)
+  })
+
+  it('ADEV-363: a NEEDS-MAC comment keeps cloud runs off a task and puts it first locally', async () => {
+    const marked = [{ content: 'NEEDS-MAC: needs the iOS emulator' }]
+    expect(hasNeedsMacMarker(marked)).toBe(true)
+    expect(hasNeedsMacMarker([{ content: 'a NEEDS-MAC: mention mid-text' }])).toBe(false)
+    const comments = async (t: { id: string }) => (t.id === 'b' ? marked : [])
+    expect(await needsMac({ id: 'b', title: 'x' }, comments)).toBe(true)
+    expect(await needsMac({ id: 'a', title: 'x' }, comments)).toBe(false)
+    expect(await needsMac({ id: 'a', title: 'x' }, async () => { throw new Error('down') })).toBe(false)
+    const ordered = await needsMacFirst([{ id: 'a' }, { id: 'b' }, { id: 'c' }], comments)
+    expect(ordered.map(t => t.id)).toEqual(['b', 'a', 'c'])
   })
 
   it('picks the open PR at the recorded sha over an older closed one listed first', () => {

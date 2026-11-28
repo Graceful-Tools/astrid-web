@@ -40,6 +40,37 @@ export function isNeedsMacCandidate(task: ClaimCandidate): boolean {
 }
 
 /**
+ * ADEV-363: a cloud run blocked only by its environment (emulator, self-hosted iOS runner,
+ * sibling checkouts, local credentials) leaves the task Ready, assigned to the agent, with a
+ * comment that starts with this marker and says what it needs. Cloud runs skip such a task;
+ * the local /fixall takes it first. It never goes to Jon's Inbox: only a genuinely human step
+ * (a credential, a high-risk Decision) does, as an item on "Jon's setup checklist".
+ */
+export const NEEDS_MAC_MARKER = 'NEEDS-MAC:'
+
+type CommentReader = (task: ClaimCandidate) => Promise<readonly { content?: string | null }[]>
+
+export function hasNeedsMacMarker(comments: readonly { content?: string | null }[]): boolean {
+  return comments.some(comment => (comment.content ?? '').trimStart().startsWith(NEEDS_MAC_MARKER))
+}
+
+/** Title tag or marker comment. FAIL-OPEN: a comment read that errors does not hold the task. */
+export async function needsMac(task: ClaimCandidate, comments: CommentReader): Promise<boolean> {
+  if (isNeedsMacCandidate(task)) return true
+  try {
+    return hasNeedsMacMarker(await comments(task))
+  } catch {
+    return false
+  }
+}
+
+/** The local /fixall takes `needs-mac` tasks first; the rest keep the queue's order. */
+export async function needsMacFirst<T extends ClaimCandidate>(tasks: readonly T[], comments: CommentReader): Promise<T[]> {
+  const flags = await Promise.all(tasks.map(task => needsMac(task, comments)))
+  return [...tasks.filter((_, i) => flags[i]), ...tasks.filter((_, i) => !flags[i])]
+}
+
+/**
  * ADEV-75: the task agent-run's "Take this worker's task" step already claimed for this
  * worker (slots 2..N), or undefined. A session that re-walks the queue finds that task in
  * Doing, answers NO_READY_TASK, reports SKIPPED, and the release hands the task back.
@@ -161,10 +192,10 @@ export function skipTasksWithOpenPr(input: {
   openBranches: readonly string[]
   comments: (task: ClaimCandidate) => Promise<readonly ClaimComment[]>
   log: (line: string) => void
-  otherwise?: (task: ClaimCandidate) => boolean
+  otherwise?: (task: ClaimCandidate) => boolean | Promise<boolean>
 }): (task: ClaimCandidate) => Promise<boolean> {
   return async task => {
-    if (input.otherwise?.(task)) return true
+    if (await input.otherwise?.(task)) return true
     const branch = openPrBranchFor(task, input.openBranches)
     if (!branch) return false
     try {

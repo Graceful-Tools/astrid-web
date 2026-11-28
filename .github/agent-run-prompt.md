@@ -103,6 +103,13 @@ from rather than nothing. Do not start anything large after that.
 add `--repo Graceful-Tools/astrid-core` for a core PR). A task that needs a Mac (titled `[mac]`)
 is not yours.
 
+**Blocked only by the environment** (needs the Mac: an emulator, the self-hosted iOS runner,
+sibling checkouts, local credentials)? Do not reassign the task to Jon (ADEV-363). Leave it
+Ready, assigned to your mailbox, and comment `NEEDS-MAC: <what it needs>` as the first words
+of the comment; cloud runs then skip it and the local `/fixall` takes it first. Only a
+genuinely human step (a credential, a high-risk Decision) goes to Jon, as an item on
+"Jon's setup checklist".
+
 End your output with exactly one line of its own, starting at column 0:
 
 RESULT: OK | SKIPPED | PARTIAL | FAILED — <one sentence why>
