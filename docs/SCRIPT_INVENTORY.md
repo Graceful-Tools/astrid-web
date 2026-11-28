@@ -10,7 +10,7 @@
 
 ## documentation
 
-`add-task-comment.ts`, `analyze-task.ts`, `assign-task.ts`, `astrid-agent.ts`, `backfill-goal-links.ts`, `check-claim.ts`, `complete-task-with-workflow.ts`, `create-task.ts`, `debug-production-oauth.ts`, `deploy-brand-preview.ts`, `file-ios-task.ts`, `fixall-session.ts`, `get-astrid-tasks.ts`, `get-project-tasks-oauth.ts`, `import-empathy-art.ts`, `index-drop-evidence.ts`, `measure-api-latency.ts`, `measure-cache-hit-rate.ts`, `measure-web-vitals.ts`, `migrate-agent-email-domain.ts`, `move-task-to-list.ts`, `post-list-message.ts`, `promote-inbox-idea.ts`, `provision-brand-database.ts`, `push-agent-env.sh`, `push-brand-env.ts`, `setup.sh`, `sync-core-strings.mjs`, `sync-design-tokens.sh`, `test-cloud-workflow-improvements.ts`, `test-resend-outbound.ts`, `verify-github-agent-fix.ts`, `weekly-deep-review.prompt.md`
+`add-task-comment.ts`, `analyze-task.ts`, `assign-task.ts`, `astrid-agent.ts`, `backfill-goal-links.ts`, `check-claim.ts`, `complete-task-with-workflow.ts`, `create-task.ts`, `debug-production-oauth.ts`, `deploy-brand-preview.ts`, `env-has.sh`, `file-ios-task.ts`, `fixall-session.ts`, `get-astrid-tasks.ts`, `get-project-tasks-oauth.ts`, `import-empathy-art.ts`, `index-drop-evidence.ts`, `measure-api-latency.ts`, `measure-cache-hit-rate.ts`, `measure-web-vitals.ts`, `migrate-agent-email-domain.ts`, `move-task-to-list.ts`, `post-list-message.ts`, `promote-inbox-idea.ts`, `provision-brand-database.ts`, `push-agent-env.sh`, `push-brand-env.ts`, `require-socket-gate.sh`, `setup.sh`, `sync-core-strings.mjs`, `sync-design-tokens.sh`, `test-cloud-workflow-improvements.ts`, `test-resend-outbound.ts`, `verify-github-agent-fix.ts`, `weekly-deep-review.prompt.md`
 
 ## caller
 
