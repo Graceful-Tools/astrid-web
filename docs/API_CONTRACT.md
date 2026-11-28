@@ -687,6 +687,13 @@ webhook task and the agent queue), and over MCP with `get_project_goals { listId
   (`by` is a user id or an agent mailbox). A `current` changed through `PUT …/goals` is recorded the
   same way; a submitted `history` is ignored. MCP: `update_goal_measure { goalId, current, projectId |
   listId | taskId }`.
+- **Linking a goal or guardrail to a measurement service (ADEV-358).** Over the API, put
+  `metric.source: { connectorId, metricKey }` on a goal, or a `{ type: "metric", source, op, threshold }`
+  check on an enforced guardrail, in `PUT …/goals`; `GET …/connectors` lists the connector ids. MCP:
+  `list_project_connectors { projectId | listId | taskId }` and `link_measurement_source { goalId |
+  guardrailId, connectorId, metricKey, direction?, op?, threshold?, unit?, staleAfterHours?, … }`, which
+  read the statement, change that one item and write it back. Same permissions as the PUT: a project
+  owner or admin's own connection; an agent's credentials get a 403.
 - **Goal-signal MCP tools (ADEV-283).** `link_task_goal { taskId, goalId, projectId? }` (adds to the
   task's own links over `PUT tasks/:id/goals`), `get_task_estimate { taskId, projectId? }`,
   `request_estimate { taskId, estimator?, projectId? }`, `link_task_experiment { taskId, kind, … }` and

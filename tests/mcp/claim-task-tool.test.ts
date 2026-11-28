@@ -133,10 +133,11 @@ describe('MCP claim_task tool (AWTD-1557)', () => {
     // Re-pinned for ADEV-179 (2026-11-21): get_project_goals appended; no existing tool changed.
     // Re-pinned for ADEV-182 (2026-11-22): update_goal_measure appended after gather_decision_evidence; no existing tool changed.
     // Re-pinned for ADEV-283 (2026-11-26): the five goal-signal tools appended after update_goal_measure; no existing tool changed.
+    // Re-pinned for ADEV-358: list_project_connectors and link_measurement_source appended after the goal-signal tools.
     // Re-pinned for ADEV-345: optional `agent` on create_task_attachment_upload and handoff_task.
     // Re-pinned for AWTD-1553: optional compact/maxDescriptionChars/limit/before on the three read tools.
     expect(createHash('sha256').update(JSON.stringify(OAUTH_MCP_TOOLS)).digest('hex')).toBe(
-      '88436d181e33d173700033106222aad5f9c5031762f322d048a87900d6998414',
+      '29af27ccbaa3064fabb8ab526ee3e119683cdfb1962dc506aecbe3d0feb459cb',
     )
   })
 
