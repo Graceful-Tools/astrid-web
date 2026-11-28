@@ -117,6 +117,7 @@ export const SCOPE_GROUPS = {
     'comments:write',
     'chat:read',
     'chat:write',
+    'attachments:read',
     'user:read',
     'sse:connect',
   ] as OAuthScope[],
